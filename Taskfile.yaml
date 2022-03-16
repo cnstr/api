@@ -1,0 +1,14 @@
+version: '3'
+
+tasks:
+  dev:
+    desc: 'Hot-reloading local Docker environment'
+    cmds:
+      - cmd: docker compose -f docker/docker-compose.yaml -p canister up --build
+        silent: true
+
+  clean:
+    desc: 'Clean the local Docker environment'
+    cmds:
+      - cmd: docker compose -f docker/docker-compose.yaml -p canister rm -f -s -v
+        silent: true

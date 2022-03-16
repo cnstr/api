@@ -1,0 +1,29 @@
+version: '3'
+services:
+  api:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.dev
+    container_name: canister-api
+    ports:
+      - 8080:3000
+    environment:
+      NODE_ENV: development
+    volumes:
+      - ../src:/app/src
+    depends_on:
+      - database
+
+  database:
+    image: postgres:14-alpine
+    container_name: canister-db
+    ports:
+      - 5432:5432
+    environment:
+      POSTGRES_PASSWORD: pg
+      POSTGRES_USER: cnstr
+    volumes:
+      - db:/var/lib/postgresql/data
+
+volumes:
+  db:

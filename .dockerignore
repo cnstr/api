@@ -1,0 +1,9 @@
+.git/
+dist/
+docker/
+node_modules/
+.dockerignore
+.gitignore
+LICENSE
+README.md
+Taskfile.yaml
