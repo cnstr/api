@@ -1,6 +1,7 @@
 lockfileVersion: 5.3
 
 specifiers:
+  '@canister/models': ^1.0.0
   '@tinyhttp/app': ^2.0.19
   '@tinyhttp/cors': ^2.0.0
   '@tinyhttp/logger': ^1.3.0
@@ -13,10 +14,11 @@ specifiers:
   reflect-metadata: ^0.1.13
   simple-git: ^3.3.0
   tsup: ^5.11.13
-  typeorm: ^0.2.45
+  typeorm: ^0.3.0
   typescript: ^4.6.2
 
 dependencies:
+  '@canister/models': 1.0.0_typeorm@0.3.0
   '@tinyhttp/app': 2.0.19
   '@tinyhttp/cors': 2.0.0
   '@tinyhttp/logger': 1.3.0
@@ -26,7 +28,7 @@ dependencies:
   milliparsec: 2.2.1
   pg: 8.7.3
   reflect-metadata: 0.1.13
-  typeorm: 0.2.45_pg@8.7.3
+  typeorm: 0.3.0_pg@8.7.3
 
 devDependencies:
   '@types/node': 17.0.21
@@ -35,6 +37,14 @@ devDependencies:
   typescript: 4.6.2
 
 packages:
+
+  /@canister/models/1.0.0_typeorm@0.3.0:
+    resolution: {integrity: sha512-MxKLk3iwS679SCt32fXMPxE4pWPdrgCOASHvTZAve+Ev9kA99YeP18DZyNK8zHX6/BVJHFpS+DGnS7vt8qo7jA==}
+    peerDependencies:
+      typeorm: '*'
+    dependencies:
+      typeorm: 0.3.0_pg@8.7.3
+    dev: false
 
   /@kwsites/file-exists/1.1.1:
     resolution: {integrity: sha512-m9/5YGR18lIwxSFDwfE3oA7bWuq9kdau6ugN4H2rJeyhFQZcG9AgSHkQtSD15a8WvTgfz9aikZMrKPHvbpqFiw==}
@@ -248,10 +258,6 @@ packages:
       '@types/node': 17.0.21
     dev: false
 
-  /@types/zen-observable/0.8.3:
-    resolution: {integrity: sha512-fbF6oTd4sGGy0xjHPKAt+eS2CrxJ3+6gQ3FGcBoIJR2TLAyCkCyI8JqZNy+FeON0AhVgNJoUumVoZQjBFUqHkw==}
-    dev: false
-
   /ansi-regex/5.0.1:
     resolution: {integrity: sha512-quJQXlTSUGL2LH9SUXo8VwsY4soanhgo6LNSm84E1LBcE8s3O0wpdiRzyR9z/ZZJMlMWv37qOOb9pdJlMUEKFQ==}
     engines: {node: '>=8'}
@@ -447,6 +453,11 @@ packages:
       which: 2.0.2
     dev: true
 
+  /date-fns/2.28.0:
+    resolution: {integrity: sha512-8d35hViGYx/QH0icHYCeLmsLmMUheMmTyV9Fcm6gvNwdw31yXXH+O85sOBJ+OLnLQMKZowvpKb6FgMIQjcpvQw==}
+    engines: {node: '>=0.11'}
+    dev: false
+
   /dayjs/1.11.0:
     resolution: {integrity: sha512-JLC809s6Y948/FuCZPm5IX8rRhQwOiyMb2TfVVQEixG7P8Lm/gt5S7yoQZmC8x1UehI9Pb7sksEt4xx14m+7Ug==}
     dev: false
@@ -487,9 +498,9 @@ packages:
       path-type: 4.0.0
     dev: true
 
-  /dotenv/8.6.0:
-    resolution: {integrity: sha512-IrPdXQsk2BbzvCBGBOTmmSH5SodmqZNt4ERAZDmW4CT+tL8VtvinqywuANaFu4bOMWki16nqf0e4oC0QIaDr/g==}
-    engines: {node: '>=10'}
+  /dotenv/16.0.0:
+    resolution: {integrity: sha512-qD9WU0MPM4SWLPJy/r2Be+2WgQj8plChsyrCNQzW/0WjvcJQiKQJ9mH3ZgB3fxbUUxgc/11ZJ0Fi5KiimWGz2Q==}
+    engines: {node: '>=12'}
     dev: false
 
   /emoji-regex/8.0.0:
@@ -1564,8 +1575,9 @@ packages:
       - ts-node
     dev: true
 
-  /typeorm/0.2.45_pg@8.7.3:
-    resolution: {integrity: sha512-c0rCO8VMJ3ER7JQ73xfk0zDnVv0WDjpsP6Q1m6CVKul7DB9iVdWLRjPzc8v2eaeBuomsbZ2+gTaYr8k1gm3bYA==}
+  /typeorm/0.3.0_pg@8.7.3:
+    resolution: {integrity: sha512-fGhJql31DRyxT0bxcjD5kAf9hz+aUppp90M93GmlRlCfHq+qKhY70eCEreAgjrlAYmZkfEgDcyMHpcAfrtCe7A==}
+    engines: {node: '>= 12.9.0'}
     hasBin: true
     peerDependencies:
       '@sap/hana-client': ^2.11.14
@@ -1620,8 +1632,9 @@ packages:
       buffer: 6.0.3
       chalk: 4.1.2
       cli-highlight: 2.1.11
+      date-fns: 2.28.0
       debug: 4.3.3
-      dotenv: 8.6.0
+      dotenv: 16.0.0
       glob: 7.2.0
       js-yaml: 4.1.0
       mkdirp: 1.0.4
@@ -1632,7 +1645,6 @@ packages:
       uuid: 8.3.2
       xml2js: 0.4.23
       yargs: 17.3.1
-      zen-observable-ts: 1.1.0
     transitivePeerDependencies:
       - supports-color
     dev: false
@@ -1730,15 +1742,4 @@ packages:
       string-width: 4.2.3
       y18n: 5.0.8
       yargs-parser: 21.0.1
-    dev: false
-
-  /zen-observable-ts/1.1.0:
-    resolution: {integrity: sha512-1h4zlLSqI2cRLPJUHJFL8bCWHhkpuXkF+dbGkRaWjgDIG26DmzyshUMrdV/rL3UnR+mhaX4fRq8LPouq0MYYIA==}
-    dependencies:
-      '@types/zen-observable': 0.8.3
-      zen-observable: 0.8.15
-    dev: false
-
-  /zen-observable/0.8.15:
-    resolution: {integrity: sha512-PQ2PC7R9rslx84ndNBZB/Dkv8V8fZEpk83RLgXtYd0fwUgEjseMn1Dgajh2x6S8QbZAFa9p2qVCEuYZNgve0dQ==}
     dev: false
