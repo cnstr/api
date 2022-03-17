@@ -1,7 +1,7 @@
 FROM node:16-alpine
 WORKDIR /app
 
-RUN npm i -g pnpm
+RUN apk add --no-cache git && npm i -g pnpm
 ADD package.json pnpm-lock.yaml ./
 RUN pnpm install --frozen-lockfile
 
