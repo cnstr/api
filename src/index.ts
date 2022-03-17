@@ -58,16 +58,16 @@ export const http = new App({
 	}
 })
 
-http.use(json())
-http.use(lruSend())
-http.use(cors({
+server.use(json())
+server.use(lruSend())
+server.use(cors({
 	origin: '*',
 	allowedHeaders: [],
 	exposedHeaders: []
 }))
 
 // Track X-Response-Time
-http.use((_req, res, next) => {
+server.use((_req, res, next) => {
 	if (res.locals) {
 		res.locals.startTime = JSON.stringify(hrtime())
 	}
@@ -77,7 +77,7 @@ http.use((_req, res, next) => {
 
 load()
 
-http.use((_req, res, next) => {
+server.use((_req, res, next) => {
 	if (res.locals) {
 		const start = JSON.parse(res.locals.startTime)
 		const delta = hrtime(start)
