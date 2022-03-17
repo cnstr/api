@@ -1,0 +1,34 @@
+apiEndpoint: https://api.canister.me/v2
+siteEndpoint: https://canister.me
+
+name: Canister
+contactEmail: support@canister.me
+copyrightNotice: Copyright (c) 2022, Aerum LLC.
+
+servers:
+  - name: whistler
+    region: asia-southeast1
+    location: Singapore
+
+  - name: everette
+    region: us-east4
+    location: N. Virginia
+
+  - name: ashy
+    region: us-west2
+    location: Los Angeles
+
+  - name: ivy
+    region: europe-west6
+    location: Zurich
+
+  - name: karina
+    region: asia-northeast1
+    location: Tokyo
+
+databases:
+  - name: development
+    host: database
+    username: cnstr
+    database: cnstr
+    password: pg
