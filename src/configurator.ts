@@ -29,7 +29,7 @@ Object.assign(__database, {
 	entities: [Package, Repository]
 })
 
-const source = new DataSource(__database)
-await source.initialize()
-await source.runMigrations({ transaction: 'all' })
+const db = new DataSource(__database)
+await db.initialize()
+await db.runMigrations({ transaction: 'all' })
 console.log('db: connected successfully')
