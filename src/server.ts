@@ -24,8 +24,8 @@ export const http = new App({
 })
 
 serveDocs(http, {
-	title: 'Canister',
+	title: __name,
 	version: __version,
-	servers: ['api.canister.me/v2'],
+	servers: [__apiEndpoint],
 	description: 'A high-speed search engine created for Jailbreaking.',
 })
