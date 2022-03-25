@@ -23,6 +23,14 @@ export const http = new App({
 	}
 })
 
+http.use((_req, res, next) => {
+	if (!res.locals) {
+		res.locals = {}
+	}
+
+	next()
+})
+
 serveDocs(http, {
 	title: __name,
 	version: __version,

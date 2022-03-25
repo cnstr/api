@@ -1,6 +1,7 @@
 import { App } from '@tinyhttp/app'
 import { cors } from '@tinyhttp/cors'
 import 'configurator'
+import 'database'
 import { lruSend } from 'lru-send'
 import { json } from 'milliparsec'
 import { hrtime } from 'node:process'
