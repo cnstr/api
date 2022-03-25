@@ -1,5 +1,4 @@
-import { Package, Repository } from '@canister/models'
-import { DataSource, DataSourceOptions } from 'typeorm'
+import { DataSourceOptions } from 'typeorm'
 
 declare global {
 	const __commit: string
@@ -20,16 +19,3 @@ declare global {
 		location: string
 	}[]
 }
-
-Object.assign(__database, {
-	type: 'postgres',
-	synchronize: false,
-	logging: false,
-	migrationsTableName: 'migrations',
-	entities: [Package, Repository]
-})
-
-const db = new DataSource(__database)
-await db.initialize()
-await db.runMigrations({ transaction: 'all' })
-console.log('db: connected successfully')
