@@ -4,7 +4,7 @@ tasks:
   dev:
     desc: 'Hot-reloading local Docker environment'
     cmds:
-      - cmd: docker compose -f docker/docker-compose.yaml -p canister up --build
+      - cmd: docker compose -f docker/docker-compose.yaml -p canister up --build --remove-orphans
         silent: true
 
   clean:
