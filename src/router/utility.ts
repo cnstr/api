@@ -17,7 +17,7 @@ export function load(http: App) {
 
 			references: {
 				docs: `${__apiEndpoint}/docs`,
-				privacy_policy: `${__siteEndpoint}/privacy-policy`,
+				privacy_policy: `${__siteEndpoint}/privacy`,
 				contact_email: __contactEmail,
 				copyright: __copyrightNotice
 			},
