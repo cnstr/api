@@ -1,5 +1,4 @@
 import { App } from '@tinyhttp/app'
-import { serveDocs } from '@tinyhttp/swagger'
 
 export const http = new App({
 	noMatchHandler: (_req, res) => {
@@ -29,11 +28,4 @@ http.use((_req, res, next) => {
 	}
 
 	next()
-})
-
-serveDocs(http, {
-	title: __name,
-	version: __version,
-	servers: [__apiEndpoint],
-	description: 'A high-speed search engine created for Jailbreaking.',
 })
