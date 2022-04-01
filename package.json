@@ -6,7 +6,7 @@
 		"start": "TZ=UTC node ./dist/index.js"
 	},
 	"dependencies": {
-		"@canister/models": "^1.0.5",
+		"@canister/models": "^1.0.7",
 		"@tinyhttp/app": "^2.0.19",
 		"@tinyhttp/cors": "^2.0.0",
 		"@tinyhttp/logger": "^1.3.0",
