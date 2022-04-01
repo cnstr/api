@@ -53,6 +53,7 @@ export function load(http: App) {
 				query: `${query}:*`
 			})
 			.andWhere({ isCurrent: true })
+			.loadAllRelationIds()
 			.orderBy('tier')
 			.take(limit)
 			.skip((page - 1) * limit)
