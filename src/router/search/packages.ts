@@ -50,9 +50,9 @@ export function load(http: App) {
 			.select()
 			.groupBy('p."databaseId"')
 			.having('vector @@ to_tsquery(\'simple\', string_agg(:query, \' | \'))', {
-				query: `${query}:*`
+				query: `${query.slice(0, -1)}:*` // TODO: Wtf is going on here
 			})
-			.andWhere({ isCurrent: true })
+			.andWhere({ isCurrent: true, isPruned: false })
 			.loadAllRelationIds()
 			.orderBy('tier')
 			.take(limit)
