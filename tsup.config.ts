@@ -71,7 +71,7 @@ async function findDefinitions() {
 	const tag = rawTag.trim()
 
 	const modified = new Date()
-	const modifiedString = `${modified.getFullYear()}.${modified.getMonth()}.${modified.getDate()}`
+	const modifiedString = `${modified.getFullYear()}.${modified.getMonth() + 1}.${modified.getDate()}`
 
 	const build = `${modifiedString}_${commitHash.substring(0, 7)}`
 	const runtimePlatform = `${platform}-${version}_k8s-v1.22.4`
