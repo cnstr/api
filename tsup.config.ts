@@ -150,7 +150,22 @@ async function findDefinitions() {
 		}]
 	])
 
-	console.log('Using the following replacements: %s', replacements)
+	console.log('Injecting the following build-time configurations:')
+	for (const [key, value] of replacements) {
+		if (key === '__swagger') {
+			continue
+		}
+
+		if (typeof value === 'string') {
+			console.log('    %s => %s', key, value)
+			continue
+		}
+
+		for (const subkey of Object.keys(value)) {
+			console.log('    %s.%s => %s', key, subkey, JSON.stringify(value[subkey]))
+		}
+	}
+
 	console.log()
 
 	for (const [key, value] of replacements) {
