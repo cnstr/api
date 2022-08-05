@@ -1,25 +1,72 @@
 import { Package } from '@canister/models'
 import { App } from '@tinyhttp/app'
-import { addToDocs } from '@tinyhttp/swagger'
 import { database } from 'database'
 
 export function load(http: App) {
-	http.get('/jailbreak/search/packages', addToDocs({
-		query: {
-			'q': {
-				type: 'string',
-				optional: false
-			},
-			'limit': {
-				type: 'number',
-				optional: true
-			},
-			'page': {
-				type: 'number',
-				optional: true
-			}
-		}
-	}), (req, res, next) => {
+	/**
+	 * @openapi
+	 * /jailbreak/search/packages:
+	 *   get:
+	 *     summary: Search for packages
+	 *     description: Retrieve an indexed package using a search query
+	 *     operationId: searchPackages
+	 *     parameters:
+	 *       - name: q
+	 *         in: query
+	 *         description: The search query
+	 *         example: mypackage
+	 *         required: true
+	 *         schema:
+	 *           type: string
+	 *           format: query
+	 *           minLength: 3
+	 *       - name: limit
+	 *         in: query
+	 *         description: Search response limit
+	 *         required: false
+	 *         schema:
+	 *           type: integer
+	 *           default: 100
+	 *           minimum: 1
+	 *           maximum: 250
+	 *       - name: page
+	 *         in: query
+	 *         description: Pagination number (starting from 1)
+	 *         required: false
+	 *         schema:
+	 *           type: integer
+	 *           default: 1
+	 *           minimum: 1
+	 *     responses:
+	 *       '200':
+	 *         description: 'OK'
+	 *         content:
+	 *           application/json:
+	 *             schema:
+	 *               type: object
+	 *               properties:
+	 *                 message:
+	 *                   type: string
+	 *                   enum:
+	 *                     - 200 Successful
+	 *                 date:
+	 *                   type: string
+	 *                   format: date-time
+	 *                 refs:
+	 *                   type: object
+	 *                   properties:
+	 *                     nextPage:
+	 *                       type: string
+	 *                       format: uri
+	 *                     previousPage:
+	 *                       type: string
+	 *                       format: uri
+	 *                 count:
+	 *                   type: integer
+	 *                   minimum: 0
+	 *                 # TODO: Data
+	 */
+	http.get('/jailbreak/search/packages', (req, res, next) => {
 		const query = req.query.q
 		if (!query) {
 			return res.status(400).json({
@@ -43,6 +90,23 @@ export function load(http: App) {
 		res.locals!.page = parseInt(page?.toString() ?? '1')
 		res.locals!.limit = parseInt(limit?.toString() ?? '100')
 		res.locals!.query = query
+
+		if (res.locals!.page < 1) {
+			return res.status(400).json({
+				message: '400 Bad Request',
+				error: 'Query parameter \'page\' must be greater than 0',
+				date: new Date()
+			})
+		}
+
+		if (res.locals!.limit < 1 || res.locals!.limit > 250) {
+			return res.status(400).json({
+				message: '400 Bad Request',
+				error: 'Query parameter \'limit\' must be between 1 and 250',
+				date: new Date()
+			})
+		}
+
 		next()
 	}, async (req, res) => {
 		const { query, limit, page } = res.locals!
@@ -50,7 +114,7 @@ export function load(http: App) {
 			.select()
 			.groupBy('p."databaseId"')
 			.having('vector @@ to_tsquery(\'simple\', string_agg(:query, \' | \'))', {
-				query: `${query.slice(0, -1)}:*` // TODO: Wtf is going on here
+				query: `${query}:*` // TODO: Wtf is going on here
 			})
 			.andWhere({ isCurrent: true, isPruned: false })
 			.loadAllRelationIds()
@@ -66,7 +130,7 @@ export function load(http: App) {
 			message: '200 Successful',
 			date: new Date(),
 			refs: {
-				nextPage: nextPage,
+				nextPage: pkgs.length === limit ? nextPage : null,
 				previousPage: page > 1 ? previousPage : null
 			},
 			count: pkgs.length,

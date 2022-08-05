@@ -18,4 +18,9 @@ declare global {
 		region: string
 		location: string
 	}[]
+
+	const __swagger: {
+		json: string
+		yaml: string
+	}
 }

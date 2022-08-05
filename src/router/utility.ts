@@ -1,6 +1,4 @@
 import { App } from '@tinyhttp/app'
-import { generateDocs } from '@tinyhttp/swagger'
-import { dump } from 'js-yaml'
 
 export function load(http: App) {
 	http.get('/', (_req, res) => {
@@ -31,15 +29,13 @@ export function load(http: App) {
 	})
 
 	http.get('/openapi.yaml', (_req, res) => {
-		const docs = generateDocs(http, {
-			title: __name,
-			version: __version,
-			servers: [__apiEndpoint],
-			description: 'A high-speed search engine created for Jailbreaking.',
-		})
+		res.set('Content-Type', 'application/x-yaml')
+		res.send(__swagger.yaml)
+	})
 
-		const yaml = dump(docs)
-		res.send(yaml)
+	http.get('/openapi.json', (_req, res) => {
+		res.set('Content-Type', 'application/json')
+		res.send(__swagger.json)
 	})
 
 	http.get('/healthz', (_req, res) => {

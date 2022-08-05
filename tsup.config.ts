@@ -1,9 +1,10 @@
 import { defineConfig } from 'tsup'
 import simpleGit from 'simple-git'
-import { load } from 'js-yaml'
+import { dump, load } from 'js-yaml'
 import { readFile } from 'node:fs/promises'
 import { platform } from 'node:os'
 import { exit, version } from 'node:process'
+import swaggerJSDoc, { OAS3Definition } from 'swagger-jsdoc'
 
 if (!process.env.NODE_ENV) {
 	console.error('Missing NODE_ENV')
@@ -61,6 +62,44 @@ type Config = {
 	}[]
 }
 
+type Definitions = {
+	name: string,
+	description: string,
+	version: string,
+	endpoint: string,
+	contactEmail: string,
+	copyrightNotice: string
+}
+
+function generateSwagger(definitions: Definitions) {
+	const definition: OAS3Definition = {
+		openapi: '3.0.0',
+		info: {
+			title: definitions.name,
+			description: 'A high-speed search engine created for Jailbreaking.',
+			version: definitions.version,
+			contact: {
+				name: 'Canister Support',
+				email: definitions.contactEmail
+			},
+			license: {
+				name: definitions.copyrightNotice
+			}
+		},
+		servers: [
+			{
+				url: definitions.endpoint,
+				description: 'Main API',
+			}
+		]
+	}
+
+	return swaggerJSDoc({
+		definition,
+		apis: ['src/router/**/*.ts']
+	})
+}
+
 async function findDefinitions() {
 	const config = load(await readFile('config.yaml', 'utf8')) as Config
 
@@ -82,6 +121,15 @@ async function findDefinitions() {
 		exit(2)
 	}
 
+	const swagger = generateSwagger({
+		name: config.name,
+		description: 'A high-speed search engine created for Jailbreaking.',
+		version: tag,
+		endpoint: config.apiEndpoint,
+		contactEmail: config.contactEmail,
+		copyrightNotice: config.copyrightNotice,
+	})
+
 	const replacements = new Map<string, any>([
 		['__commit', commitHash],
 		['__version', tag],
@@ -95,7 +143,11 @@ async function findDefinitions() {
 		['__copyrightNotice', config.copyrightNotice],
 
 		['__database', database],
-		['__servers', config.servers]
+		['__servers', config.servers],
+		['__swagger', {
+			json: JSON.stringify(swagger),
+			yaml: dump(swagger)
+		}]
 	])
 
 	console.log('Using the following replacements: %s', replacements)

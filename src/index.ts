@@ -1,6 +1,5 @@
 import { App } from '@tinyhttp/app'
 import { cors } from '@tinyhttp/cors'
-import { serveDocs } from '@tinyhttp/swagger'
 import 'configurator'
 import 'database'
 import { lruSend } from 'lru-send'
@@ -55,10 +54,3 @@ for (const { method, path } of http.middleware) {
 for (const route of routes) {
 	console.log('http: mounting to %s', route)
 }
-
-serveDocs(http, {
-	title: __name,
-	version: __version,
-	servers: [__apiEndpoint],
-	description: 'A high-speed search engine created for Jailbreaking.',
-})

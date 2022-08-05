@@ -6,24 +6,26 @@
 		"start": "TZ=UTC node ./dist/index.js"
 	},
 	"dependencies": {
-		"@canister/models": "^1.1.1",
+		"@canister/models": "^1.2.2",
 		"@tinyhttp/app": "^2.0.22",
 		"@tinyhttp/cors": "^2.0.0",
 		"@tinyhttp/logger": "^1.3.0",
-		"@tinyhttp/swagger": "^0.1.1",
-		"got": "^12.1.0",
-		"js-yaml": "^4.1.0",
+		"got": "^12.3.0",
 		"lru-send": "^0.1.3",
 		"milliparsec": "^2.2.2",
 		"pg": "^8.7.3",
 		"reflect-metadata": "^0.1.13",
-		"typeorm": "^0.3.6"
+		"typeorm": "^0.3.7"
 	},
 	"devDependencies": {
 		"@types/js-yaml": "^4.0.5",
-		"@types/node": "^18.0.0",
-		"simple-git": "^3.9.0",
-		"tsup": "^6.1.2",
+		"@types/node": "^18.6.3",
+		"@types/swagger-jsdoc": "^6.0.1",
+		"js-yaml": "^4.1.0",
+		"openapi-types": "^12.0.0",
+		"simple-git": "^3.11.0",
+		"swagger-jsdoc": "^6.2.4",
+		"tsup": "^6.2.1",
 		"typescript": "^4.7.4"
 	}
 }
