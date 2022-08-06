@@ -1,15 +1,15 @@
 import 'constants.js'
 import 'database.js'
 
-import { App } from '@tinyhttp/app'
+import { App, Request, Response } from '@tinyhttp/app'
 import { cors } from '@tinyhttp/cors'
 import { lruSend } from 'lru-send'
 import { json } from 'milliparsec'
 import { hrtime } from 'node:process'
 import { load } from 'router.js'
-import { http } from 'server.js'
+import { http, LocalsResponse } from 'server.js'
 
-const server = new App()
+const server = new App<never, Request, LocalsResponse>()
 
 server.use(json())
 server.use(lruSend())
@@ -20,7 +20,13 @@ server.use(cors({
 }))
 
 // Track X-Response-Time
-server.use((_request, response, next) => {
+type TimedResponse = Response & {
+	locals: {
+		startTime: string;
+	};
+}
+
+server.use((_request, response: TimedResponse, next) => {
 	if (response.locals) {
 		response.locals.startTime = JSON.stringify(hrtime())
 	}
@@ -30,9 +36,8 @@ server.use((_request, response, next) => {
 
 load()
 
-server.use((_request, response, next) => {
+server.use((_request, response: TimedResponse, next) => {
 	if (response.locals) {
-		// eslint-disable-next-line @typescript-eslint/no-unsafe-argument
 		const start = JSON.parse(response.locals.startTime) as [number, number]
 		const delta = hrtime(start)
 		response.setHeader('X-Response-Time', `${(delta[0] * 1e3) + (delta[1] / 1e-6)}ms`)
@@ -41,6 +46,7 @@ server.use((_request, response, next) => {
 	next()
 })
 
+// @ts-expect-error TODO: Fix
 server.use('/v2', http)
 server.listen(3000, () => {
 	console.log('http: started successfully')
