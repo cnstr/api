@@ -1,6 +1,6 @@
 {
 	"type": "module",
-	"version": "1.9.9",
+	"version": "2.0.0",
 	"scripts": {
 		"dev": "tsup --watch --config hack/build.ts",
 		"build": "tsup --clean --dts --sourcemap --minify --config hack/build.ts",
