@@ -1,0 +1,11 @@
+{
+	"extends": "tale",
+	"overrides": [
+		{
+			"files": ["hack/*.ts"],
+			"parserOptions": {
+				"project": "hack/tsconfig.json"
+			}
+		}
+	]
+}
