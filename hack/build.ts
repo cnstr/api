@@ -15,16 +15,14 @@ const openapi_spec = compile_openapi(product, version)
 const defines_map = new Map<string, string>()
 
 for (const [key, value] of manifest_defines) {
-	defines_map.set(`__${key}`, JSON.stringify(value))
+	defines_map.set(`$${key}`, JSON.stringify(value))
 }
 
 for (const [key, value] of build_defines) {
-	defines_map.set(`__${key}`, JSON.stringify(value))
+	defines_map.set(`$${key}`, JSON.stringify(value))
 }
 
-for (const [key, value] of Object.entries(openapi_spec)) {
-	defines_map.set(`__${key}`, JSON.stringify(value))
-}
+defines_map.set('$openapi', JSON.stringify(openapi_spec))
 
 const year = new Date()
 	.getFullYear()

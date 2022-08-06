@@ -1,12 +1,13 @@
+import 'constants.js'
+import 'database.js'
+
 import { App } from '@tinyhttp/app'
 import { cors } from '@tinyhttp/cors'
-import 'configurator'
-import 'database'
 import { lruSend } from 'lru-send'
 import { json } from 'milliparsec'
 import { hrtime } from 'node:process'
-import { load } from 'router'
-import { http } from 'server'
+import { load } from 'router.js'
+import { http } from 'server.js'
 
 const server = new App()
 
@@ -19,7 +20,7 @@ server.use(cors({
 }))
 
 // Track X-Response-Time
-server.use((_req, res, next) => {
+server.use((_request, res, next) => {
 	if (res.locals) {
 		res.locals.startTime = JSON.stringify(hrtime())
 	}
@@ -29,18 +30,20 @@ server.use((_req, res, next) => {
 
 load()
 
-server.use((_req, res, next) => {
+server.use((_request, res, next) => {
 	if (res.locals) {
 		const start = JSON.parse(res.locals.startTime)
 		const delta = hrtime(start)
-		res.setHeader('X-Response-Time', `${delta[0] * 1000000 + delta[1] / 1000}ms`)
+		res.setHeader('X-Response-Time', `${delta[0] * 1_000_000 + delta[1] / 1000}ms`)
 	}
 
 	next()
 })
 
 server.use('/v2', http)
-server.listen(3000, () => console.log('http: started successfully'))
+server.listen(3000, () => {
+	console.log('http: started successfully')
+})
 
 const routes = new Set<string>()
 for (const { method, path } of http.middleware) {
