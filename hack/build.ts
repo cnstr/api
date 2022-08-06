@@ -36,7 +36,8 @@ export default defineConfig(options => ({
 	splitting: false,
 	format: ['esm'],
 	platform: 'node',
-	sourcemap: true,
+	sourcemap: options.watch ? 'inline' : true,
+	minify: Boolean(!options.watch),
 	banner: {
 		js: `// ---------------------------------------------------
 		// Copyright (c) ${year}, Aerum LLC.
