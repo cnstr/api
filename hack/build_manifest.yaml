@@ -1,0 +1,13 @@
+product:
+  code_name: cnstr
+  production_name: Canister
+  contact_email: support@canister.me
+  copyright_notice: Copyright (c) {YEAR}, Aerum LLC.
+  api_endpoint: https://api.canister.me/v2
+  site_endpoint: https://canister.me
+
+database:
+  host: database
+  username: cnstr
+  database: cnstr
+  password: pg

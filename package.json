@@ -2,7 +2,7 @@
 	"type": "module",
 	"scripts": {
 		"dev": "tsup --watch --config hack/build.ts",
-		"build": "tsup --clean --dts --sourcemap --minify",
+		"build": "tsup --clean --dts --sourcemap --minify --config hack/build.ts",
 		"start": "TZ=UTC node ./dist/index.js"
 	},
 	"dependencies": {
