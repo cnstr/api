@@ -1,8 +1,9 @@
 import { Package } from '@canister/models'
-import { App } from '@tinyhttp/app'
-import { database } from 'database'
+import { App, Request, Response } from '@tinyhttp/app'
+import { database } from 'database.js'
+import { LocalsResponse } from 'server.js'
 
-export function load(http: App) {
+export function load(http: App<never, Request, LocalsResponse>) {
 	/**
 	 * @openapi
 	 * /jailbreak/search/packages:
@@ -66,55 +67,67 @@ export function load(http: App) {
 	 *                   minimum: 0
 	 *                 # TODO: Data
 	 */
-	http.get('/jailbreak/search/packages', (req, res, next) => {
-		const query = req.query.q
+	type SearchResponse = Response & {
+		locals: {
+			page: number;
+			limit: number;
+			query: string;
+		};
+	}
+
+	http.get('/jailbreak/search/packages', (request, response: SearchResponse, next) => {
+		const query = request.query.q
 		if (!query) {
-			return res.status(400).json({
-				message: '400 Bad Request',
-				error: 'Missing query parameter: \'q\'',
-				date: new Date()
-			})
+			return response.status(400)
+				.json({
+					message: '400 Bad Request',
+					error: 'Missing query parameter: \'q\'',
+					date: new Date()
+				})
 		}
 
 		if (query.length < 3) {
-			return res.status(400).json({
-				message: '400 Bad Request',
-				error: 'Query parameter \'q\' must be atleast 3 characters',
-				date: new Date()
-			})
+			return response.status(400)
+				.json({
+					message: '400 Bad Request',
+					error: 'Query parameter \'q\' must be atleast 3 characters',
+					date: new Date()
+				})
 		}
 
-		const limit = req.query.limit
-		const page = req.query.page
+		const { limit } = request.query
+		const { page } = request.query
 
-		res.locals!.page = parseInt(page?.toString() ?? '1')
-		res.locals!.limit = parseInt(limit?.toString() ?? '100')
-		res.locals!.query = query
+		response.locals.page = Number.parseInt(page?.toString() ?? '1', 10)
+		response.locals.limit = Number.parseInt(limit?.toString() ?? '100', 10)
+		response.locals.query = query.toString()
 
-		if (res.locals!.page < 1) {
-			return res.status(400).json({
-				message: '400 Bad Request',
-				error: 'Query parameter \'page\' must be greater than 0',
-				date: new Date()
-			})
+		if (response.locals.page < 1) {
+			return response.status(400)
+				.json({
+					message: '400 Bad Request',
+					error: 'Query parameter \'page\' must be greater than 0',
+					date: new Date()
+				})
 		}
 
-		if (res.locals!.limit < 1 || res.locals!.limit > 250) {
-			return res.status(400).json({
-				message: '400 Bad Request',
-				error: 'Query parameter \'limit\' must be between 1 and 250',
-				date: new Date()
-			})
+		if (response.locals.limit < 1 || response.locals.limit > 250) {
+			return response.status(400)
+				.json({
+					message: '400 Bad Request',
+					error: 'Query parameter \'limit\' must be between 1 and 250',
+					date: new Date()
+				})
 		}
 
 		next()
-	}, async (req, res) => {
-		const { query, limit, page } = res.locals!
+	}, async (request, response: SearchResponse) => {
+		const { query, limit, page } = response.locals
 		const pkgs: Package[] = await database.createQueryBuilder(Package, 'p')
 			.select()
 			.groupBy('p."databaseId"')
 			.having('vector @@ to_tsquery(\'simple\', string_agg(:query, \' | \'))', {
-				query: `${query}:*` // TODO: Wtf is going on here
+				query: `${query}:*`
 			})
 			.andWhere({ isCurrent: true, isPruned: false })
 			.loadAllRelationIds()
@@ -123,26 +136,27 @@ export function load(http: App) {
 			.skip((page - 1) * limit)
 			.getMany()
 
-		const nextPage = __apiEndpoint + req.originalUrl.replace(`page=${page}`, `page=${page + 1}`)
-		const previousPage = __apiEndpoint + req.originalUrl.replace(`page=${page}`, `page=${page - 1}`)
+		const nextPage = $product.api_endpoint + request.originalUrl.replace(`page=${page}`, `page=${page + 1}`)
+		const previousPage = $product.api_endpoint + request.originalUrl.replace(`page=${page}`, `page=${page - 1}`)
 
-		return res.status(200).json({
-			message: '200 Successful',
-			date: new Date(),
-			refs: {
-				nextPage: pkgs.length === limit ? nextPage : null,
-				previousPage: page > 1 ? previousPage : null
-			},
-			count: pkgs.length,
-			data: pkgs.map(pkg => {
-				return {
-					...pkg,
+		return response.status(200)
+			.json({
+				message: '200 Successful',
+				date: new Date(),
+				refs: {
+					// eslint-disable-next-line unicorn/no-null
+					nextPage: pkgs.length === limit ? nextPage : null,
+					// eslint-disable-next-line unicorn/no-null
+					previousPage: page > 1 ? previousPage : null
+				},
+				count: pkgs.length,
+				data: pkgs.map(data => ({
+					...data,
 					refs: {
-						meta: __apiEndpoint + '/jailbreak/get/package' + `?q=${pkg.package}`,
-						repo: __apiEndpoint + '/jailbreak/get/repository' + `?q=${pkg.repository}`
+						meta: `${$product.api_endpoint}/jailbreak/get/package?q=${data.package}`,
+						repo: `${$product.api_endpoint}/jailbreak/get/repository?q=${data.repositorySlug}`
 					}
-				}
+				}))
 			})
-		})
 	})
 }

@@ -20,9 +20,9 @@ server.use(cors({
 }))
 
 // Track X-Response-Time
-server.use((_request, res, next) => {
-	if (res.locals) {
-		res.locals.startTime = JSON.stringify(hrtime())
+server.use((_request, response, next) => {
+	if (response.locals) {
+		response.locals.startTime = JSON.stringify(hrtime())
 	}
 
 	next()
@@ -30,11 +30,12 @@ server.use((_request, res, next) => {
 
 load()
 
-server.use((_request, res, next) => {
-	if (res.locals) {
-		const start = JSON.parse(res.locals.startTime)
+server.use((_request, response, next) => {
+	if (response.locals) {
+		// eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+		const start = JSON.parse(response.locals.startTime) as [number, number]
 		const delta = hrtime(start)
-		res.setHeader('X-Response-Time', `${delta[0] * 1_000_000 + delta[1] / 1000}ms`)
+		response.setHeader('X-Response-Time', `${(delta[0] * 1e3) + (delta[1] / 1e-6)}ms`)
 	}
 
 	next()
