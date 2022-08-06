@@ -1,5 +1,6 @@
 {
 	"type": "module",
+	"version": "1.9.9",
 	"scripts": {
 		"dev": "tsup --watch --config hack/build.ts",
 		"build": "tsup --clean --dts --sourcemap --minify --config hack/build.ts",
@@ -24,6 +25,7 @@
 		"eslint": "^8.21.0",
 		"eslint-config-tale": "^1.0.13",
 		"js-yaml": "^4.1.0",
+		"np": "^7.6.2",
 		"openapi-types": "^12.0.0",
 		"simple-git": "^3.11.0",
 		"swagger-jsdoc": "^6.2.4",

@@ -1,0 +1,33 @@
+FROM node:18-alpine
+WORKDIR /app
+
+RUN npm i -g pnpm
+ADD . .
+RUN pnpm install --frozen-lockfile \
+	&& pnpm run build \
+	&& rm -rf node_modules \
+	&& pnpm i --frozen-lockfile --offline --prod
+
+FROM node:18-alpine
+WORKDIR /app
+COPY --from=0 /app/package.json .
+COPY --from=0 /app/dist ./dist
+COPY --from=0 /app/node_modules ./node_modules
+CMD [ "npm", "run", "start" ]
+
+ARG BUILD_DATE
+ARG CANISTER_VERSION
+ARG GIT_STATE
+
+LABEL org.opencontainers.image.created=${BUILD_DATE}
+LABEL org.opencontainers.image.authors="Aarnav Tale <tale@aerum.co>"
+LABEL org.opencontainers.image.url="https://containers.aerum.co/canister/api"
+LABEL org.opencontainers.image.source="https://github.com/cnstr/api"
+LABEL org.opencontainers.image.version=${CANISTER_VERSION}
+LABEL org.opencontainers.image.revision=${GIT_STATE}
+LABEL org.opencontainers.image.vendor="Aerum LLC."
+LABEL org.opencontainers.image.licenses="UNLICENSED"
+LABEL org.opencontainers.image.ref.name="aerum.co/canister/api"
+LABEL org.opencontainers.image.title="Canister API"
+LABEL org.opencontainers.image.description="The Canister Indexing System"
+LABEL org.opencontainers.image.base.name="docker.io/library/node:18-alpine"

@@ -27,24 +27,36 @@ defines_map.set('$openapi', JSON.stringify(openapi_spec))
 const year = new Date()
 	.getFullYear()
 
-export default defineConfig(options => ({
-	esbuildOptions(options) {
-		options.define = Object.fromEntries(defines_map)
-	},
-	entry: ['./src/index.ts'],
-	target: 'node18',
-	splitting: false,
-	format: ['esm'],
-	platform: 'node',
-	sourcemap: options.watch ? 'inline' : true,
-	minify: Boolean(!options.watch),
-	banner: {
-		js: `// ---------------------------------------------------
+export default defineConfig(options => {
+	if (!options.watch) {
+		// TODO: Fix
+		defines_map.set('$database', JSON.stringify({
+			host: 'postgres',
+			username: 'postgres',
+			password: 'postgres',
+			database: 'canister'
+		}))
+	}
+
+	return {
+		esbuildOptions(options) {
+			options.define = Object.fromEntries(defines_map)
+		},
+		entry: ['./src/index.ts'],
+		target: 'node18',
+		splitting: false,
+		format: ['esm'],
+		platform: 'node',
+		sourcemap: options.watch ? 'inline' : true,
+		minify: Boolean(!options.watch),
+		banner: {
+			js: `// ---------------------------------------------------
 		// Copyright (c) ${year}, Aerum LLC.
 		// See the attached LICENSE file for more information.
 		// ---------------------------------------------------`
-	},
+		},
 
-	// Development Hook
-	onSuccess: options.watch ? 'pnpm start' : undefined
-}))
+		// Development Hook
+		onSuccess: options.watch ? 'pnpm start' : undefined
+	}
+})

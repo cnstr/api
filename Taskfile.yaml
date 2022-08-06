@@ -12,3 +12,14 @@ tasks:
     cmds:
       - cmd: docker compose -f docker/docker-compose.yaml -p canister rm -f -s -v
         silent: true
+  publish:
+    desc: 'Builds and publishes the production Docker image'
+    cmds:
+      - cmd: "pnpm np --no-cleanup --no-tests --no-publish --no-release-draft --yolo  --message 'chore: v%s'"
+        silent: true
+      - cmd: docker buildx create --name canister-api-builder --use
+        silent: true
+      - cmd: docker buildx build -f docker/Dockerfile.prod --platform linux/amd64 -t aerum.co/canister/api:$(git tag --sort=-v:refname | cut -c 2- | head -n 1) --push --build-arg BUILD_DATE=$(date --rfc-3339=date) --build-arg CANISTER_VERSION=$(git tag --sort=-v:refname | cut -c 2- | head -n 1) --build-arg GIT_STATE=$(git rev-parse HEAD) .
+        silent: false
+      - defer: docker buildx rm canister-api-builder
+        silent: true
