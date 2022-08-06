@@ -1,46 +1,42 @@
 import { App } from '@tinyhttp/app'
 
 export function load(http: App) {
-	http.get('/', (_req, res) => {
-		const random = Math.floor(Math.random() * __servers.length)
-		const date = new Date()
-
-		return res.status(200).json({
+	http.get('/', (request, response) => response.status(200)
+		.json({
 			info: {
-				name: __name,
-				version: __version,
-				build: __build,
-				platform: __platform
+				name: `${$product.production_name} (${$product.code_name})`,
+				version: $version,
+				build: $build,
+				platform: $platform
 			},
 
 			references: {
-				docs: `${__apiEndpoint}/docs`,
-				privacy_policy: `${__siteEndpoint}/privacy`,
-				contact_email: __contactEmail,
-				copyright: __copyrightNotice
+				docs: `${$product.api_endpoint}/docs`,
+				privacy_policy: `${$product.site_endpoint}/privacy`,
+				contact_email: $product.contact_email,
+				copyright: $product.copyright_notice
 			},
 
 			connection: {
-				node_name: __servers[random].name,
-				node_location: `${__servers[random].location} (${__servers[random].region})`,
-				current_date: `${date.toISOString()} (${date.getTime()})`
+				current_date: new Date(),
+				current_epoch: Date.now(),
+				user_agent: request.headers['user-agent'],
+				http_version: request.httpVersion
 			}
-		})
+		}))
+
+	http.get('/openapi.yaml', (_request, response) => {
+		response.set('Content-Type', 'application/x-yaml')
+		response.send($openapi.yaml)
 	})
 
-	http.get('/openapi.yaml', (_req, res) => {
-		res.set('Content-Type', 'application/x-yaml')
-		res.send(__swagger.yaml)
+	http.get('/openapi.json', (_request, response) => {
+		response.set('Content-Type', 'application/json')
+		response.send($openapi.json)
 	})
 
-	http.get('/openapi.json', (_req, res) => {
-		res.set('Content-Type', 'application/json')
-		res.send(__swagger.json)
-	})
-
-	http.get('/healthz', (_req, res) => {
-		return res.status(200).json({
+	http.get('/healthz', (_request, response) => response.status(200)
+		.json({
 			health: 'OK'
-		})
-	})
+		}))
 }
