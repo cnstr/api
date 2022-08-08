@@ -34,11 +34,9 @@ export async function update_k8s(tag: string) {
 	const new_name = `${name}:${tag}`
 
 	yaml.spec.template.spec.containers[0].image = new_name
-	const new_yaml = dump(yaml, { indent: 2 })
+	const new_yaml = dump(yamls)
 	await writeFile(path, new_yaml)
 
 	const git = simple_git('.')
 	await git.commit(`chore: update k8s deployment to use ${tag}`, [path])
 }
-
-await update_k8s('2.0.4')
