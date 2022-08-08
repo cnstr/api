@@ -1,6 +1,7 @@
 import { dump, loadAll } from 'js-yaml'
 import { readFile, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
+import { default as simple_git } from 'simple-git'
 
 type k8s_manifest = {
 	kind: string;
@@ -35,6 +36,9 @@ export async function update_k8s(tag: string) {
 	yaml.spec.template.spec.containers[0].image = new_name
 	const new_yaml = dump(yaml, { indent: 2 })
 	await writeFile(path, new_yaml)
+
+	const git = simple_git('.')
+	await git.commit(`chore: update k8s deployment to use ${tag}`, [path])
 }
 
 await update_k8s('2.0.4')
