@@ -17,7 +17,7 @@ type k8s_manifest = {
 }
 
 export async function update_k8s(tag: string) {
-	const path = join('kubernetes/api.yaml')
+	const path = join('kubernetes', 'api.yaml')
 	const contents = await readFile(path, 'utf8')
 	const yamls = loadAll(contents) as k8s_manifest[]
 
@@ -34,7 +34,8 @@ export async function update_k8s(tag: string) {
 	const new_name = `${name}:${tag}`
 
 	yaml.spec.template.spec.containers[0].image = new_name
-	const new_yaml = dump(yamls)
+	const new_yaml = yamls.map(y => dump(y))
+		.join('---\n')
 	await writeFile(path, new_yaml)
 
 	const git = simple_git('.')
