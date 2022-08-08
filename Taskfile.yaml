@@ -23,3 +23,5 @@ tasks:
         silent: false
       - defer: docker buildx rm canister-api-builder
         silent: true
+      - cmd: pnpm build
+        silent: true
