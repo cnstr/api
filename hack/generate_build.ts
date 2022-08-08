@@ -6,7 +6,8 @@ export async function generate_build() {
 
 	const commit_hash = await git.revparse('HEAD')
 	const raw_tag = await git.tag(['--sort=-v:refname'])
-	const tag = raw_tag.trim()
+	const tag = raw_tag.split('\n')[0].trim()
+		.slice(1)
 
 	const last_modified = new Date()
 	const date_tag = `${last_modified.getFullYear()}.${last_modified.getMonth() + 1}.${last_modified.getDate()}`
