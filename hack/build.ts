@@ -4,6 +4,7 @@ import { compile_openapi } from './compile_openapi.js'
 import { generate_build } from './generate_build.js'
 import { load_manifest } from './load_manifest.js'
 import type { config_manifest } from './types.js'
+import { update_k8s } from './update_k8s.js'
 
 const manifest_defines = await load_manifest()
 const build_defines = await generate_build()
@@ -23,6 +24,7 @@ for (const [key, value] of build_defines) {
 }
 
 defines_map.set('$openapi', JSON.stringify(openapi_spec))
+await update_k8s(version)
 
 const year = new Date()
 	.getFullYear()
