@@ -29,6 +29,11 @@ await update_k8s(version)
 const year = new Date()
 	.getFullYear()
 
+const headerString = `// ---------------------------------------------------
+// Copyright (c) ${year}, Aerum LLC.
+// See the attached LICENSE file for more information.
+// ---------------------------------------------------`
+
 export default defineConfig(options => {
 	if (!options.watch) {
 		// TODO: Fix
@@ -45,20 +50,19 @@ export default defineConfig(options => {
 			options.define = Object.fromEntries(defines_map)
 		},
 		entry: ['./src/index.ts'],
+		clean: !options.watch,
+		dts: !options.watch,
 		target: 'node18',
 		splitting: false,
 		format: ['esm'],
 		platform: 'node',
-		sourcemap: options.watch ? 'inline' : true,
-		minify: Boolean(!options.watch),
+		sourcemap: options.watch ? 'inline' : false,
+		minify: !options.watch,
 		banner: {
-			js: `// ---------------------------------------------------
-		// Copyright (c) ${year}, Aerum LLC.
-		// See the attached LICENSE file for more information.
-		// ---------------------------------------------------`
+			js: headerString
 		},
 
 		// Development Hook
-		onSuccess: options.watch ? 'pnpm start' : undefined
+		onSuccess: options.watch ? 'pnpm debug' : undefined
 	}
 })

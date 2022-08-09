@@ -4,7 +4,8 @@
 	"scripts": {
 		"dev": "tsup --watch --config hack/build.ts",
 		"build": "tsup --clean --dts --sourcemap --minify --config hack/build.ts",
-		"start": "TZ=UTC node --enable-source-maps ./dist/index.js"
+		"debug": "TZ=UTC node --inspect-brk=0.0.0.0 ./dist/index.js",
+		"start": "TZ=UTC node ./dist/index.js"
 	},
 	"dependencies": {
 		"@canister/models": "^1.2.2",
