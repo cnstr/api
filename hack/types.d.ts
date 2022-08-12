@@ -1,4 +1,4 @@
-export type config_manifest = {
+export type Manifest = {
 	product: {
 		code_name: string;
 		production_name: string;

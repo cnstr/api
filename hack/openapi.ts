@@ -2,9 +2,9 @@ import { dump } from 'js-yaml'
 import swaggerJSDoc, { OAS3Definition } from 'swagger-jsdoc'
 
 import { schemas } from './schemas.js'
-import type { config_manifest } from './types.js'
+import type { Manifest } from './types.js'
 
-export function generateDocumentation(metadata: config_manifest['product'], version: string) {
+export function generateDocumentation(metadata: Manifest['product'], version: string) {
 	const definition: OAS3Definition = {
 		openapi: '3.0.0',
 		info: {

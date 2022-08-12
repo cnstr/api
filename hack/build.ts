@@ -1,70 +1,59 @@
+import { env } from 'node:process'
 import { defineConfig } from 'tsup'
 
-import { generate_build } from './generate_build.js'
-import { load_manifest } from './load_manifest.js'
+import { calculateBuildInfo } from './buildInfo.js'
+import { bumpDeployManifest } from './k8s.js'
+import { readManifest } from './manifest.js'
 import { generateDocumentation } from './openapi.js'
-import type { config_manifest } from './types.js'
-import { update_k8s } from './update_k8s.js'
 
-const manifest_defines = await load_manifest()
-const build_defines = await generate_build()
+const buildDate = new Date()
 
-const product = manifest_defines.get('product') as config_manifest['product']
-const version = build_defines.get('version') ?? ''
-const documentation = generateDocumentation(product, version)
+const manifest = await readManifest(buildDate)
+const buildInfo = await calculateBuildInfo(buildDate)
+const documentation = generateDocumentation(manifest.product, buildInfo.version)
 
-const defines_map = new Map<string, string>()
+const definitions = new Map<string, string>()
+definitions.set('$openapi', JSON.stringify(documentation))
 
-for (const [key, value] of manifest_defines) {
-	defines_map.set(`$${key}`, JSON.stringify(value))
+for (const [key, value] of Object.entries({ ...manifest, ...buildInfo })) {
+	definitions.set(`$${key}`, JSON.stringify(value))
 }
 
-for (const [key, value] of build_defines) {
-	defines_map.set(`$${key}`, JSON.stringify(value))
+if (env.BUMP_K8S === '1') {
+	await bumpDeployManifest(buildInfo.version)
 }
 
-defines_map.set('$openapi', JSON.stringify(documentation))
-if (process.env.BUMP_K8S) {
-	await update_k8s(version)
+if (env.PRODUCTION === '1') {
+	definitions.set('$database', JSON.stringify({
+		host: 'postgres',
+		username: 'postgres',
+		password: 'postgres',
+		database: 'canister'
+	}))
 }
-
-const year = new Date()
-	.getFullYear()
 
 const headerString = `// ---------------------------------------------------
-// Copyright (c) ${year}, Aerum LLC.
+// Copyright (c) ${buildDate.getFullYear()}, Aerum LLC.
 // See the attached LICENSE file for more information.
 // ---------------------------------------------------`
 
-export default defineConfig(options => {
-	if (!options.watch) {
-		// TODO: Fix
-		defines_map.set('$database', JSON.stringify({
-			host: 'postgres',
-			username: 'postgres',
-			password: 'postgres',
-			database: 'canister'
-		}))
-	}
+export default defineConfig(options => ({
+	esbuildOptions(options) {
+		options.define = Object.fromEntries(definitions)
+	},
+	entry: ['./src/index.ts'],
+	clean: !options.watch,
+	dts: !options.watch,
+	target: 'node18',
+	splitting: false,
+	format: ['esm'],
+	platform: 'node',
+	sourcemap: options.watch ? 'inline' : false,
+	minify: !options.watch,
+	banner: {
+		js: headerString
+	},
 
-	return {
-		esbuildOptions(options) {
-			options.define = Object.fromEntries(defines_map)
-		},
-		entry: ['./src/index.ts'],
-		clean: !options.watch,
-		dts: !options.watch,
-		target: 'node18',
-		splitting: false,
-		format: ['esm'],
-		platform: 'node',
-		sourcemap: options.watch ? 'inline' : false,
-		minify: !options.watch,
-		banner: {
-			js: headerString
-		},
-
-		// Development Hook
-		onSuccess: options.watch ? 'pnpm debug' : undefined
-	}
-})
+	// Development Hook
+	onSuccess: options.watch ? 'pnpm debug' : undefined
+}))

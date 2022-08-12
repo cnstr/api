@@ -1,9 +1,9 @@
 import { dump, loadAll } from 'js-yaml'
 import { readFile, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
-import { default as simple_git } from 'simple-git'
+import { default as gitClient } from 'simple-git'
 
-type k8s_manifest = {
+type KubernetesManifest = {
 	kind: string;
 	spec: {
 		template: {
@@ -16,10 +16,10 @@ type k8s_manifest = {
 	};
 }
 
-export async function update_k8s(tag: string) {
+export async function bumpDeployManifest(tag: string) {
 	const path = join('kubernetes', 'api.yaml')
 	const contents = await readFile(path, 'utf8')
-	const yamls = loadAll(contents) as k8s_manifest[]
+	const yamls = loadAll(contents) as KubernetesManifest[]
 
 	const yaml = yamls.find(y => y.kind === 'Deployment')
 
@@ -31,13 +31,14 @@ export async function update_k8s(tag: string) {
 	const { image } = yaml.spec.template.spec.containers[0]
 
 	const name = image.split(':')[0]
-	const new_name = `${name}:${tag}`
+	const bumpedTagName = `${name}:${tag}`
 
-	yaml.spec.template.spec.containers[0].image = new_name
+	yaml.spec.template.spec.containers[0].image = bumpedTagName
 	const new_yaml = yamls.map(y => dump(y))
 		.join('---\n')
 	await writeFile(path, new_yaml)
 
-	const git = simple_git('.')
-	await git.commit(`chore: update k8s deployment to use ${tag}`, [path])
+	const git = gitClient('.')
+	await git.commit(`chore: bump k8s -> ${tag}`, [path])
+	await git.push()
 }
