@@ -1,8 +1,8 @@
 import { defineConfig } from 'tsup'
 
-import { compile_openapi } from './compile_openapi.js'
 import { generate_build } from './generate_build.js'
 import { load_manifest } from './load_manifest.js'
+import { generateDocumentation } from './openapi.js'
 import type { config_manifest } from './types.js'
 import { update_k8s } from './update_k8s.js'
 
@@ -11,7 +11,7 @@ const build_defines = await generate_build()
 
 const product = manifest_defines.get('product') as config_manifest['product']
 const version = build_defines.get('version') ?? ''
-const openapi_spec = compile_openapi(product, version)
+const documentation = generateDocumentation(product, version)
 
 const defines_map = new Map<string, string>()
 
@@ -23,7 +23,7 @@ for (const [key, value] of build_defines) {
 	defines_map.set(`$${key}`, JSON.stringify(value))
 }
 
-defines_map.set('$openapi', JSON.stringify(openapi_spec))
+defines_map.set('$openapi', JSON.stringify(documentation))
 if (process.env.BUMP_K8S) {
 	await update_k8s(version)
 }
