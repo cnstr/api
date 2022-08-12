@@ -2,64 +2,14 @@
 
 import { Package } from '@canister/models'
 
-const nullable = new Set([
-	'sha256',
-	'name',
-	'description',
-	'author',
-	'maintainer',
-	'depiction',
-	'nativeDepiction',
-	'sileoDepiction',
-	'header',
-	'tintColor',
-	'icon',
-	'section',
-	'tag',
-	'installedSize'
-])
-
-function recurseSchema(record: Record<string, unknown>) {
-	const properties: Record<string, unknown> = {}
-
-	for (const [key, value] of Object.entries(record)) {
-		if (Array.isArray(value)) {
-			properties[key] = {
-				type: 'array',
-				items: {
-					type: 'string'
-				}
-			}
-
-			continue
-		}
-
-		if (value instanceof Object) {
-			properties[key] = recurseSchema(value as Record<string, unknown>)
-			continue
-		}
-
-		properties[key] = {
-			type: typeof value,
-			example: value,
-			nullable: nullable.has(key)
-		}
-	}
-
-	return {
-		type: 'object',
-		properties
-	}
-}
+import { generateSchema } from './generator.js'
 
 export function generatePackageSchema() {
 	const examplePackage = new Package()
 
 	Object.assign(examplePackage, {
-		databaseId: 125_157,
 		package: 'com.muirey03.cr4shed',
 		isCurrent: true,
-		isPruned: false,
 		repository: 'havoc',
 		repositorySlug: 'havoc',
 		price: 'Free',
@@ -88,6 +38,52 @@ export function generatePackageSchema() {
 		}
 	})
 
-	return recurseSchema(examplePackage as unknown as Record<string, unknown>)
+	return generateSchema({
+		schema: examplePackage,
+		descriptions: {
+			package: 'Identifier of the package',
+			isCurrent: 'If this is the latest version of the package',
+			repository: 'Object representing the repository and it\'s data',
+			repositorySlug: 'Unique identifier of the repository',
+			price: 'Price of the package',
+			tier: 'How trustworthy the package repository is (1 = highest, 5 = lowest)',
+			version: 'Version of the package',
+			architecture: 'Architecture of the package',
+			filename: 'URI path to the package debian file from the repository base',
+			size: 'Size of the package in bytes',
+			sha256: 'SHA256 hash of the package',
+			name: 'Name of the package',
+			description: 'Description of the package',
+			author: 'Author of the package (may include email/website)',
+			maintainer: 'Maintainer of the package (may include email/website)',
+			depiction: 'URL to the depiction of the package',
+			nativeDepiction: 'URL to the native depiction of the package',
+			sileoDepiction: 'URL to the sileo depiction of the package',
+			header: 'URL to the header image of the package',
+			tintColor: 'Tint color of the package',
+			icon: 'URL to the icon image of the package',
+			section: 'Section of the package',
+			tag: 'Tags of the package',
+			installedSize: 'Size of the package in bytes once installed',
+			meta: 'Direct URL to the metadata of the package',
+			repo: 'Direct URL to the repository metadata of the package'
+		},
+		nullables: [
+			'sha256',
+			'name',
+			'description',
+			'author',
+			'maintainer',
+			'depiction',
+			'nativeDepiction',
+			'sileoDepiction',
+			'header',
+			'tintColor',
+			'icon',
+			'section',
+			'tag',
+			'installedSize'
+		]
+	})
 }
 
