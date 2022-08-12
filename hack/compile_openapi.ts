@@ -1,6 +1,7 @@
 import { dump } from 'js-yaml'
 import swaggerJSDoc, { OAS3Definition } from 'swagger-jsdoc'
 
+import { generatePackageSchema } from './schemas/package.js'
 import type { config_manifest } from './types.js'
 
 export function compile_openapi(meta: config_manifest['product'], version: string) {
@@ -23,7 +24,29 @@ export function compile_openapi(meta: config_manifest['product'], version: strin
 				url: meta.api_endpoint,
 				description: 'Main API'
 			}
-		]
+		],
+		components: {
+			schemas: {
+				BadRequest: {
+					type: 'object',
+					properties: {
+						message: {
+							type: 'string',
+							example: 'HTTP Error Type'
+						},
+						error: {
+							type: 'string',
+							example: 'Error Message related to request'
+						},
+						date: {
+							type: 'string',
+							format: 'date-time'
+						}
+					}
+				},
+				Package: generatePackageSchema()
+			}
+		}
 	}
 
 	const openapi_spec = swaggerJSDoc({

@@ -65,7 +65,16 @@ export function load(http: App<never, Request, LocalsResponse>) {
 	 *                 count:
 	 *                   type: integer
 	 *                   minimum: 0
-	 *                 # TODO: Data
+	 *                 data:
+	 *                   type: array
+	 *                   items:
+	 *                     $ref: '#/components/schemas/Package'
+	 *       '400':
+	 *         description: 'Bad Request'
+	 *         content:
+	 *           application/json:
+	 *             schema:
+	 *               $ref: '#/components/schemas/BadRequest'
 	 */
 	type SearchResponse = Response & {
 		locals: {
