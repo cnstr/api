@@ -23,5 +23,5 @@ tasks:
         silent: false
       - defer: docker buildx rm canister-api-builder
         silent: true
-      - cmd: pnpm build
+      - cmd: BUMP_K8S=1 pnpm build
         silent: true

@@ -24,7 +24,9 @@ for (const [key, value] of build_defines) {
 }
 
 defines_map.set('$openapi', JSON.stringify(openapi_spec))
-await update_k8s(version)
+if (process.env.BUMP_K8S) {
+	await update_k8s(version)
+}
 
 const year = new Date()
 	.getFullYear()
