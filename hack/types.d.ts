@@ -14,5 +14,10 @@ export type Manifest = {
 		password: string;
 		database: string;
 	};
+
+	bump: {
+		documentation_id: string;
+		access_token: string;
+	};
 }
 

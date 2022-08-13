@@ -1,3 +1,4 @@
+import got from 'got'
 import { env } from 'node:process'
 import { defineConfig } from 'tsup'
 
@@ -21,6 +22,15 @@ for (const [key, value] of Object.entries({ ...manifest, ...buildInfo })) {
 
 if (env.BUMP_K8S === '1') {
 	await bumpDeployManifest(buildInfo.version)
+	await got.post('https://bump.sh/api/v1/versions', {
+		json: {
+			documentation: manifest.bump.documentation_id,
+			definition: documentation.yaml
+		},
+		headers: {
+			Authorization: `Token ${manifest.bump.access_token}`
+		}
+	})
 }
 
 if (env.PRODUCTION === '1') {

@@ -4,10 +4,7 @@ import { join } from 'node:path'
 
 import type { Manifest } from './types.js'
 
-type Definitions = {
-	product: Manifest['product'];
-	database: Manifest['database'];
-}
+type Definitions = Manifest
 
 export async function readManifest(date: Date) {
 	const path = join('hack', 'build_manifest.yaml')
@@ -28,7 +25,8 @@ export async function readManifest(date: Date) {
 
 	const defines = new Map<string, Record<string, string>>([
 		['product', manifest.product],
-		['database', manifest.database]
+		['database', manifest.database],
+		['bump', manifest.bump]
 	])
 
 	return Object.fromEntries(defines) as Definitions
