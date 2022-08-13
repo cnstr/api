@@ -22,7 +22,7 @@ for (const [key, value] of Object.entries({ ...manifest, ...buildInfo })) {
 
 if (env.BUMP_K8S === '1') {
 	await bumpDeployManifest(buildInfo.version)
-	await got.post('https://bump.sh/api/v1/versions', {
+	const { statusCode, body } = await got.post('https://bump.sh/api/v1/versions', {
 		json: {
 			documentation: manifest.bump.documentation_id,
 			definition: documentation.yaml
@@ -31,6 +31,15 @@ if (env.BUMP_K8S === '1') {
 			Authorization: `Token ${manifest.bump.access_token}`
 		}
 	})
+
+	if (statusCode === 201) {
+		console.log('> Updated documentation on bump.sh')
+	} else if (statusCode === 204) {
+		console.log('> Unchanged documentation on bump.sh')
+	} else {
+		console.log('> Failed to update documentation on bump.sh')
+		console.log(statusCode, body)
+	}
 }
 
 if (env.PRODUCTION === '1') {
