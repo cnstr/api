@@ -135,11 +135,10 @@ export function load(http: App<never, Request, LocalsResponse>) {
 		const pkgs: Package[] = await database.createQueryBuilder(Package, 'p')
 			.select()
 			.groupBy('p."databaseId"')
-			.having('vector @@ to_tsquery(\'simple\', string_agg(:query, \' | \'))', {
+			.having('p."vector" @@ to_tsquery(\'simple\', string_agg(:query, \' | \'))', {
 				query: `${query}:*`
 			})
 			.andWhere({ isCurrent: true, isPruned: false })
-			.loadAllRelationIds()
 			.orderBy('tier')
 			.take(limit)
 			.skip((page - 1) * limit)
