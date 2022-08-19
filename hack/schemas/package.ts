@@ -6,33 +6,35 @@ import { generateSchema } from './generator.js'
 
 const examplePackage = new DBPackage()
 Object.assign(examplePackage, {
-	package: 'com.muirey03.cr4shed',
+	package: 'lunotech11.legizmo.grace',
 	isCurrent: true,
-	repository: 'havoc',
-	repositorySlug: 'havoc',
-	price: 'Free',
+	repositorySlug: 'chariz',
+	price: '$4.99',
 	tier: 1,
-	version: '4.2.2',
+	version: '2.3.1-2',
 	architecture: 'iphoneos-arm',
-	filename: 'api/download/package/61f940c201a1cb7a5c422d9a/com.muirey03.cr4shed_4.2.2.deb',
-	size: '218172',
-	sha256: 'cc189e77794f66930ff4171fbd35ab38956669353d1d925a8f8b8aecd844accf',
-	name: 'Cr4shed',
-	description: 'A modern crash reporter for iOS',
-	author: 'Muirey03 <tcmuir03@gmail.com>',
-	maintainer: 'Muirey03 <tcmuir03@gmail.com>',
-	depiction: 'https://havoc.app/depiction/cr4shed',
+	filename: 'debs/lunotech11.legizmo.grace_2.3.1-2_iphoneos-arm.deb',
+	size: '332562',
+	sha256: '9a5b896b096ed04f1b0e0fdfb83f9d3637474e9f1100da3dbc540482433c5ecf',
+	name: 'Legizmo Grace ',
+	description: 'Enables pairing, connecting and updating to unsupported versions of watchOS',
+	author: 'lunotech11 <support@legizmo.app>',
+	maintainer: 'lunotech11 <support@legizmo.app>',
+	depiction: 'https://chariz.com/buy/legizmo-grace',
 	nativeDepiction: null,
-	sileoDepiction: 'https://havoc.app/package/cr4shed/depiction.json',
-	header: null,
-	tintColor: null,
-	icon: 'https://media.havoc.app/61f940a401a1cb7a5c422cc5',
+	sileoDepiction: 'https://chariz.com/api/sileo/package/lunotech11.legizmo.grace/depiction.json',
+	header: 'https://cdn.chariz.cloud/asset/legizmo-grace/UTEf2gTydQJzutqeIHUJWydk36hOoX6M/assets/5MTLnFEJg8MCEiwaGg-a09UOnb6bWbn5g0vP5cZ_oHGRd8HXIOsZWrhB8z-9wumbliuh2FRvojH0CaShA1Zbcw.jpg',
+	tintColor: '#2c5364',
+	icon: 'https://img.chariz.cloud/icon/legizmo-grace/icon@3x.png',
 	section: 'Tweaks',
-	tag: [],
-	installedSize: '1856',
+	tag: [
+		'cydia::commercial',
+		'compatible_min::ios12.0'
+	],
+	installedSize: '2240',
 	refs: {
-		meta: 'https://api.canister.me/v2/jailbreak/get/package?q=com.muirey03.cr4shed',
-		repo: 'https://api.canister.me/v2/jailbreak/get/repository?q=havoc'
+		meta: 'https://api.canister.me/v2/jailbreak/package/lunotech11.legizmo.grace',
+		repo: 'https://api.canister.me/v2/jailbreak/repository/chariz'
 	}
 })
 
