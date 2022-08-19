@@ -6,11 +6,11 @@ import { LocalsResponse } from 'server.js'
 export function load(http: App<never, Request, LocalsResponse>) {
 	/**
 	 * @openapi
-	 * /jailbreak/search/packages:
+	 * /jailbreak/package/search:
 	 *   get:
 	 *     summary: Search for packages
 	 *     description: Retrieve an indexed package using a search query
-	 *     operationId: searchPackages
+	 *     operationId: searchPackage
 	 *     parameters:
 	 *       - name: q
 	 *         in: query
@@ -84,7 +84,7 @@ export function load(http: App<never, Request, LocalsResponse>) {
 		};
 	}
 
-	http.get('/jailbreak/search/packages', (request, response: SearchResponse, next) => {
+	http.get('/jailbreak/package/search', (request, response: SearchResponse, next) => {
 		const query = request.query.q
 		if (!query) {
 			return response.status(400)
@@ -138,7 +138,10 @@ export function load(http: App<never, Request, LocalsResponse>) {
 			.having('p."vector" @@ to_tsquery(\'simple\', string_agg(:query, \' | \'))', {
 				query: `${query}:*`
 			})
-			.andWhere({ isCurrent: true, isPruned: false })
+			.andWhere({
+				isCurrent: true,
+				isPruned: false
+			})
 			.orderBy('tier')
 			.take(limit)
 			.skip((page - 1) * limit)
@@ -158,13 +161,115 @@ export function load(http: App<never, Request, LocalsResponse>) {
 					previousPage: page > 1 ? previousPage : null
 				},
 				count: pkgs.length,
-				data: pkgs.map(data => ({
-					...data,
-					refs: {
-						meta: `${$product.api_endpoint}/jailbreak/get/package?q=${data.package}`,
-						repo: `${$product.api_endpoint}/jailbreak/get/repository?q=${data.repositorySlug}`
+				data: pkgs.map(data => {
+					const entries = Object.entries(data)
+						.filter(([key]) => key !== 'databaseId' && key !== 'isPruned')
+
+					return {
+						...Object.fromEntries(entries),
+						refs: {
+							meta: `${$product.api_endpoint}/jailbreak/get/package?q=${data.package}`,
+							repo: `${$product.api_endpoint}/jailbreak/get/repository?q=${data.repositorySlug}`
+						}
 					}
-				}))
+				})
+			})
+	})
+
+	/**
+	 * @openapi
+	 * /jailbreak/package/{packageId}:
+	 *   get:
+	 *     summary: Lookup a package by ID
+	 *     description: Retrieve all versions of a package by package ID
+	 *     operationId: lookupPackage
+	 *     parameters:
+	 *       - name: packageId
+	 *         in: path
+	 *         description: The packageId to lookup
+	 *         example: com.mycompany.mypackage
+	 *         required: true
+	 *         schema:
+	 *           type: string
+	 *     responses:
+	 *       '200':
+	 *         description: 'OK'
+	 *         content:
+	 *           application/json:
+	 *             schema:
+	 *               type: object
+	 *               properties:
+	 *                 message:
+	 *                   type: string
+	 *                   enum:
+	 *                     - 200 Successful
+	 *                 date:
+	 *                   type: string
+	 *                   format: date-time
+	 *                 refs:
+	 *                   type: object
+	 *                   properties:
+	 *                     nextPage:
+	 *                       type: string`
+	 *                       format: uri
+	 *                     previousPage:
+	 *                       type: string
+	 *                       format: uri
+	 *                 count:
+	 *                   type: integer
+	 *                   minimum: 0
+	 *                 data:
+	 *                   type: array
+	 *                   items:
+	 *                     $ref: '#/components/schemas/Package'
+	 */
+	type LookupResponse = Response & {
+		locals: {
+			query: string;
+		};
+	}
+
+	http.get('/jailbreak/package/:package', (request, response: LookupResponse, next) => {
+		const query = request.params.package
+		if (!query) {
+			return response.status(400)
+				.json({
+					message: '400 Bad Request',
+					error: 'Missing URL parameter: \':package\'',
+					date: new Date()
+				})
+		}
+
+		response.locals.query = query.toString()
+		next()
+	}, async (_request, response: LookupResponse) => {
+		const { query } = response.locals
+		const pkgs: Package[] = await database.createQueryBuilder(Package, 'p')
+			.select()
+			.groupBy('p."databaseId"')
+			.where({
+				package: query,
+				isPruned: false
+			})
+			.orderBy('"isCurrent" DESC NULLS LAST,tier')
+			.getMany()
+
+		return response.status(200)
+			.json({
+				message: '200 Successful',
+				date: new Date(),
+				count: pkgs.length,
+				data: pkgs.map(data => {
+					const entries = Object.entries(data)
+						.filter(([key]) => key !== 'databaseId' && key !== 'isPruned')
+
+					return {
+						...Object.fromEntries(entries),
+						refs: {
+							repo: `${$product.api_endpoint}/jailbreak/get/repository?q=${data.repositorySlug}`
+						}
+					}
+				})
 			})
 	})
 }
