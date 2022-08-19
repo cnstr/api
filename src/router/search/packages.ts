@@ -168,8 +168,8 @@ export function load(http: App<never, Request, LocalsResponse>) {
 					return {
 						...Object.fromEntries(entries),
 						refs: {
-							meta: `${$product.api_endpoint}/jailbreak/get/package?q=${data.package}`,
-							repo: `${$product.api_endpoint}/jailbreak/get/repository?q=${data.repositorySlug}`
+							meta: `${$product.api_endpoint}/jailbreak/package/${data.package}`,
+							repo: `${$product.api_endpoint}/jailbreak/repository/${data.repositorySlug}`
 						}
 					}
 				})
