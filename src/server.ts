@@ -3,6 +3,7 @@ import { App, Request, Response } from '@tinyhttp/app'
 import * as packageLookup from './router/package/lookup.js'
 import * as packageSearch from './router/package/search.js'
 import * as repositoryLookup from './router/repository/lookup.js'
+import * as repositoryRanking from './router/repository/ranking.js'
 import * as repositorySearch from './router/repository/search.js'
 
 export type LocalsResponse = Response & {
@@ -35,6 +36,7 @@ http.get('/jailbreak/package/search', packageSearch.middleware, packageSearch.ha
 http.get('/jailbreak/package/:package', packageLookup.middleware, packageLookup.handler)
 http.get('/jailbreak/repository/search', repositorySearch.middleware, repositorySearch.handler)
 http.get('/jailbreak/repository/:repository', repositoryLookup.middleware, repositoryLookup.handler)
+http.get('/jailbreak/repository/ranking', repositoryRanking.middleware, repositoryRanking.handler)
 
 http.get('/', (request, response) => response.status(200)
 	.json({
