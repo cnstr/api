@@ -35,8 +35,8 @@ export const http = new App<never, Request, LocalsResponse>({
 http.get('/jailbreak/package/search', packageSearch.middleware, packageSearch.handler)
 http.get('/jailbreak/package/:package', packageLookup.middleware, packageLookup.handler)
 http.get('/jailbreak/repository/search', repositorySearch.middleware, repositorySearch.handler)
-http.get('/jailbreak/repository/:repository', repositoryLookup.middleware, repositoryLookup.handler)
 http.get('/jailbreak/repository/ranking', repositoryRanking.middleware, repositoryRanking.handler)
+http.get('/jailbreak/repository/:repository', repositoryLookup.middleware, repositoryLookup.handler)
 
 http.get('/', (request, response) => response.status(200)
 	.json({
