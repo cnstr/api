@@ -7,7 +7,6 @@
       - name: rank
         in: query
         description: The repository ranking to filter by
-        example: myrepo
         required: true
         schema:
           type: string
