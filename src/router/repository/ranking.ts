@@ -35,8 +35,9 @@ export function middleware(request: Request, response: SearchResponse, next: Nex
 export async function handler(request: Request, response: SearchResponse) {
 	const { query } = response.locals
 
-	const repos = query === '*' ? await database.getRepository(Repository)
-		.find() : await database.createQueryBuilder(Repository, 'r')
+	const repos = query === '*' ? await database.createQueryBuilder(Repository, 'r')
+		.orderBy('tier')
+		.getMany() : await database.createQueryBuilder(Repository, 'r')
 		.select()
 		.groupBy('r."slug"')
 		.where('r."tier"=:query', {
