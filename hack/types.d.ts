@@ -6,6 +6,7 @@ export type Manifest = {
 		copyright_notice: string;
 		api_endpoint: string;
 		site_endpoint: string;
+		docs_endpoint: string;
 	};
 
 	database: {

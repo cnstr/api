@@ -20,6 +20,7 @@ export async function readManifest(date: Date) {
 	console.log('> - Contact: %s', manifest.product.contact_email)
 	console.log('> - API: %s', manifest.product.api_endpoint)
 	console.log('> - Site: %s', manifest.product.site_endpoint)
+	console.log('> - Docs: %s', manifest.product.docs_endpoint)
 	console.log('> - Database: %s@%s/%s', manifest.database.username, manifest.database.host, manifest.database.database)
 	console.log()
 

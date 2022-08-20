@@ -48,7 +48,7 @@ http.get('/', (request, response) => response.status(200)
 		},
 
 		references: {
-			docs: `${$product.api_endpoint}/docs`,
+			docs: $product.docs_endpoint,
 			privacy_policy: `${$product.site_endpoint}/privacy`,
 			contact_email: $product.contact_email,
 			copyright: $product.copyright_notice
