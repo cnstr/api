@@ -146,8 +146,12 @@ export function load(http: App<never, Request, LocalsResponse>) {
 			.skip((page - 1) * limit)
 			.getMany()
 
-		const nextPage = $product.api_endpoint + request.originalUrl.replace(`page=${page}`, `page=${page + 1}`)
-		const previousPage = $product.api_endpoint + request.originalUrl.replace(`page=${page}`, `page=${page - 1}`)
+		const url = new URL(request.originalUrl, $product.api_endpoint)
+		url.searchParams.set('page', (page + 1).toString())
+		const nextPage = url.href
+
+		url.searchParams.set('page', (page - 1).toString())
+		const previousPage = url.href
 
 		return response.status(200)
 			.json({
