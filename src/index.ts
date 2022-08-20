@@ -6,7 +6,6 @@ import { cors } from '@tinyhttp/cors'
 import { lruSend } from 'lru-send'
 import { json } from 'milliparsec'
 import { hrtime } from 'node:process'
-import { load } from 'router.js'
 import { http, LocalsResponse } from 'server.js'
 
 const server = new App<never, Request, LocalsResponse>()
@@ -33,8 +32,6 @@ server.use((_request, response: TimedResponse, next) => {
 
 	next()
 })
-
-load()
 
 server.use((_request, response: TimedResponse, next) => {
 	if (response.locals) {

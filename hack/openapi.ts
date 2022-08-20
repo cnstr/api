@@ -32,7 +32,7 @@ export function generateDocumentation(metadata: Manifest['product'], version: st
 
 	const openapiSpecification = swaggerJSDoc({
 		definition,
-		apis: ['src/router/**/*.ts']
+		apis: ['src/router/**/*.yaml']
 	})
 
 	console.log('> Dumping OpenAPI specification to JSON & YAML')

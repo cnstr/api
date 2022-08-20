@@ -1,0 +1,44 @@
+/jailbreak/package/{packageId}:
+  get:
+    summary: Lookup a package by ID
+    description: Retrieve all versions of a package by package ID
+    operationId: lookupPackage
+    parameters:
+      - name: packageId
+        in: path
+        description: The packageId to lookup
+        example: com.mycompany.mypackage
+        required: true
+        schema:
+          type: string
+    responses:
+      '200':
+        description: 'OK'
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                message:
+                  type: string
+                  enum:
+                    - 200 Successful
+                date:
+                  type: string
+                  format: date-time
+                refs:
+                  type: object
+                  properties:
+                    nextPage:
+                      type: string`
+                      format: uri
+                    previousPage:
+                      type: string
+                      format: uri
+                count:
+                  type: integer
+                  minimum: 0
+                data:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/Package'
