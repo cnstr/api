@@ -1,6 +1,6 @@
 /jailbreak/repository/search:
   get:
-    summary: Search for repositories
+    summary: Repository Search
     description: Retrieve an indexed repository using a search query
     operationId: searchRepository
     parameters:

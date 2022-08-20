@@ -30,7 +30,8 @@ Object.assign(exampleRepository, {
 	sileoEndpoint: 'https://chariz.com/api/sileo/',
 	refs: {
 		meta: 'https://api.canister.me/v2/jailbreak/repository/chariz',
-		packages: 'https://api.canister.me/v2/jailbreak/repository/chariz/packages'
+		packages: 'https://api.canister.me/v2/jailbreak/repository/chariz/packages',
+		origin: 'https://api.canister.me/v2/jailbreak/repository/chariz/origin'
 	}
 })
 
@@ -52,7 +53,8 @@ export const Repository = generateSchema({
 		paymentGateway: 'Payment gateway API URL used by the repository',
 		sileoEndpoint: 'Sileo API URL used by the repository',
 		meta: 'URL to the repository metadata',
-		packages: 'URL to the repository packages list'
+		packages: 'URL to the repository packages list',
+		origin: 'URL to the repository origin metadata'
 	},
 	nullables: [
 		'component',

@@ -1,6 +1,6 @@
 /jailbreak/package/search:
   get:
-    summary: Search for packages
+    summary: Package Search
     description: Retrieve an indexed package using a search query
     operationId: searchPackage
     parameters:

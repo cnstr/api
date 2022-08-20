@@ -1,4 +1,4 @@
-import { Package } from '@canister/models'
+import { Repository } from '@canister/models'
 import type { NextFunction, Request, Response } from '@tinyhttp/app'
 import { database } from 'database.js'
 
@@ -9,12 +9,12 @@ type LookupResponse = Response & {
 }
 
 export function middleware(request: Request, response: LookupResponse, next: NextFunction) {
-	const query = request.params.package
+	const query = request.params.repository
 	if (!query) {
 		return response.status(400)
 			.json({
 				message: '400 Bad Request',
-				error: 'Missing URL parameter: \':package\'',
+				error: 'Missing URL parameter: \':repository\'',
 				date: new Date()
 			})
 	}
@@ -25,40 +25,37 @@ export function middleware(request: Request, response: LookupResponse, next: Nex
 
 export async function handler(_request: Request, response: LookupResponse) {
 	const { query } = response.locals
-	const pkgs = await database.createQueryBuilder(Package, 'p')
+	const repo = await database.createQueryBuilder(Repository, 'p')
 		.select()
-		.groupBy('p."databaseId"')
+		.groupBy('p."slug"')
 		.where({
-			package: query,
+			slug: query,
 			isPruned: false
 		})
-		.orderBy('"isCurrent" DESC NULLS LAST,tier')
-		.getMany()
+		.getOne()
 
-	if (pkgs.length === 0) {
+	if (!repo) {
 		return response.status(404)
 			.json({
 				message: '404 Not Found',
-				error: 'Package not found',
+				error: 'Repository not found',
 				date: new Date()
 			})
 	}
+
+	const entries = Object.entries(repo)
+		.filter(([key]) => key !== 'originId' && key !== 'isPruned')
 
 	return response.status(200)
 		.json({
 			message: '200 Successful',
 			date: new Date(),
-			count: pkgs.length,
-			data: pkgs.map(data => {
-				const entries = Object.entries(data)
-					.filter(([key]) => key !== 'databaseId' && key !== 'isPruned')
-
-				return {
-					...Object.fromEntries(entries),
-					refs: {
-						repo: `${$product.api_endpoint}/jailbreak/repository/${data.repositorySlug}`
-					}
+			data: {
+				...Object.fromEntries(entries),
+				refs: {
+					packages: `${$product.api_endpoint}/jailbreak/repository/${repo.slug}/packages`,
+					origin: `${$product.api_endpoint}/jailbreak/repository/${repo.originId}/origin`
 				}
-			})
+			}
 		})
 }

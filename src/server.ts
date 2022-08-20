@@ -2,6 +2,7 @@ import { App, Request, Response } from '@tinyhttp/app'
 
 import * as packageLookup from './router/package/lookup.js'
 import * as packageSearch from './router/package/search.js'
+import * as repositoryLookup from './router/repository/lookup.js'
 import * as repositorySearch from './router/repository/search.js'
 
 export type LocalsResponse = Response & {
@@ -33,6 +34,7 @@ export const http = new App<never, Request, LocalsResponse>({
 http.get('/jailbreak/package/search', packageSearch.middleware, packageSearch.handler)
 http.get('/jailbreak/package/:package', packageLookup.middleware, packageLookup.handler)
 http.get('/jailbreak/repository/search', repositorySearch.middleware, repositorySearch.handler)
+http.get('/jailbreak/repository/:repository', repositoryLookup.middleware, repositoryLookup.handler)
 
 http.get('/', (request, response) => response.status(200)
 	.json({
