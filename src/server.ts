@@ -18,7 +18,6 @@ export const http = new App<never, Request, LocalsResponse>({
 		}),
 
 	onError: (error, _request, response) => {
-		// TODO: Sentry capture
 		console.log(error)
 		return response.status(500)
 			.json({

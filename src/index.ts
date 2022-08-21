@@ -43,12 +43,13 @@ server.use((_request, response: TimedResponse, next) => {
 	next()
 })
 
-// @ts-expect-error TODO: Fix
-server.use('/v2', http)
+// Hacky workaround to mount types on hardcoded generics
+server.use('/v2', http as unknown as never)
 server.listen(3000, () => {
 	console.log('http: started successfully')
 })
 
+// This logic is separated out simply for duplicate routes
 const routes = new Set<string>()
 for (const { method, path } of http.middleware) {
 	if (!method || !path) {
