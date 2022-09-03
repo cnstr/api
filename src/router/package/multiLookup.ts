@@ -54,17 +54,16 @@ export async function handler(_request: Request, response: LookupResponse) {
 			message: '200 Successful',
 			date: new Date(),
 			count: pkgs.length,
-			data: pkgs.filter((value, index, self) => self.findIndex(v => v.package === value.package) === index)
-				.map(data => {
-					const entries = Object.entries(data)
-						.filter(([key]) => key !== 'databaseId' && key !== 'isPruned' && key !== 'isCurrent' && key !== 'repositorySlug')
+			data: pkgs.map(data => {
+				const entries = Object.entries(data)
+					.filter(([key]) => key !== 'databaseId' && key !== 'isPruned' && key !== 'isCurrent' && key !== 'repositorySlug')
 
-					return {
-						...Object.fromEntries(entries),
-						refs: {
-							repo: `${$product.api_endpoint}/jailbreak/repository/${data.repositorySlug}`
-						}
+				return {
+					...Object.fromEntries(entries),
+					refs: {
+						repo: `${$product.api_endpoint}/jailbreak/repository/${data.repositorySlug}`
 					}
-				})
+				}
+			})
 		})
 }
