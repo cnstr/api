@@ -15,7 +15,7 @@ export function middleware(request: Request, response: LookupResponse, next: Nex
 		return response.status(400)
 			.json({
 				message: '400 Bad Request',
-				error: 'Missing URL parameter: \':packages\'',
+				error: 'Missing query parameter: \':packages\'',
 				date: new Date()
 			})
 	}
