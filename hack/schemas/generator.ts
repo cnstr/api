@@ -30,14 +30,7 @@ export function generateSchema(options: GeneratorOptions): Schema {
 				continue
 			}
 
-			if (value === null) {
-				properties.set(key, {
-					type: 'string',
-					example: undefined,
-					nullable: options.nullables.includes(key),
-					description: options.descriptions[key]
-				})
-
+			if (!value) {
 				continue
 			}
 
