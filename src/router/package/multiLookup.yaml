@@ -1,0 +1,53 @@
+/jailbreak/package/multi:
+  get:
+    summary: Multi Package Lookup
+    description: Retrieve the latest version of each package by package ID
+    operationId: multiLookupPackage
+    parameters:
+      - name: ids
+        in: query
+        description: Comma separated list of package IDs to lookup
+        example: com.mycompany.mypackage,com.mycompany.mypackage2
+        required: true
+        schema:
+          type: string
+          format: query
+    responses:
+      '200':
+        description: 'OK'
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                message:
+                  type: string
+                  enum:
+                    - 200 Successful
+                date:
+                  type: string
+                  format: date-time
+                count:
+                  type: integer
+                  minimum: 0
+                data:
+                  type: array
+                  items:
+                    allOf:
+                      - $ref: '#/components/schemas/Package'
+                      - type: object
+                        properties:
+                          repository:
+                            $ref: '#/components/schemas/Repository'
+      '400':
+        description: 'Bad Request'
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BadRequest'
+      '404':
+        description: 'Not Found'
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NotFoundRequest'
