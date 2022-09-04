@@ -2,7 +2,8 @@
   get:
     summary: Package Search
     description: Retrieve an indexed package using a search query
-    operationId: searchPackage
+    operationId: package-search
+    tag: search
     parameters:
       - name: q
         in: query

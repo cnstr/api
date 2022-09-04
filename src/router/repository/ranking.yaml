@@ -2,7 +2,8 @@
   get:
     summary: Repository Rank Search
     description: Retrieve an indexed repository using a ranking number
-    operationId: searchRepositoryRank
+    operationId: repository-rank-search
+    tag: search
     parameters:
       - name: rank
         in: query

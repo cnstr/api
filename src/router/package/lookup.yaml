@@ -2,7 +2,8 @@
   get:
     summary: Package Lookup
     description: Retrieve all versions of a package by package ID
-    operationId: lookupPackage
+    operationId: package-lookup
+    tag: lookup
     parameters:
       - name: packageId
         in: path

@@ -2,7 +2,8 @@
   get:
     summary: Multi Package Lookup
     description: Retrieve the latest version of each package by package ID
-    operationId: multiLookupPackage
+    operationId: package-multi-lookup
+    tag: lookup
     parameters:
       - name: ids
         in: query
