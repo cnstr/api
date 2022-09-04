@@ -3,7 +3,8 @@
     summary: Package Search
     description: Retrieve an indexed package using a search query
     operationId: package-search
-    tag: search
+    tags:
+      - search
     parameters:
       - name: q
         in: query

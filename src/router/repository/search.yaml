@@ -3,7 +3,8 @@
     summary: Repository Search
     description: Retrieve an indexed repository using a search query
     operationId: repository-search
-    tag: search
+    tags:
+      - search
     parameters:
       - name: q
         in: query

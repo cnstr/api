@@ -1,0 +1,62 @@
+/:
+  get:
+    summary: Landing Page
+    description: Canister API Landing Page
+    operationId: landing
+    tags:
+      - endpoint
+    responses:
+      '200':
+        description: 'OK'
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Landing'
+/healthz:
+  get:
+    summary: Health Check
+    description: Reliable endpoint to check API health
+    operationId: healthz
+    tags:
+      - endpoint
+    responses:
+      '200':
+        description: 'OK'
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                health:
+                  type: string
+                  example: 'OK'
+/openapi.json:
+  get:
+    summary: OpenAPI JSON
+    description: OpenAPI JSON file for the API
+    operationId: openapi-json
+    tags:
+      - endpoint
+    responses:
+      '200':
+        description: OK
+        content:
+          application/json:
+            schema:
+              type: string
+              format: binary
+/openapi.yaml:
+  get:
+    summary: OpenAPI YAML
+    description: OpenAPI YAML file for the API
+    operationId: openapi-yaml
+    tags:
+      - endpoint
+    responses:
+      '200':
+        description: OK
+        content:
+          application/x-yaml:
+            schema:
+              type: string
+              format: binary

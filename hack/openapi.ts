@@ -25,6 +25,20 @@ export function generateDocumentation(metadata: Manifest['product'], version: st
 				description: 'Main API'
 			}
 		],
+		tags: [
+			{
+				name: 'search',
+				description: 'Search Operations'
+			},
+			{
+				name: 'lookup',
+				description: 'Lookup Operations'
+			},
+			{
+				name: 'endpoint',
+				description: 'API Machinery Endpoints'
+			}
+		],
 		components: {
 			schemas
 		}
@@ -32,7 +46,7 @@ export function generateDocumentation(metadata: Manifest['product'], version: st
 
 	const openapiSpecification = swaggerJSDoc({
 		definition,
-		apis: ['src/router/**/*.yaml']
+		apis: ['src/router/**/*.yaml', 'src/server.yaml']
 	})
 
 	console.log('> Dumping OpenAPI specification to JSON & YAML')

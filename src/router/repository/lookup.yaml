@@ -3,7 +3,8 @@
     summary: Repository Lookup
     description: Retrieve a repository's metadata by its slug
     operationId: repository-lookup
-    tag: lookup
+    tags:
+      - lookup
     parameters:
       - name: repositorySlug
         in: path
