@@ -30,7 +30,7 @@ spec:
         - name: aerum-registry
       containers:
         - name: api
-          image: aerum.co/canister/api:2.1.10
+          image: aerum.co/canister/api:2.1.11
           ports:
             - name: api
               containerPort: 3000
