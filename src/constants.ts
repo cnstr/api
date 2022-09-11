@@ -4,6 +4,8 @@ declare global {
 		yaml: string;
 	}
 
+	const $repos: string[]
+
 	const $commit: string
 	const $version: string
 	const $build: string

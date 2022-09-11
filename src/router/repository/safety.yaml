@@ -1,0 +1,68 @@
+/jailbreak/repository/safety:
+  get:
+    summary: Repository Safety Check
+    description: Checks if a repository is safe by URI
+    operationId: repository-safety
+    tags:
+      - lookup
+    parameters:
+      - name: uri
+        in: query
+        description: >
+          Single repository URI to check.
+          (For multiple URIs use the `uris` parameter instead)
+        example: mymaliciousrepo.com
+        schema:
+          type: string
+      - name: uris
+        in: query
+        description: >
+          Multiple comma-separated repository URIs to check.
+          (This parameter is incompatible with the `uri` parameter)
+        example: mymaliciousrepo.com,mymaliciousrepo2.com
+        schema:
+          type: string
+    responses:
+      '200':
+        description: 'OK'
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                message:
+                  type: string
+                  enum:
+                    - 200 Successful
+                date:
+                  type: string
+                  format: date-time
+                count:
+                  type: integer
+                  minimum: 0
+                data:
+                  oneOf:
+                    - type: array
+                      items:
+                        type: object
+                        properties:
+                          uri:
+                            type: string
+                            description: Supplied repository URI
+                          safe:
+                            description: Whether the repository is safe
+                            type: boolean
+                    - type: object
+                      properties:
+                        uri:
+                          type: string
+                          description: Supplied repository URI
+                        safe:
+                          description: Whether the repository is safe
+                          type: boolean
+      '400':
+        description: 'Bad Request'
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BadRequest'

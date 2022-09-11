@@ -6,6 +6,7 @@ import { calculateBuildInfo } from './buildInfo.js'
 import { bumpDeployManifest } from './k8s.js'
 import { readManifest } from './manifest.js'
 import { generateDocumentation } from './openapi.js'
+import { fetchRepositoryManifest } from './upstream.js'
 
 const buildDate = new Date()
 
@@ -13,8 +14,11 @@ const manifest = await readManifest(buildDate)
 const buildInfo = await calculateBuildInfo(buildDate)
 const documentation = generateDocumentation(manifest.product, buildInfo.version)
 
+const repositories = await fetchRepositoryManifest()
+
 const definitions = new Map<string, string>()
 definitions.set('$openapi', JSON.stringify(documentation))
+definitions.set('$repos', JSON.stringify(repositories))
 
 for (const [key, value] of Object.entries({ ...manifest, ...buildInfo })) {
 	definitions.set(`$${key}`, JSON.stringify(value))

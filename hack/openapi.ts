@@ -25,20 +25,6 @@ export function generateDocumentation(metadata: Manifest['product'], version: st
 				description: 'Main API'
 			}
 		],
-		tags: [
-			{
-				name: 'search',
-				description: 'Search Operations'
-			},
-			{
-				name: 'lookup',
-				description: 'Lookup Operations'
-			},
-			{
-				name: 'endpoint',
-				description: 'API Machinery Endpoints'
-			}
-		],
 		components: {
 			schemas
 		}
