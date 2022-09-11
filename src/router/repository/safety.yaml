@@ -28,21 +28,21 @@
         content:
           application/json:
             schema:
-              type: object
-              properties:
-                message:
-                  type: string
-                  enum:
-                    - 200 Successful
-                date:
-                  type: string
-                  format: date-time
-                count:
-                  type: integer
-                  minimum: 0
-                data:
-                  oneOf:
-                    - type: array
+              oneOf:
+                - type: object
+                  properties:
+                    message:
+                      type: string
+                      enum:
+                        - 200 Successful
+                    date:
+                      type: string
+                      format: date-time
+                    count:
+                      type: integer
+                      minimum: 0
+                    data:
+                      type: array
                       items:
                         type: object
                         properties:
@@ -52,7 +52,20 @@
                           safe:
                             description: Whether the repository is safe
                             type: boolean
-                    - type: object
+                - type: object
+                  properties:
+                    message:
+                      type: string
+                      enum:
+                        - 200 Successful
+                    date:
+                      type: string
+                      format: date-time
+                    count:
+                      type: integer
+                      minimum: 0
+                    data:
+                      type: object
                       properties:
                         uri:
                           type: string
