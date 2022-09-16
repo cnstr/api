@@ -4,6 +4,7 @@ import * as packageLookup from './router/package/lookup.js'
 import * as packageMultiLookup from './router/package/multiLookup.js'
 import * as packageSearch from './router/package/search.js'
 import * as repositoryLookup from './router/repository/lookup.js'
+import * as repositoryPackages from './router/repository/packages.js'
 import * as repositoryRanking from './router/repository/ranking.js'
 import * as repositorySafety from './router/repository/safety.js'
 import * as repositorySearch from './router/repository/search.js'
@@ -41,6 +42,7 @@ http.get('/jailbreak/repository/search', repositorySearch.middleware, repository
 http.get('/jailbreak/repository/ranking', repositoryRanking.middleware, repositoryRanking.handler)
 http.get('/jailbreak/repository/safety', repositorySafety.middleware, repositorySafety.handler)
 http.get('/jailbreak/repository/:repository', repositoryLookup.middleware, repositoryLookup.handler)
+http.get('/jailbreak/repository/:repository/packages', repositoryPackages.middleware, repositoryPackages.handler)
 
 http.get('/', (request, response) => response.status(200)
 	.json({
