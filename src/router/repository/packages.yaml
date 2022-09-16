@@ -31,7 +31,7 @@
                 data:
                   type: array
                   items:
-                    - $ref: '#/components/schemas/Package'
+                    $ref: '#/components/schemas/Package'
       '400':
         description: 'Bad Request'
         content:
