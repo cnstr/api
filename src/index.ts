@@ -21,13 +21,13 @@ server.use(cors({
 // Track X-Response-Time
 type TimedResponse = Response & {
 	locals: {
-		startTime: string;
+		startTime: bigint;
 	};
 }
 
 server.use((_request, response: TimedResponse, next) => {
 	if (response.locals) {
-		response.locals.startTime = JSON.stringify(hrtime())
+		response.locals.startTime = hrtime.bigint()
 	}
 
 	next()
@@ -35,9 +35,9 @@ server.use((_request, response: TimedResponse, next) => {
 
 server.use((_request, response: TimedResponse, next) => {
 	if (response.locals) {
-		const start = JSON.parse(response.locals.startTime) as [number, number]
-		const delta = hrtime(start)
-		response.setHeader('X-Response-Time', `${(delta[0] * 1e3) + (delta[1] / 1e-6)}ms`)
+		const start = response.locals.startTime
+		const end = hrtime.bigint()
+		response.setHeader('X-Response-Time', `${Number(end - start) / 1_000_000}ms`)
 	}
 
 	next()
