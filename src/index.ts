@@ -1,12 +1,13 @@
 import 'constants.js'
 import 'database.js'
 
-import { App, Request, Response } from '@tinyhttp/app'
+import { hrtime } from 'node:process'
+
+import { type Request, type Response, App } from '@tinyhttp/app'
 import { cors } from '@tinyhttp/cors'
 import { lruSend } from 'lru-send'
 import { json } from 'milliparsec'
-import { hrtime } from 'node:process'
-import { http, LocalsResponse } from 'server.js'
+import { type LocalsResponse, http } from 'server.js'
 
 const server = new App<never, Request, LocalsResponse>()
 
@@ -62,3 +63,25 @@ for (const { method, path } of http.middleware) {
 for (const route of routes) {
 	console.log('http: mounting to %s', route)
 }
+
+// Const pkgs = await database.createQueryBuilder(Package, 'p')
+// 	.select()
+// 	.groupBy('p."databaseId"')
+// 	.getMany()
+
+// console.log(pkgs.length)
+
+// const fuseConst = Fuse as unknown as typeof Fuse.default
+
+// const fuse = new fuseConst(pkgs, {
+// 	isCaseSensitive: true,
+// 	includeScore: true,
+// 	minMatchCharLength: 2,
+// 	keys: ['name', 'description', 'author', 'maintainer', 'section'],
+// 	useExtendedSearch: true
+// })
+
+// const result = fuse.search('lyrcify')
+
+// // Log the item.name of the first 50 results
+// console.log(result.length)

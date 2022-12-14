@@ -2,35 +2,36 @@
 	"type": "module",
 	"version": "2.1.15",
 	"scripts": {
-		"dev": "tsup --watch --config hack/build.ts",
+		"dev": "pnpm dev:migrate && tsup --watch --config hack/build.ts",
+		"dev:migrate": "DATABASE_URL=\"postgres://cnstr:pg@database:5432/cnstr\" prisma migrate dev",
 		"build": "tsup --clean --dts --sourcemap --minify --config hack/build.ts",
 		"debug": "TZ=UTC node --inspect=0.0.0.0 ./dist/index.js",
 		"start": "TZ=UTC node ./dist/index.js"
 	},
 	"dependencies": {
-		"@canister/models": "^1.2.2",
-		"@tinyhttp/app": "^2.0.22",
+		"@prisma/client": "^4.7.1",
+		"@tinyhttp/app": "^2.0.25",
 		"@tinyhttp/cors": "^2.0.0",
 		"@tinyhttp/logger": "^1.3.0",
-		"got": "^12.3.1",
+		"fuse.js": "^6.6.2",
+		"got": "^12.5.3",
 		"lru-send": "^0.1.3",
 		"milliparsec": "^2.2.2",
-		"pg": "^8.7.3",
-		"reflect-metadata": "^0.1.13",
-		"typeorm": "^0.3.7"
+		"pg": "^8.8.0"
 	},
 	"devDependencies": {
 		"@types/js-yaml": "^4.0.5",
-		"@types/node": "^18.6.4",
+		"@types/node": "^18.11.14",
 		"@types/swagger-jsdoc": "^6.0.1",
-		"eslint": "^8.21.0",
-		"eslint-config-tale": "^1.0.13",
+		"eslint": "^8.29.0",
+		"eslint-config-tale": "^1.0.15",
 		"js-yaml": "^4.1.0",
 		"np": "^7.6.2",
-		"openapi-types": "^12.0.0",
-		"simple-git": "^3.11.0",
-		"swagger-jsdoc": "^6.2.4",
-		"tsup": "^6.2.1",
-		"typescript": "^4.7.4"
+		"openapi-types": "^12.1.0",
+		"prisma": "^4.7.1",
+		"simple-git": "^3.15.1",
+		"swagger-jsdoc": "^6.2.5",
+		"tsup": "^6.5.0",
+		"typescript": "^4.9.4"
 	}
 }

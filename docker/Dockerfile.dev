@@ -1,7 +1,14 @@
-FROM node:18-alpine
+FROM node:18-slim
 WORKDIR /app
 
-RUN apk add --no-cache git && npm i -g pnpm
+RUN DEBIAN_FRONTEND=noninteractive apt-get update \
+	&& DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+		git \
+		openssl \
+		procps \
+	&& rm -rf /var/lib/apt/lists/* \
+	&& npm i -g pnpm
+
 ADD package.json pnpm-lock.yaml ./
 RUN pnpm install --frozen-lockfile
 

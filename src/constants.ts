@@ -21,10 +21,5 @@ declare global {
 		docs_endpoint: string;
 	}
 
-	const $database: {
-		host: string;
-		username: string;
-		password: string;
-		database: string;
-	}
+	const $database: string
 }

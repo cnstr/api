@@ -1,6 +1,5 @@
-import { Package } from '@canister/models'
 import type { NextFunction, Request, Response } from '@tinyhttp/app'
-import { database } from 'database.js'
+import { prisma } from 'database.js'
 
 type SearchResponse = Response & {
 	locals: {
@@ -60,20 +59,42 @@ export function middleware(request: Request, response: SearchResponse, next: Nex
 
 export async function handler(request: Request, response: SearchResponse) {
 	const { query, limit, page } = response.locals
-	const pkgs: Package[] = await database.createQueryBuilder(Package, 'p')
-		.select()
-		.groupBy('p."databaseId"')
-		.having('p."vector" @@ to_tsquery(\'simple\', string_agg(:query, \' | \'))', {
-			query: `${query}:*`
-		})
-		.andWhere({
+	const pkgs = await prisma.package.findMany({
+		where: {
+			// eslint-disable-next-line @typescript-eslint/naming-convention
+			OR: {
+				name: {
+					search: query
+				},
+
+				author: {
+					search: query
+				},
+
+				maintainer: {
+					search: query
+				},
+
+				description: {
+					search: query
+				},
+
+				section: {
+					search: query
+				}
+			},
+
 			isCurrent: true,
 			isPruned: false
-		})
-		.orderBy('tier')
-		.take(limit)
-		.skip((page - 1) * limit)
-		.getMany()
+		},
+
+		orderBy: {
+			repositoryTier: 'asc'
+		},
+
+		skip: (page - 1) * limit,
+		take: limit
+	})
 
 	const url = new URL(request.originalUrl, $product.api_endpoint)
 	url.searchParams.set('page', (page + 1).toString())
@@ -95,7 +116,7 @@ export async function handler(request: Request, response: SearchResponse) {
 			count: pkgs.length,
 			data: pkgs.map(data => {
 				const entries = Object.entries(data)
-					.filter(([key]) => key !== 'databaseId' && key !== 'isPruned')
+					.filter(([key]) => key !== 'uuid' && key !== 'isPruned')
 
 				return {
 					...Object.fromEntries(entries),

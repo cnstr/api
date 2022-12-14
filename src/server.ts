@@ -1,4 +1,4 @@
-import { App, Request, Response } from '@tinyhttp/app'
+import { type Request, type Response, App } from '@tinyhttp/app'
 
 import * as packageLookup from './router/package/lookup.js'
 import * as packageMultiLookup from './router/package/multiLookup.js'

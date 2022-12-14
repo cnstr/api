@@ -1,6 +1,5 @@
-import { Repository } from '@canister/models'
 import type { NextFunction, Request, Response } from '@tinyhttp/app'
-import { database } from 'database.js'
+import { prisma } from 'database.js'
 
 type LookupResponse = Response & {
 	locals: {
@@ -25,14 +24,12 @@ export function middleware(request: Request, response: LookupResponse, next: Nex
 
 export async function handler(_request: Request, response: LookupResponse) {
 	const { query } = response.locals
-	const repo = await database.createQueryBuilder(Repository, 'p')
-		.select()
-		.groupBy('p."slug"')
-		.where({
+	const repo = await prisma.repository.findFirst({
+		where: {
 			slug: query,
 			isPruned: false
-		})
-		.getOne()
+		}
+	})
 
 	if (!repo) {
 		return response.status(404)

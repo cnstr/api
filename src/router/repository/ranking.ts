@@ -1,6 +1,5 @@
-import { Repository } from '@canister/models'
 import type { NextFunction, Request, Response } from '@tinyhttp/app'
-import { database } from 'database.js'
+import { prisma } from 'database.js'
 
 type SearchResponse = Response & {
 	locals: {
@@ -35,19 +34,20 @@ export function middleware(request: Request, response: SearchResponse, next: Nex
 export async function handler(request: Request, response: SearchResponse) {
 	const { query } = response.locals
 
-	const repos = query === '*' ? await database.createQueryBuilder(Repository, 'r')
-		.orderBy('tier')
-		.getMany() : await database.createQueryBuilder(Repository, 'r')
-		.select()
-		.groupBy('r."slug"')
-		.where('r."tier"=:query', {
-			query: `${query}`
-		})
-		.andWhere({
+	const repos = query === '*' ? await prisma.repository.findMany({
+		orderBy: {
+			tier: 'asc'
+		}
+	}) : await prisma.repository.findMany({
+		where: {
+			tier: Number(query),
 			isPruned: false
-		})
-		.orderBy('name')
-		.getMany()
+		},
+
+		orderBy: {
+			name: 'asc'
+		}
+	})
 
 	return response.status(200)
 		.json({

@@ -1,7 +1,5 @@
-import { Package } from '@canister/models'
 import type { NextFunction, Request, Response } from '@tinyhttp/app'
-import { database } from 'database.js'
-import { Brackets } from 'typeorm'
+import { prisma } from 'database.js'
 
 type LookupResponse = Response & {
 	locals: {
@@ -27,18 +25,18 @@ export function middleware(request: Request, response: LookupResponse, next: Nex
 
 export async function handler(_request: Request, response: LookupResponse) {
 	const { query } = response.locals
-	const pkgs = await database.createQueryBuilder(Package, 'p')
-		.select()
-		.leftJoinAndSelect('p.repository', 'repository')
-		.where({
+	const pkgs = await prisma.package.findMany({
+		where: {
+			// eslint-disable-next-line @typescript-eslint/naming-convention
+			OR: query.map(packageId => ({ package: packageId })),
 			isCurrent: true,
 			isPruned: false
-		})
-		.andWhere(new Brackets(qb => {
-			query.map(packageId => qb.orWhere({ package: packageId }))
-		}))
-		.orderBy('p.tier')
-		.getMany()
+		},
+
+		orderBy: {
+			repositoryTier: 'asc'
+		}
+	})
 
 	if (pkgs.length === 0) {
 		return response.status(404)
@@ -56,7 +54,7 @@ export async function handler(_request: Request, response: LookupResponse) {
 			count: pkgs.length,
 			data: pkgs.map(data => {
 				const entries = Object.entries(data)
-					.filter(([key]) => key !== 'databaseId' && key !== 'isPruned' && key !== 'isCurrent' && key !== 'repositorySlug')
+					.filter(([key]) => key !== 'uuid' && key !== 'isPruned' && key !== 'isCurrent' && key !== 'repositorySlug')
 
 				return {
 					...Object.fromEntries(entries),

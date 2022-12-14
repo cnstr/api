@@ -1,6 +1,5 @@
-import { Package } from '@canister/models'
 import type { NextFunction, Request, Response } from '@tinyhttp/app'
-import { database } from 'database.js'
+import { prisma } from 'database.js'
 
 type LookupResponse = Response & {
 	locals: {
@@ -25,15 +24,21 @@ export function middleware(request: Request, response: LookupResponse, next: Nex
 
 export async function handler(_request: Request, response: LookupResponse) {
 	const { query } = response.locals
-	const pkgs = await database.createQueryBuilder(Package, 'p')
-		.select()
-		.groupBy('p."databaseId"')
-		.where({
+	const pkgs = await prisma.package.findMany({
+		where: {
 			package: query,
 			isPruned: false
-		})
-		.orderBy('"isCurrent" DESC NULLS LAST,tier')
-		.getMany()
+		},
+
+		orderBy: [
+			{
+				isCurrent: 'desc'
+			},
+			{
+				repositoryTier: 'asc'
+			}
+		]
+	})
 
 	if (pkgs.length === 0) {
 		return response.status(404)
@@ -51,7 +56,7 @@ export async function handler(_request: Request, response: LookupResponse) {
 			count: pkgs.length,
 			data: pkgs.map(data => {
 				const entries = Object.entries(data)
-					.filter(([key]) => key !== 'databaseId' && key !== 'isPruned')
+					.filter(([key]) => key !== 'uuid' && key !== 'isPruned')
 
 				return {
 					...Object.fromEntries(entries),

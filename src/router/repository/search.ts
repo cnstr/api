@@ -1,6 +1,5 @@
-import { Repository } from '@canister/models'
 import type { NextFunction, Request, Response } from '@tinyhttp/app'
-import { database } from 'database.js'
+import { prisma } from 'database.js'
 
 type SearchResponse = Response & {
 	locals: {
@@ -60,19 +59,34 @@ export function middleware(request: Request, response: SearchResponse, next: Nex
 
 export async function handler(request: Request, response: SearchResponse) {
 	const { query, limit, page } = response.locals
-	const repos: Repository[] = await database.createQueryBuilder(Repository, 'r')
-		.select()
-		.groupBy('r."slug"')
-		.where('r."vector" @@ to_tsquery(\'simple\', :query)', {
-			query: `${query}:*`
-		})
-		.andWhere({
+
+	const repos = await prisma.repository.findMany({
+		where: {
+			// eslint-disable-next-line @typescript-eslint/naming-convention
+			OR: {
+				name: {
+					search: query
+				},
+
+				description: {
+					search: query
+				},
+
+				aliases: {
+					hasSome: query
+				}
+			},
+
 			isPruned: false
-		})
-		.orderBy('tier')
-		.take(limit)
-		.skip((page - 1) * limit)
-		.getMany()
+		},
+
+		orderBy: {
+			tier: 'asc'
+		},
+
+		skip: (page - 1) * limit,
+		take: limit
+	})
 
 	const url = new URL(request.originalUrl, $product.api_endpoint)
 	url.searchParams.set('page', (page + 1).toString())
