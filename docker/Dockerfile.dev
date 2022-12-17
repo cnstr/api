@@ -13,4 +13,5 @@ ADD package.json pnpm-lock.yaml ./
 RUN pnpm install --frozen-lockfile
 
 ADD . .
+RUN pnpm prisma generate
 ENTRYPOINT [ "pnpm", "dev" ]
