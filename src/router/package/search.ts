@@ -1,5 +1,6 @@
+import { type Package } from '@prisma/client'
 import type { NextFunction, Request, Response } from '@tinyhttp/app'
-import { prisma } from 'database.js'
+import { elastic } from 'search.js'
 
 type SearchResponse = Response & {
 	locals: {
@@ -59,41 +60,26 @@ export function middleware(request: Request, response: SearchResponse, next: Nex
 
 export async function handler(request: Request, response: SearchResponse) {
 	const { query, limit, page } = response.locals
-	const pkgs = await prisma.package.findMany({
-		where: {
-			// eslint-disable-next-line @typescript-eslint/naming-convention
-			OR: {
-				name: {
-					search: query
-				},
 
-				author: {
-					search: query
-				},
+	const result = await elastic.search<Package>({
+		index: 'packages',
+		query: {
+			query_string: {
+				query
+			}
+		},
 
-				maintainer: {
-					search: query
-				},
-
-				description: {
-					search: query
-				},
-
-				section: {
-					search: query
-				}
+		sort: {
+			_score: {
+				order: 'desc'
 			},
-
-			isCurrent: true,
-			isPruned: false
+			repositoryTier: {
+				order: 'asc'
+			}
 		},
 
-		orderBy: {
-			repositoryTier: 'asc'
-		},
-
-		skip: (page - 1) * limit,
-		take: limit
+		from: (page - 1) * limit,
+		size: limit
 	})
 
 	const url = new URL(request.originalUrl, $product.api_endpoint)
@@ -109,20 +95,24 @@ export async function handler(request: Request, response: SearchResponse) {
 			date: new Date(),
 			refs: {
 				// eslint-disable-next-line unicorn/no-null
-				nextPage: pkgs.length === limit ? nextPage : null,
+				nextPage: result.hits.hits.length === limit ? nextPage : null,
 				// eslint-disable-next-line unicorn/no-null
 				previousPage: page > 1 ? previousPage : null
 			},
-			count: pkgs.length,
-			data: pkgs.map(data => {
-				const entries = Object.entries(data)
+			count: result.hits.hits.length,
+			data: result.hits.hits.map(data => {
+				if (!data._source) {
+					throw new Error('Missing source')
+				}
+
+				const entries = Object.entries(data._source)
 					.filter(([key]) => key !== 'uuid' && key !== 'isPruned')
 
 				return {
 					...Object.fromEntries(entries),
 					refs: {
-						meta: `${$product.api_endpoint}/jailbreak/package/${data.package}`,
-						repo: `${$product.api_endpoint}/jailbreak/repository/${data.repositorySlug}`
+						meta: `${$product.api_endpoint}/jailbreak/package/${data._source.package}`,
+						repo: `${$product.api_endpoint}/jailbreak/repository/${data._source.repositorySlug}`
 					}
 				}
 			})

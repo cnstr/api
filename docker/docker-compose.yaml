@@ -14,6 +14,7 @@ services:
       - ../src:/app/src
     depends_on:
       - database
+      - search
 
   database:
     image: postgres:14-alpine
@@ -26,5 +27,20 @@ services:
     volumes:
       - db:/var/lib/postgresql/data
 
+  search:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.5.3
+    container_name: canister-search
+    ports:
+      - 9300:9300
+      - 9200:9200
+    environment:
+      bootstrap.memory_lock: "true"
+      discovery.type: single-node
+      xpack.security.enabled: "false"
+      xpack.security.http.ssl.enabled: "false"
+    volumes:
+      - search:/usr/share/elasticsearch/data
+
 volumes:
   db:
+  search:
