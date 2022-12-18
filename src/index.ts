@@ -7,10 +7,8 @@ import { type Request, type Response, App } from '@tinyhttp/app'
 import { cors } from '@tinyhttp/cors'
 import { lruSend } from 'lru-send'
 import { json } from 'milliparsec'
-import { initializeFullTextSearch } from 'search.js'
 import { type LocalsResponse, http } from 'server.js'
 
-await initializeFullTextSearch()
 const server = new App<never, Request, LocalsResponse>()
 
 server.use(json())

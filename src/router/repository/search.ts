@@ -1,5 +1,6 @@
+import { type Repository } from '@prisma/client'
 import type { NextFunction, Request, Response } from '@tinyhttp/app'
-import { prisma } from 'database.js'
+import { elastic } from 'search.js'
 
 type SearchResponse = Response & {
 	locals: {
@@ -60,32 +61,26 @@ export function middleware(request: Request, response: SearchResponse, next: Nex
 export async function handler(request: Request, response: SearchResponse) {
 	const { query, limit, page } = response.locals
 
-	const repos = await prisma.repository.findMany({
-		where: {
-			// eslint-disable-next-line @typescript-eslint/naming-convention
-			OR: {
-				name: {
-					search: query
-				},
+	const result = await elastic.search<Repository>({
+		index: 'repositories',
+		query: {
+			query_string: {
+				query
+			}
+		},
 
-				description: {
-					search: query
-				},
-
-				aliases: {
-					hasSome: query
-				}
+		sort: {
+			_score: {
+				order: 'desc'
 			},
 
-			isPruned: false
+			tier: {
+				order: 'asc'
+			}
 		},
 
-		orderBy: {
-			tier: 'asc'
-		},
-
-		skip: (page - 1) * limit,
-		take: limit
+		from: (page - 1) * limit,
+		size: limit
 	})
 
 	const url = new URL(request.originalUrl, $product.api_endpoint)
@@ -101,21 +96,25 @@ export async function handler(request: Request, response: SearchResponse) {
 			date: new Date(),
 			refs: {
 				// eslint-disable-next-line unicorn/no-null
-				nextPage: repos.length === limit ? nextPage : null,
+				nextPage: result.hits.hits.length === limit ? nextPage : null,
 				// eslint-disable-next-line unicorn/no-null
 				previousPage: page > 1 ? previousPage : null
 			},
-			count: repos.length,
-			data: repos.map(data => {
-				const entries = Object.entries(data)
+			count: result.hits.hits.length,
+			data: result.hits.hits.map(data => {
+				if (!data._source) {
+					throw new Error('Missing source')
+				}
+
+				const entries = Object.entries(data._source)
 					.filter(([key]) => key !== 'originId' && key !== 'isPruned')
 
 				return {
 					...Object.fromEntries(entries),
 					refs: {
-						meta: `${$product.api_endpoint}/jailbreak/repository/${data.slug}`,
-						packages: `${$product.api_endpoint}/jailbreak/repository/${data.slug}/packages`,
-						origin: `${$product.api_endpoint}/jailbreak/repository/${data.originId}/origin`
+						meta: `${$product.api_endpoint}/jailbreak/repository/${data._source.slug}`,
+						packages: `${$product.api_endpoint}/jailbreak/repository/${data._source.slug}/packages`,
+						origin: `${$product.api_endpoint}/jailbreak/repository/${data._source.originId}/origin`
 					}
 				}
 			})
