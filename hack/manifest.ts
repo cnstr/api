@@ -28,6 +28,7 @@ export async function readManifest(date: Date) {
 	const defines = new Map<string, string | Record<string, string>>([
 		['product', manifest.product],
 		['database', `postgresql://${manifest.database.username}:${manifest.database.password}@${manifest.database.host}/${manifest.database.database}`],
+		['search', `http://${manifest.search.host}:9200`],
 		['bump', manifest.bump]
 	])
 

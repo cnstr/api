@@ -49,10 +49,14 @@ if (env.BUMP_K8S === '1') {
 
 if (env.PRODUCTION === '1') {
 	definitions.set('$database', JSON.stringify({
-		host: 'postgres',
-		username: 'postgres',
-		password: 'postgres',
+		host: 'pg-cluster-replicas',
+		username: 'cnstr-pg',
+		password: 'cnstr-pg',
 		database: 'canister'
+	}))
+
+	definitions.set('$search', JSON.stringify({
+		host: 'ec-cluster-es-http'
 	}))
 }
 

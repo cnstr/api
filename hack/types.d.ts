@@ -16,6 +16,10 @@ export type Manifest = {
 		database: string;
 	};
 
+	search: {
+		host: string;
+	};
+
 	bump: {
 		documentation_id: string;
 		access_token: string;

@@ -22,4 +22,5 @@ declare global {
 	}
 
 	const $database: string
+	const $search: string
 }
