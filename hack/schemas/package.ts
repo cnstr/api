@@ -1,20 +1,25 @@
 /* eslint-disable unicorn/no-null */
-
-import { Package as DBPackage } from '@canister/models'
+import { type Package as PrismaPackage } from '@prisma/client'
 
 import { generateSchema } from './generator.js'
 
-const examplePackage = new DBPackage()
-Object.assign(examplePackage, {
+type ResponsePackage = Omit<Omit<PrismaPackage, 'uuid'>, 'isPruned'> & {
+	refs: {
+		meta: string;
+		repo: string;
+	};
+}
+
+const examplePackage: ResponsePackage = {
 	package: 'lunotech11.legizmo.grace',
 	isCurrent: true,
 	repositorySlug: 'chariz',
 	price: '$4.99',
-	tier: 1,
+	repositoryTier: 1,
 	version: '2.3.1-2',
 	architecture: 'iphoneos-arm',
 	filename: 'debs/lunotech11.legizmo.grace_2.3.1-2_iphoneos-arm.deb',
-	size: '332562',
+	size: 332_562,
 	sha256: '9a5b896b096ed04f1b0e0fdfb83f9d3637474e9f1100da3dbc540482433c5ecf',
 	name: 'Legizmo Grace ',
 	description: 'Enables pairing, connecting and updating to unsupported versions of watchOS',
@@ -27,16 +32,16 @@ Object.assign(examplePackage, {
 	tintColor: '#2c5364',
 	icon: 'https://img.chariz.cloud/icon/legizmo-grace/icon@3x.png',
 	section: 'Tweaks',
-	tag: [
+	tags: [
 		'cydia::commercial',
 		'compatible_min::ios12.0'
 	],
-	installedSize: '2240',
+	installedSize: 2240,
 	refs: {
 		meta: 'https://api.canister.me/v2/jailbreak/package/lunotech11.legizmo.grace',
 		repo: 'https://api.canister.me/v2/jailbreak/repository/chariz'
 	}
-})
+}
 
 export const Package = generateSchema({
 	schema: examplePackage,
@@ -63,7 +68,7 @@ export const Package = generateSchema({
 		tintColor: 'Tint color of the package',
 		icon: 'URL to the icon image of the package',
 		section: 'Section of the package',
-		tag: 'Tags of the package',
+		tags: 'Tags of the package',
 		installedSize: 'Size of the package in bytes once installed',
 		meta: 'Direct URL to the metadata of the package',
 		repo: 'Direct URL to the repository metadata of the package'
