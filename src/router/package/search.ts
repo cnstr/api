@@ -65,16 +65,20 @@ export async function handler(request: Request, response: SearchResponse) {
 		index: 'packages',
 		query: {
 			query_string: {
-				query
+				fields: ['name', 'description', 'author', 'maintainer', 'section'],
+				fuzziness: 'AUTO',
+				fuzzy_transpositions: true,
+				fuzzy_max_expansions: 100,
+				query: `${query}~`
 			}
 		},
 
 		sort: {
-			_score: {
-				order: 'desc'
-			},
 			repositoryTier: {
 				order: 'asc'
+			},
+			_score: {
+				order: 'desc'
 			}
 		},
 

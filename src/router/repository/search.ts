@@ -65,17 +65,17 @@ export async function handler(request: Request, response: SearchResponse) {
 		index: 'repositories',
 		query: {
 			query_string: {
-				query
+				fields: ['slug', 'name', 'description', 'aliases'],
+				query: `${query}*`
 			}
 		},
 
 		sort: {
-			_score: {
-				order: 'desc'
-			},
-
 			tier: {
 				order: 'asc'
+			},
+			_score: {
+				order: 'desc'
 			}
 		},
 
