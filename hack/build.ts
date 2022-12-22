@@ -49,7 +49,7 @@ if (env.BUMP_K8S === '1') {
 
 if (env.PRODUCTION === '1') {
 	definitions.set('$database', JSON.stringify('postgresql://cnstr-pg:cnstr-pg@pg-cluster-replicas/canister'))
-	definitions.set('$search', JSON.stringify('http://es-cluster-es-http:9200'))
+	definitions.set('$search', JSON.stringify('http://ec-cluster-es-http:9200'))
 }
 
 const headerString = `// ---------------------------------------------------
