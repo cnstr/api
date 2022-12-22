@@ -1,3 +1,4 @@
+import { type Origin } from '@prisma/client'
 import type { NextFunction, Request, Response } from '@tinyhttp/app'
 import { prisma } from 'database.js'
 
@@ -28,6 +29,10 @@ export async function handler(_request: Request, response: LookupResponse) {
 		where: {
 			slug: query,
 			isPruned: false
+		},
+
+		include: {
+			origin: true
 		}
 	})
 
@@ -41,17 +46,27 @@ export async function handler(_request: Request, response: LookupResponse) {
 	}
 
 	const entries = Object.entries(repo)
+		.map(([key, value]) => {
+			if (key === 'origin') {
+				const filtered = Object.fromEntries(Object.entries(value as Origin)
+					.filter(([key]) => key !== 'uuid'))
+
+				return [key, filtered]
+			}
+
+			return [key, value]
+		})
 		.filter(([key]) => key !== 'originId' && key !== 'isPruned')
 
 	return response.status(200)
 		.json({
 			message: '200 Successful',
 			date: new Date(),
+			// eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
 			data: {
 				...Object.fromEntries(entries),
 				refs: {
-					packages: `${$product.api_endpoint}/jailbreak/repository/${repo.slug}/packages`,
-					origin: `${$product.api_endpoint}/jailbreak/repository/${repo.originId}/origin`
+					packages: `${$product.api_endpoint}/jailbreak/repository/${repo.slug}/packages`
 				}
 			}
 		})

@@ -1,4 +1,4 @@
-import { type Repository } from '@prisma/client'
+import { type Origin, type Repository } from '@prisma/client'
 import type { NextFunction, Request, Response } from '@tinyhttp/app'
 import { elastic } from 'search.js'
 
@@ -61,7 +61,7 @@ export function middleware(request: Request, response: SearchResponse, next: Nex
 export async function handler(request: Request, response: SearchResponse) {
 	const { query, limit, page } = response.locals
 
-	const result = await elastic.search<Repository>({
+	const result = await elastic.search<Repository & { origin: Origin }>({
 		index: 'repositories',
 		query: {
 			query_string: {
@@ -107,14 +107,24 @@ export async function handler(request: Request, response: SearchResponse) {
 				}
 
 				const entries = Object.entries(data._source)
+					.map(([key, value]) => {
+						if (key === 'origin') {
+							const filtered = Object.fromEntries(Object.entries(value as Origin)
+								.filter(([key]) => key !== 'uuid'))
+
+							return [key, filtered]
+						}
+
+						return [key, value]
+					})
 					.filter(([key]) => key !== 'originId' && key !== 'isPruned')
 
+				// eslint-disable-next-line @typescript-eslint/no-unsafe-return
 				return {
 					...Object.fromEntries(entries),
 					refs: {
 						meta: `${$product.api_endpoint}/jailbreak/repository/${data._source.slug}`,
-						packages: `${$product.api_endpoint}/jailbreak/repository/${data._source.slug}/packages`,
-						origin: `${$product.api_endpoint}/jailbreak/repository/${data._source.originId}/origin`
+						packages: `${$product.api_endpoint}/jailbreak/repository/${data._source.slug}/packages`
 					}
 				}
 			})

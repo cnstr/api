@@ -1,3 +1,4 @@
+import { type Origin } from '@prisma/client'
 import type { NextFunction, Request, Response } from '@tinyhttp/app'
 import { prisma } from 'database.js'
 
@@ -37,11 +38,19 @@ export async function handler(request: Request, response: SearchResponse) {
 	const repos = query === '*' ? await prisma.repository.findMany({
 		orderBy: {
 			tier: 'asc'
+		},
+
+		include: {
+			origin: true
 		}
 	}) : await prisma.repository.findMany({
 		where: {
 			tier: Number(query),
 			isPruned: false
+		},
+
+		include: {
+			origin: true
 		},
 
 		orderBy: {
@@ -56,14 +65,24 @@ export async function handler(request: Request, response: SearchResponse) {
 			count: repos.length,
 			data: repos.map(data => {
 				const entries = Object.entries(data)
+					.map(([key, value]) => {
+						if (key === 'origin') {
+							const filtered = Object.fromEntries(Object.entries(value as Origin)
+								.filter(([key]) => key !== 'uuid'))
+
+							return [key, filtered]
+						}
+
+						return [key, value]
+					})
 					.filter(([key]) => key !== 'originId' && key !== 'isPruned')
 
+				// eslint-disable-next-line @typescript-eslint/no-unsafe-return
 				return {
 					...Object.fromEntries(entries),
 					refs: {
 						meta: `${$product.api_endpoint}/jailbreak/repository/${data.slug}`,
-						packages: `${$product.api_endpoint}/jailbreak/repository/${data.slug}/packages`,
-						origin: `${$product.api_endpoint}/jailbreak/repository/${data.originId}/origin`
+						packages: `${$product.api_endpoint}/jailbreak/repository/${data.slug}/packages`
 					}
 				}
 			})
