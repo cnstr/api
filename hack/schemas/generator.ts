@@ -1,4 +1,4 @@
-import { Schema } from 'swagger-jsdoc'
+import { type Schema } from 'swagger-jsdoc'
 
 type GeneratorOptions = {
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any

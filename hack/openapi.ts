@@ -1,5 +1,5 @@
 import { dump } from 'js-yaml'
-import swaggerJSDoc, { OAS3Definition } from 'swagger-jsdoc'
+import swaggerJSDoc, { type OAS3Definition } from 'swagger-jsdoc'
 
 import { schemas } from './schemas.js'
 import type { Manifest } from './types.js'

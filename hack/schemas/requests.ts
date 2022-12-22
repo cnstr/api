@@ -1,4 +1,4 @@
-import { Schema } from 'swagger-jsdoc'
+import { type Schema } from 'swagger-jsdoc'
 
 export const BadRequest: Schema = {
 	type: 'object',

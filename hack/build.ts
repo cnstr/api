@@ -1,5 +1,6 @@
-import got from 'got'
 import { env } from 'node:process'
+
+import got from 'got'
 import { defineConfig } from 'tsup'
 
 import { calculateBuildInfo } from './buildInfo.js'

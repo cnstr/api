@@ -1,5 +1,6 @@
 import { platform, version } from 'node:process'
-import { default as gitClient } from 'simple-git'
+
+import { simpleGit } from 'simple-git'
 
 type Definitions = {
 	commit: string;
@@ -9,7 +10,7 @@ type Definitions = {
 }
 
 export async function calculateBuildInfo(date: Date) {
-	const git = gitClient('.')
+	const git = simpleGit('.')
 
 	const commitHash = await git.revparse('HEAD')
 	const rawTag = await git.tag(['--sort=-v:refname'])

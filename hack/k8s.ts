@@ -1,7 +1,8 @@
-import { dump, loadAll } from 'js-yaml'
 import { readFile, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
-import { default as gitClient } from 'simple-git'
+
+import { dump, loadAll } from 'js-yaml'
+import { simpleGit } from 'simple-git'
 
 type KubernetesManifest = {
 	kind: string;
@@ -38,7 +39,7 @@ export async function bumpDeployManifest(tag: string) {
 		.join('---\n')
 	await writeFile(path, new_yaml)
 
-	const git = gitClient('.')
+	const git = simpleGit('.')
 	await git.commit(`chore: bump k8s -> ${tag}`, [path])
 	await git.push()
 }
