@@ -1,6 +1,7 @@
-import { load } from 'js-yaml'
 import { readFile } from 'node:fs/promises'
 import { join } from 'node:path'
+
+import { load } from 'js-yaml'
 
 import type { Manifest } from './types.js'
 
@@ -24,9 +25,9 @@ export async function readManifest(date: Date) {
 	console.log('> - Database: %s@%s/%s', manifest.database.username, manifest.database.host, manifest.database.database)
 	console.log()
 
-	const defines = new Map<string, Record<string, string>>([
+	const defines = new Map<string, string | Record<string, string>>([
 		['product', manifest.product],
-		['database', manifest.database],
+		['database', `postgresql://${manifest.database.username}:${manifest.database.password}@${manifest.database.host}/${manifest.database.database}`],
 		['bump', manifest.bump]
 	])
 
