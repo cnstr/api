@@ -1,15 +1,22 @@
-FROM node:18-alpine
+FROM node:18-slim
 WORKDIR /app
 
-RUN apk add --no-cache git \
+RUN DEBIAN_FRONTEND=noninteractive apt-get update \
+	&& DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+		git \
+		openssl \
+		procps \
+	&& rm -rf /var/lib/apt/lists/* \
 	&& npm i -g pnpm
+
 ADD . .
 RUN pnpm install --frozen-lockfile \
 	&& PRODUCTION=1 pnpm run build \
 	&& rm -rf node_modules \
-	&& pnpm i --frozen-lockfile --offline --prod
+	&& pnpm install --frozen-lockfile --offline --prod \
+	&& pnpx prisma generate
 
-FROM node:18-alpine
+FROM node:18-slim
 WORKDIR /app
 COPY --from=0 /app/package.json .
 COPY --from=0 /app/dist ./dist
