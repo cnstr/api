@@ -19,7 +19,7 @@ export async function calculateBuildInfo(date: Date) {
 
 	const date_tag = `${date.getFullYear()}.${date.getMonth() + 1}.${date.getDate()}`
 	const buildTag = `${date_tag}_${commitHash.slice(0, 7)}`
-	const runtimePlatform = `${platform}-${version}_k8s-v1.22.4`
+	const runtimePlatform = `${platform}-${version}_k8s-v1.26.0`
 
 	console.log('> Generated build information:')
 	console.log('> - Commit hash: %s', commitHash)
