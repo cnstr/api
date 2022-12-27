@@ -33,6 +33,10 @@ export async function handler(_request: Request, response: LookupResponse) {
 			isPruned: false
 		},
 
+		include: {
+			repository: true
+		},
+
 		orderBy: {
 			repositoryTier: 'asc'
 		}
