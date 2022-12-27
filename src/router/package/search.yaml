@@ -62,7 +62,12 @@
                 data:
                   type: array
                   items:
-                    $ref: '#/components/schemas/Package'
+                    allOf:
+                        - $ref: '#/components/schemas/Package'
+                        - type: object
+                          properties:
+                            repository:
+                              $ref: '#/components/schemas/Repository'
       '400':
         description: 'Bad Request'
         content:
