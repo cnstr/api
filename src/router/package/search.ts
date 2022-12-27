@@ -1,5 +1,6 @@
 import { type Package } from '@prisma/client'
 import type { NextFunction, Request, Response } from '@tinyhttp/app'
+import { prisma } from 'database.js'
 import { elastic } from 'search.js'
 
 type SearchResponse = Response & {
@@ -86,6 +87,16 @@ export async function handler(request: Request, response: SearchResponse) {
 		size: limit
 	})
 
+	const repositorySlugs = result.hits.hits.map(data => data._source?.repositorySlug ?? '')
+	const repositories = await prisma.repository.findMany({
+		where: {
+			slug: {
+				in: repositorySlugs
+			}
+
+		}
+	})
+
 	const url = new URL(request.originalUrl, $product.api_endpoint)
 	url.searchParams.set('page', (page + 1).toString())
 	const nextPage = url.href
@@ -114,6 +125,7 @@ export async function handler(request: Request, response: SearchResponse) {
 
 				return {
 					...Object.fromEntries(entries),
+					repository: repositories.find(repository => repository.slug === data._source?.repositorySlug),
 					refs: {
 						meta: `${$product.api_endpoint}/jailbreak/package/${data._source.package}`,
 						repo: `${$product.api_endpoint}/jailbreak/repository/${data._source.repositorySlug}`
