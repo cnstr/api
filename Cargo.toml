@@ -1,0 +1,7 @@
+[workspace]
+resolver = "2"
+default-members = ["api"]
+members = [
+	"api",
+	"prisma-cli"
+]
