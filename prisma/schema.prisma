@@ -93,7 +93,7 @@ enum ManifestType {
 model Manifest {
   uuid String       @id @unique @default(cuid())
   url  String
-  type ManifestType
+  variant ManifestType
 
-  @@index([url, type])
+  @@index([url, variant])
 }
