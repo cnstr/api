@@ -28,6 +28,7 @@ async fn main() -> Result<()> {
 		api.at("/jailbreak/package").nest({
 			let mut nest = tide::new();
 			nest.at("/search").get(routes::package_search);
+			nest.at("/multi").get(routes::package_multi_lookup);
 			nest.at("/:package").get(routes::package_lookup);
 			nest
 		});
