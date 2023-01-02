@@ -84,17 +84,3 @@ model Cache {
   fileHash       String
   repositorySlug String @unique
 }
-
-enum ManifestType {
-  UnsafeRepo
-  ScamJailbreak
-  ScamUnlock
-}
-
-model Manifest {
-  uuid String       @id @unique @default(cuid())
-  url  String
-  variant ManifestType
-
-  @@index([url, variant])
-}
