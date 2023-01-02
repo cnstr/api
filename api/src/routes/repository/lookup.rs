@@ -1,28 +1,26 @@
 use crate::db::prisma;
 use crate::prisma::repository;
+use crate::utility::json_respond;
 
-use serde_json::{json, to_string_pretty};
+use serde_json::json;
 use tide::{
-	Request, Response, Result,
-	StatusCode::{BadRequest, NotFound},
+	Request, Result,
+	StatusCode::{BadRequest, NotFound, Ok as OK},
 };
 use tokio::runtime::Builder;
 
 pub async fn repository_lookup(req: Request<()>) -> Result {
 	let query = match req.param("repository") {
 		Ok(query) => query.to_string(),
-		Err(err) => {
-			println!("Error: {}", err);
-			return Ok(Response::builder(BadRequest)
-				.body(
-					to_string_pretty(&json!({
-						"message": "400 Bad Request",
-						"error": "Missing URL parameter: \':repository\'",
-						"date": chrono::Utc::now().to_rfc3339(),
-					}))
-					.unwrap(),
-				)
-				.build());
+		Err(_) => {
+			return Ok(json_respond(
+				BadRequest,
+				json!({
+					"message": "400 Bad Request",
+					"error": "Missing URL parameter: \':repository\'",
+					"date": chrono::Utc::now().to_rfc3339(),
+				}),
+			));
 		}
 	};
 
@@ -46,25 +44,24 @@ pub async fn repository_lookup(req: Request<()>) -> Result {
 
 	match repository {
 		Some(repository) => {
-			return Ok(to_string_pretty(&json!({
-				"message": "200 Successful",
-				"date": chrono::Utc::now().to_rfc3339(),
-				"data": repository,
-			}))
-			.unwrap()
-			.into());
+			return Ok(json_respond(
+				OK,
+				json!({
+					"message": "200 Successful",
+					"date": chrono::Utc::now().to_rfc3339(),
+					"data": repository,
+				}),
+			));
 		}
 		None => {
-			return Ok(Response::builder(NotFound)
-				.body(
-					to_string_pretty(&json!({
-						"message": "404 Not Found",
-						"error": "Repository not found",
-						"date": chrono::Utc::now().to_rfc3339(),
-					}))
-					.unwrap(),
-				)
-				.build());
+			return Ok(json_respond(
+				NotFound,
+				json!({
+					"message": "404 Not Found",
+					"error": "Repository not found",
+					"date": chrono::Utc::now().to_rfc3339(),
+				}),
+			))
 		}
 	}
 }

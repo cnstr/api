@@ -1,12 +1,12 @@
-use crate::db::prisma;
+use crate::{db::prisma, utility::json_respond};
 
 use crate::prisma::repository;
 use prisma_client_rust::Direction;
-use serde_json::{json, to_string_pretty};
+use serde_json::json;
 use tide::{
 	prelude::Deserialize,
-	Request, Response, Result,
-	StatusCode::{BadRequest, UnprocessableEntity},
+	Request, Result,
+	StatusCode::{BadRequest, Ok as OK, UnprocessableEntity},
 };
 use tokio::runtime::Builder;
 
@@ -28,32 +28,28 @@ pub async fn repository_ranking(req: Request<()>) -> Result {
 						"5" => q,
 						"*" => q,
 						_ => {
-							return Ok(Response::builder(BadRequest)
-								.body(
-									to_string_pretty(&json!({
-										"message": "400 Bad Request",
-										"error": "Query parameter \'rank\' must be 1, 2, 3, 4, 5, or *",
-										"date": chrono::Utc::now().to_rfc3339(),
-									}))
-									.unwrap(),
-								)
-								.build());
+							return Ok(json_respond(
+								BadRequest,
+								json!({
+									"message": "400 Bad Request",
+									"error": "Query parameter \'rank\' must be 1, 2, 3, 4, 5, or *",
+									"date": chrono::Utc::now().to_rfc3339(),
+								}),
+							));
 						}
 					};
 
 					match_q
 				}
 				None => {
-					return Ok(Response::builder(BadRequest)
-						.body(
-							to_string_pretty(&json!({
-								"message": "400 Bad Request",
-								"error": "Missing query parameter: \'q\'",
-								"date": chrono::Utc::now().to_rfc3339(),
-							}))
-							.unwrap(),
-						)
-						.build());
+					return Ok(json_respond(
+						BadRequest,
+						json!({
+							"message": "400 Bad Request",
+							"error": "Missing query parameter: \'rank\'",
+							"date": chrono::Utc::now().to_rfc3339(),
+						}),
+					));
 				}
 			};
 
@@ -62,16 +58,14 @@ pub async fn repository_ranking(req: Request<()>) -> Result {
 
 		Err(err) => {
 			println!("Error: {}", err);
-			return Ok(Response::builder(UnprocessableEntity)
-				.body(
-					to_string_pretty(&json!({
-						"message": "422 Unprocessable Entity",
-						"error": "Malformed query parameters",
-						"date": chrono::Utc::now().to_rfc3339(),
-					}))
-					.unwrap(),
-				)
-				.build());
+			return Ok(json_respond(
+				UnprocessableEntity,
+				json!({
+					"message": "422 Unprocessable Entity",
+					"error": "Malformed query parameters",
+					"date": chrono::Utc::now().to_rfc3339(),
+				}),
+			));
 		}
 	};
 
@@ -90,6 +84,7 @@ pub async fn repository_ranking(req: Request<()>) -> Result {
 					.exec()
 					.await
 					.unwrap(),
+
 				_ => prisma()
 					.await
 					.repository()
@@ -105,12 +100,13 @@ pub async fn repository_ranking(req: Request<()>) -> Result {
 			};
 		});
 
-	return Ok(to_string_pretty(&json!({
-		"message": "200 Successful",
-		"date": chrono::Utc::now().to_rfc3339(),
-		"count": repositories.len(),
-		"data": repositories,
-	}))
-	.unwrap()
-	.into());
+	return Ok(json_respond(
+		OK,
+		json!({
+			"message": "200 Successful",
+			"date": chrono::Utc::now().to_rfc3339(),
+			"count": repositories.len(),
+			"data": repositories,
+		}),
+	));
 }

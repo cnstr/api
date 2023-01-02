@@ -1,6 +1,7 @@
 mod db;
 pub mod prisma;
 mod routes;
+pub mod utility;
 
 use std::{future::Future, pin::Pin};
 

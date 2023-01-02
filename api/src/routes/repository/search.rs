@@ -1,11 +1,11 @@
-use crate::db::elastic;
+use crate::{db::elastic, utility::json_respond};
 
 use elasticsearch::SearchParts;
-use serde_json::{json, to_string_pretty};
+use serde_json::json;
 use tide::{
 	prelude::Deserialize,
-	Request, Response, Result,
-	StatusCode::{BadRequest, InternalServerError, UnprocessableEntity},
+	Request, Result,
+	StatusCode::{BadRequest, InternalServerError, Ok as OK, UnprocessableEntity},
 };
 use tokio::runtime::Builder;
 
@@ -22,47 +22,41 @@ pub async fn repository_search(req: Request<()>) -> Result {
 			let q = match query.q {
 				Some(q) => {
 					if q.len() < 3 {
-						return Ok(Response::builder(BadRequest)
-							.body(
-								to_string_pretty(&json!({
-									"message": "400 Bad Request",
-									"error": "Query parameter \'q\' must be at least 3 characters",
-									"date": chrono::Utc::now().to_rfc3339(),
-								}))
-								.unwrap(),
-							)
-							.build());
+						return Ok(json_respond(
+							BadRequest,
+							json!({
+								"message": "400 Bad Request",
+								"error": "Query parameter \'q\' must be at least 3 characters",
+								"date": chrono::Utc::now().to_rfc3339(),
+							}),
+						));
 					}
 
 					q
 				}
 				None => {
-					return Ok(Response::builder(BadRequest)
-						.body(
-							to_string_pretty(&json!({
-								"message": "400 Bad Request",
-								"error": "Missing query parameter: \'q\'",
-								"date": chrono::Utc::now().to_rfc3339(),
-							}))
-							.unwrap(),
-						)
-						.build());
+					return Ok(json_respond(
+						BadRequest,
+						json!({
+							"message": "400 Bad Request",
+							"error": "Missing query parameter: \'q\'",
+							"date": chrono::Utc::now().to_rfc3339(),
+						}),
+					));
 				}
 			};
 
 			let page = match query.page {
 				Some(page) => {
 					if page < 1 {
-						return Ok(Response::builder(BadRequest)
-							.body(
-								to_string_pretty(&json!({
-									"message": "400 Bad Request",
-									"error": "Query parameter \'page\' must be greater than 0",
-									"date": chrono::Utc::now().to_rfc3339(),
-								}))
-								.unwrap(),
-							)
-							.build());
+						return Ok(json_respond(
+							BadRequest,
+							json!({
+								"message": "400 Bad Request",
+								"error": "Query parameter \'page\' must be greater than 0",
+								"date": chrono::Utc::now().to_rfc3339(),
+							}),
+						));
 					}
 
 					page
@@ -73,16 +67,14 @@ pub async fn repository_search(req: Request<()>) -> Result {
 			let limit = match query.limit {
 				Some(limit) => {
 					if limit < 1 || limit > 250 {
-						return Ok(Response::builder(BadRequest)
-							.body(
-								to_string_pretty(&json!({
-									"message": "400 Bad Request",
-									"error": "Query parameter \'limit\' must be between 1 and 250",
-									"date": chrono::Utc::now().to_rfc3339(),
-								}))
-								.unwrap(),
-							)
-							.build());
+						return Ok(json_respond(
+							BadRequest,
+							json!({
+								"message": "400 Bad Request",
+								"error": "Query parameter \'limit\' must be between 1 and 250",
+								"date": chrono::Utc::now().to_rfc3339(),
+							}),
+						));
 					}
 
 					limit
@@ -95,16 +87,14 @@ pub async fn repository_search(req: Request<()>) -> Result {
 
 		Err(err) => {
 			println!("Error: {}", err);
-			return Ok(Response::builder(UnprocessableEntity)
-				.body(
-					to_string_pretty(&json!({
-						"message": "422 Unprocessable Entity",
-						"error": "Malformed query parameters",
-						"date": chrono::Utc::now().to_rfc3339(),
-					}))
-					.unwrap(),
-				)
-				.build());
+			return Ok(json_respond(
+				UnprocessableEntity,
+				json!({
+					"message": "422 Unprocessable Entity",
+					"error": "Malformed query parameters",
+					"date": chrono::Utc::now().to_rfc3339(),
+				}),
+			));
 		}
 	};
 
@@ -141,16 +131,14 @@ pub async fn repository_search(req: Request<()>) -> Result {
 				Ok(res) => res,
 				Err(err) => {
 					println!("Error: {}", err);
-					return Err(Ok(Response::builder(InternalServerError)
-						.body(
-							to_string_pretty(&json!({
-								"message": "500 Internal Server Error",
-								"error": "Failed to connect to Elasticsearch",
-								"date": chrono::Utc::now().to_rfc3339(),
-							}))
-							.unwrap(),
-						)
-						.build()));
+					return Err(Ok(json_respond(
+						InternalServerError,
+						json!({
+							"message": "500 Internal Server Error",
+							"error": "Failed to connect to Elasticsearch",
+							"date": chrono::Utc::now().to_rfc3339(),
+						}),
+					)));
 				}
 			};
 
@@ -170,12 +158,12 @@ pub async fn repository_search(req: Request<()>) -> Result {
 		Err(err) => return err,
 	};
 
-	return Ok(to_string_pretty(&json!({
-		"message": "200 Successful",
-		"date": chrono::Utc::now().to_rfc3339(),
-		"count": repositories.len(),
-		"data": repositories,
-	}))
-	.unwrap()
-	.into());
+	return Ok(json_respond(
+		OK,
+		json!({
+			"message": "200 OK",
+			"date": chrono::Utc::now().to_rfc3339(),
+			"repositories": repositories,
+		}),
+	));
 }

@@ -1,12 +1,12 @@
-use crate::db::prisma;
 use crate::prisma::package;
+use crate::{db::prisma, utility::json_respond};
 
 use prisma_client_rust::Direction;
-use serde_json::{json, to_string_pretty};
+use serde_json::json;
 use tide::{
 	prelude::Deserialize,
-	Request, Response, Result,
-	StatusCode::{BadRequest, NotFound, UnprocessableEntity},
+	Request, Result,
+	StatusCode::{BadRequest, NotFound, Ok as OK, UnprocessableEntity},
 };
 use tokio::runtime::Builder;
 
@@ -24,16 +24,14 @@ pub async fn package_multi_lookup(req: Request<()>) -> Result {
 					ids
 				}
 				None => {
-					return Ok(Response::builder(BadRequest)
-						.body(
-							to_string_pretty(&json!({
-								"message": "400 Bad Request",
-								"error": "Missing query parameter: \'ids\'",
-								"date": chrono::Utc::now().to_rfc3339(),
-							}))
-							.unwrap(),
-						)
-						.build());
+					return Ok(json_respond(
+						BadRequest,
+						json!({
+							"message": "400 Bad Request",
+							"error": "Missing query parameter: \'ids\'",
+							"date": chrono::Utc::now().to_rfc3339(),
+						}),
+					));
 				}
 			};
 
@@ -42,16 +40,14 @@ pub async fn package_multi_lookup(req: Request<()>) -> Result {
 
 		Err(err) => {
 			println!("Error: {}", err);
-			return Ok(Response::builder(UnprocessableEntity)
-				.body(
-					to_string_pretty(&json!({
-						"message": "422 Unprocessable Entity",
-						"error": "Malformed query parameters",
-						"date": chrono::Utc::now().to_rfc3339(),
-					}))
-					.unwrap(),
-				)
-				.build());
+			return Ok(json_respond(
+				UnprocessableEntity,
+				json!({
+					"message": "422 Unprocessable Entity",
+					"error": "Malformed query parameters",
+					"date": chrono::Utc::now().to_rfc3339(),
+				}),
+			));
 		}
 	};
 
@@ -76,24 +72,23 @@ pub async fn package_multi_lookup(req: Request<()>) -> Result {
 		});
 
 	if packages.len() == 0 {
-		return Ok(Response::builder(NotFound)
-			.body(
-				to_string_pretty(&json!({
-					"message": "404 Not Found",
-					"error": "Packages not found",
-					"date": chrono::Utc::now().to_rfc3339(),
-				}))
-				.unwrap(),
-			)
-			.build());
+		return Ok(json_respond(
+			NotFound,
+			json!({
+				"message": "404 Not Found",
+				"error": "Packages not found",
+				"date": chrono::Utc::now().to_rfc3339(),
+			}),
+		));
 	}
 
-	return Ok(to_string_pretty(&json!({
-		"message": "200 Successful",
-		"date": chrono::Utc::now().to_rfc3339(),
-		"count": packages.len(),
-		"data": packages,
-	}))
-	.unwrap()
-	.into());
+	return Ok(json_respond(
+		OK,
+		json!({
+			"message": "200 Successful",
+			"date": chrono::Utc::now().to_rfc3339(),
+			"count": packages.len(),
+			"data": packages,
+		}),
+	));
 }

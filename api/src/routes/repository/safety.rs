@@ -1,9 +1,11 @@
-use serde_json::{json, to_string_pretty};
+use serde_json::json;
 use tide::{
 	prelude::Deserialize,
-	Request, Response, Result,
-	StatusCode::{BadRequest, UnprocessableEntity},
+	Request, Result,
+	StatusCode::{BadRequest, Ok as OK, UnprocessableEntity},
 };
+
+use crate::utility::json_respond;
 
 #[derive(Deserialize)]
 struct Query {
@@ -25,16 +27,14 @@ pub async fn repository_safety(req: Request<()>) -> Result {
 					uris
 				}
 				None => {
-					return Ok(Response::builder(BadRequest)
-						.body(
-							to_string_pretty(&json!({
-								"message": "400 Bad Request",
-								"error": "Missing query parameter: \'uris\'",
-								"date": chrono::Utc::now().to_rfc3339(),
-							}))
-							.unwrap(),
-						)
-						.build());
+					return Ok(json_respond(
+						BadRequest,
+						json!({
+							"message": "400 Bad Request",
+							"error": "Missing query parameter: \'uris\'",
+							"date": chrono::Utc::now().to_rfc3339(),
+						}),
+					));
 				}
 			};
 
@@ -43,16 +43,14 @@ pub async fn repository_safety(req: Request<()>) -> Result {
 
 		Err(err) => {
 			println!("Error: {}", err);
-			return Ok(Response::builder(UnprocessableEntity)
-				.body(
-					to_string_pretty(&json!({
-						"message": "422 Unprocessable Entity",
-						"error": "Malformed query parameters",
-						"date": chrono::Utc::now().to_rfc3339(),
-					}))
-					.unwrap(),
-				)
-				.build());
+			return Ok(json_respond(
+				UnprocessableEntity,
+				json!({
+					"message": "422 Unprocessable Entity",
+					"error": "Malformed query parameters",
+					"date": chrono::Utc::now().to_rfc3339(),
+				}),
+			));
 		}
 	};
 
@@ -73,12 +71,13 @@ pub async fn repository_safety(req: Request<()>) -> Result {
 		}));
 	}
 
-	return Ok(to_string_pretty(&json!({
-		"message": "200 Successful",
-		"date": chrono::Utc::now().to_rfc3339(),
-		"count": repositories.len(),
-		"data": repositories,
-	}))
-	.unwrap()
-	.into());
+	return Ok(json_respond(
+		OK,
+		json!({
+			"message": "200 Successful",
+			"date": chrono::Utc::now().to_rfc3339(),
+			"count": repositories.len(),
+			"data": repositories,
+		}),
+	));
 }

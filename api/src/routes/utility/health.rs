@@ -1,10 +1,13 @@
-use serde_json::{json, to_string_pretty};
-use tide::{Request, Result};
+use serde_json::json;
+use tide::{Request, Result, StatusCode::Ok as OK};
+
+use crate::utility::json_respond;
 
 pub async fn health(_req: Request<()>) -> Result {
-	return Ok(to_string_pretty(&json!({
-		"status": "OK"
-	}))
-	.unwrap()
-	.into());
+	return Ok(json_respond(
+		OK,
+		json!({
+			"status": "OK"
+		}),
+	));
 }

@@ -1,11 +1,11 @@
-use crate::db::prisma;
 use crate::prisma::package;
+use crate::{db::prisma, utility::json_respond};
 
 use prisma_client_rust::Direction;
-use serde_json::{json, to_string_pretty};
+use serde_json::json;
 use tide::{
-	Request, Response, Result,
-	StatusCode::{BadRequest, NotFound},
+	Request, Result,
+	StatusCode::{BadRequest, NotFound, Ok as OK},
 };
 use tokio::runtime::Builder;
 
@@ -14,16 +14,14 @@ pub async fn package_lookup(req: Request<()>) -> Result {
 		Ok(query) => query.to_string(),
 		Err(err) => {
 			println!("Error: {}", err);
-			return Ok(Response::builder(BadRequest)
-				.body(
-					to_string_pretty(&json!({
-						"message": "400 Bad Request",
-						"error": "Missing URL parameter: \':package\'",
-						"date": chrono::Utc::now().to_rfc3339(),
-					}))
-					.unwrap(),
-				)
-				.build());
+			return Ok(json_respond(
+				BadRequest,
+				json!({
+					"message": "400 Bad Request",
+					"error": "Missing URL parameter: \':package\'",
+					"date": chrono::Utc::now().to_rfc3339(),
+				}),
+			));
 		}
 	};
 
@@ -48,24 +46,23 @@ pub async fn package_lookup(req: Request<()>) -> Result {
 		});
 
 	if packages.len() == 0 {
-		return Ok(Response::builder(NotFound)
-			.body(
-				to_string_pretty(&json!({
-					"message": "404 Not Found",
-					"error": "Package not found",
-					"date": chrono::Utc::now().to_rfc3339(),
-				}))
-				.unwrap(),
-			)
-			.build());
+		return Ok(json_respond(
+			NotFound,
+			json!({
+				"message": "404 Not Found",
+				"error": "Package not found",
+				"date": chrono::Utc::now().to_rfc3339(),
+			}),
+		));
 	}
 
-	return Ok(to_string_pretty(&json!({
-		"message": "200 Successful",
-		"date": chrono::Utc::now().to_rfc3339(),
-		"count": packages.len(),
-		"data": packages,
-	}))
-	.unwrap()
-	.into());
+	return Ok(json_respond(
+		OK,
+		json!({
+			"message": "200 Successful",
+			"date": chrono::Utc::now().to_rfc3339(),
+			"count": packages.len(),
+			"data": packages,
+		}),
+	));
 }
