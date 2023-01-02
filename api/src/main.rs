@@ -33,6 +33,17 @@ async fn main() -> Result<()> {
 			nest
 		});
 
+		api.at("/jailbreak/repository").nest({
+			let mut nest = tide::new();
+			nest.at("/search").get(routes::repository_search);
+			nest.at("/ranking").get(routes::repository_ranking);
+			nest.at("/safety").get(routes::repository_safety);
+			nest.at("/:repository").get(routes::repository_lookup);
+			nest.at("/:repository/packages")
+				.get(routes::repository_packages);
+			nest
+		});
+
 		api
 	});
 
