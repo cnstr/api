@@ -1,4 +1,5 @@
 use crate::db::prisma;
+use crate::prisma::package;
 
 use prisma_client_rust::Direction;
 use serde_json::{json, to_string_pretty};
@@ -35,11 +36,12 @@ pub async fn package_lookup(req: Request<()>) -> Result {
 				.await
 				.package()
 				.find_many(vec![
-					prisma::package::package::equals(query.to_string()),
-					prisma::package::is_pruned::equals(false),
+					package::package::equals(query.to_string()),
+					package::is_pruned::equals(false),
 				])
-				.order_by(prisma::package::is_current::order(Direction::Desc))
-				.order_by(prisma::package::repository_tier::order(Direction::Asc))
+				.order_by(package::is_current::order(Direction::Desc))
+				.order_by(package::repository_tier::order(Direction::Asc))
+				.with(package::repository::fetch())
 				.exec()
 				.await
 				.unwrap();
