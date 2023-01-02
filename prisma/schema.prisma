@@ -1,0 +1,100 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "cargo prisma"
+  output   = "../api/src/prisma/mod.rs"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Repository {
+  slug           String    @id @unique
+  aliases        String[]  @default([])
+  tier           Int
+  packageCount   Int
+  sections       String[]  @default([])
+  uri            String
+  suite          String    @default("./")
+  component      String?
+  name           String?
+  version        String?
+  description    String?
+  date           DateTime?
+  paymentGateway String?
+  sileoEndpoint  String?
+  isPruned       Boolean   @default(false)
+  origin         Origin    @relation(fields: [originId], references: [uuid])
+  originId       String    @unique
+  packages       Package[]
+
+  @@index([isPruned])
+}
+
+model Origin {
+  uuid              String      @id @unique @default(cuid())
+  hostname          String
+  releasePath       String
+  packagesPath      String
+  lastUpdated       DateTime
+  hasInRelease      Boolean
+  hasReleaseGpg     Boolean
+  supportsPaymentV1 Boolean
+  supportsPaymentV2 Boolean
+  usesHttps         Boolean
+  repository        Repository?
+}
+
+model Package {
+  uuid            String     @id @unique @default(cuid())
+  package         String
+  isCurrent       Boolean
+  isPruned        Boolean    @default(false)
+  repositoryTier  Int
+  repository      Repository @relation(fields: [repositorySlug], references: [slug])
+  repositorySlug  String
+  price           String
+  version         String
+  architecture    String
+  filename        String
+  size            Int
+  sha256          String?
+  name            String?
+  description     String?
+  author          String?
+  maintainer      String?
+  depiction       String?
+  nativeDepiction String?
+  sileoDepiction  String?
+  header          String?
+  tintColor       String?
+  icon            String?
+  section         String?
+  tags            String[]   @default([])
+  installedSize   Int?
+
+  @@index([isCurrent, isPruned, repositoryTier])
+}
+
+model Cache {
+  uuid           String @id @unique @default(cuid())
+  fileHash       String
+  repositorySlug String @unique
+}
+
+enum ManifestType {
+  UnsafeRepo
+  ScamJailbreak
+  ScamUnlock
+}
+
+model Manifest {
+  uuid String       @id @unique @default(cuid())
+  url  String
+  variant ManifestType
+
+  @@index([url, variant])
+}
