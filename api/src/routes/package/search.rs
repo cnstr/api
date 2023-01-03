@@ -1,6 +1,6 @@
 use crate::{
 	db::{elastic, prisma},
-	utility::json_respond,
+	utility::{json_respond, merge_json},
 };
 
 use elasticsearch::SearchParts;
@@ -183,7 +183,19 @@ pub async fn package_search(req: Request<()>) -> Result {
 
 					let mut package = package["_source"].clone();
 					package["repository"] = json!(repository);
-					package
+
+					let id = package["package"].as_str().unwrap();
+					let slug = package["repositorySlug"].as_str().unwrap();
+
+					return merge_json(
+						&package,
+						json!({
+							"refs": {
+								"meta": format!("{}/jailbreak/package/{}", env!("CANISTER_API_ENDPOINT"), id),
+								"repo": format!("{}/jailbreak/repository/{}", env!("CANISTER_API_ENDPOINT"), slug),
+							}
+						}),
+					);
 				})
 				.collect::<Vec<serde_json::Value>>();
 

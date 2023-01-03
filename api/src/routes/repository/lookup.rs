@@ -1,6 +1,6 @@
-use crate::db::prisma;
 use crate::prisma::repository;
 use crate::utility::json_respond;
+use crate::{db::prisma, utility::merge_json};
 
 use serde_json::json;
 use tide::{
@@ -44,6 +44,16 @@ pub async fn repository_lookup(req: Request<()>) -> Result {
 
 	match repository {
 		Some(repository) => {
+			let slug = repository.slug.clone();
+			let repository = merge_json(
+				repository,
+				json!({
+					"refs": {
+						"packages": format!("{}/jailbreak/repository/{}/packages", env!("CANISTER_API_ENDPOINT"), slug),
+					}
+				}),
+			);
+
 			return Ok(json_respond(
 				OK,
 				json!({

@@ -1,8 +1,9 @@
+use crate::utility::merge_json;
 use crate::{db::prisma, utility::json_respond};
 
 use crate::prisma::repository;
 use prisma_client_rust::Direction;
-use serde_json::json;
+use serde_json::{json, Value};
 use tide::{
 	prelude::Deserialize,
 	Request, Result,
@@ -106,7 +107,16 @@ pub async fn repository_ranking(req: Request<()>) -> Result {
 			"message": "200 Successful",
 			"date": chrono::Utc::now().to_rfc3339(),
 			"count": repositories.len(),
-			"data": repositories,
+			"data": repositories.iter().map(|repository|{
+				let slug = repository.slug.clone();
+
+				return merge_json(repository, json!({
+					"refs": {
+						"meta": format!("{}/jailbreak/repository/{}", env!("CANISTER_API_ENDPOINT"), slug),
+						"packages": format!("{}/jailbreak/repository/{}/packages", env!("CANISTER_API_ENDPOINT"), slug),
+					}
+				}))
+			}).collect::<Vec<Value>>(),
 		}),
 	));
 }

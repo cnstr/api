@@ -1,7 +1,10 @@
-use crate::{db::elastic, utility::json_respond};
+use crate::{
+	db::elastic,
+	utility::{json_respond, merge_json},
+};
 
 use elasticsearch::SearchParts;
-use serde_json::json;
+use serde_json::{json, Value};
 use tide::{
 	prelude::Deserialize,
 	Request, Result,
@@ -163,7 +166,15 @@ pub async fn repository_search(req: Request<()>) -> Result {
 		json!({
 			"message": "200 OK",
 			"date": chrono::Utc::now().to_rfc3339(),
-			"repositories": repositories,
+			"repositories": repositories.iter().map(|repository| {
+				let slug = repository["slug"].as_str().unwrap();
+				return merge_json(repository, json!({
+					"refs": {
+						"meta": format!("{}/jailbreak/repository/{}", env!("CANISTER_API_ENDPOINT"), slug),
+						"packages": format!("{}/jailbreak/repository/{}/packages", env!("CANISTER_API_ENDPOINT"), slug),
+					}
+				}))
+			}).collect::<Vec<Value>>(),
 		}),
 	));
 }

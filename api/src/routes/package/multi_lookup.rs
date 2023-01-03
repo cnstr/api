@@ -1,8 +1,9 @@
 use crate::prisma::package;
+use crate::utility::merge_json;
 use crate::{db::prisma, utility::json_respond};
 
 use prisma_client_rust::Direction;
-use serde_json::json;
+use serde_json::{json, Value};
 use tide::{
 	prelude::Deserialize,
 	Request, Result,
@@ -88,7 +89,14 @@ pub async fn package_multi_lookup(req: Request<()>) -> Result {
 			"message": "200 Successful",
 			"date": chrono::Utc::now().to_rfc3339(),
 			"count": packages.len(),
-			"data": packages,
+			"data": packages.iter().map(|package| {
+				let slug = package.repository_slug.clone();
+				return merge_json(package, json!({
+					"refs": {
+						"repo": format!("{}/jailbreak/repository/{}", env!("CANISTER_API_ENDPOINT"), slug)
+					}
+				}))
+			}).collect::<Vec<Value>>(),
 		}),
 	));
 }

@@ -1,15 +1,23 @@
 use serde::Serialize;
-use serde_json::{ser::PrettyFormatter, Serializer, Value};
+use serde_json::{ser::PrettyFormatter, to_value, Serializer, Value};
 use tide::StatusCode;
+
+pub fn merge_json<T>(serial: T, json: Value) -> Value
+where
+	T: Serialize,
+{
+	let mut serial = to_value(serial).unwrap();
+	merge_json_value(&mut serial, json);
+	serial
+}
 
 // Modified to be a bit more readable and concise
 // Original: https://stackoverflow.com/questions/47070876/how-can-i-merge-two-json-objects-with-rust
-pub fn merge_json(left: &mut Value, right: Value) {
+fn merge_json_value(left: &mut Value, right: Value) {
 	match (left, right) {
-		(left @ &mut Value::Object(_), Value::Object(right)) => {
-			let left = left.as_object_mut().unwrap();
+		(&mut Value::Object(ref mut left), Value::Object(right)) => {
 			for (key, value) in right {
-				merge_json(left.entry(key).or_insert(Value::Null), value);
+				merge_json_value(left.entry(key).or_insert(Value::Null), value);
 			}
 		}
 

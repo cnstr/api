@@ -1,8 +1,8 @@
 use crate::prisma::repository;
-use crate::utility::json_respond;
+use crate::utility::{json_respond, merge_json};
 use crate::{db::prisma, prisma::package};
 
-use serde_json::json;
+use serde_json::{json, Value};
 use tide::{
 	Request, Result,
 	StatusCode::{BadRequest, NotFound, Ok as OK},
@@ -60,7 +60,27 @@ pub async fn repository_packages(req: Request<()>) -> Result {
 		});
 
 	let packages = match request {
-		Ok(packages) => packages,
+		Ok(packages) => {
+			let packages = packages
+				.into_iter()
+				.map(|package| {
+					let id = package.package.clone();
+					let slug = package.repository_slug.clone();
+
+					merge_json(
+						package,
+						json!({
+							"refs": {
+								"meta": format!("{}/jailbreak/package/{}", env!("CANISTER_API_ENDPOINT"), id),
+								"repo": format!("{}/jailbreak/repository/{}", env!("CANISTER_API_ENDPOINT"), slug),
+							}
+						}),
+					)
+				})
+				.collect::<Vec<Value>>();
+
+			packages
+		}
 		Err(response) => return response,
 	};
 
