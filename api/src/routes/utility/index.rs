@@ -1,3 +1,4 @@
+use chrono::Datelike;
 use serde_json::json;
 use tide::{Request, Result, StatusCode::Ok as OK};
 
@@ -8,17 +9,18 @@ pub async fn index(req: Request<()>) -> Result {
 		OK,
 		json!({
 			"info": {
-				"name": "Canister (cnstr)",
+				"name": format!("{} ({})", env!("CANISTER_PRODUCT_NAME"), env!("CANISTER_CODE_NAME")),
 				"version": env!("VERGEN_BUILD_SEMVER"),
-				"build": format!("{} (git-{}-tree/{})", env!("VERGEN_BUILD_TIMESTAMP"), env!("VERGEN_GIT_SHA_SHORT"), env!("VERGEN_GIT_BRANCH")),
-				"platform": format!("rust-{} ({}_llvm{})", env!("VERGEN_RUSTC_SEMVER"), env!("VERGEN_RUSTC_HOST_TRIPLE"), env!("VERGEN_RUSTC_LLVM_VERSION"))
+				"build": format!("{}+git-{}-tree/{}", env!("VERGEN_BUILD_TIMESTAMP"), env!("VERGEN_GIT_SHA_SHORT"), env!("VERGEN_GIT_BRANCH")),
+				"platform": format!("rust-{}+{}_llvm{}", env!("VERGEN_RUSTC_SEMVER"), env!("VERGEN_RUSTC_HOST_TRIPLE"), env!("VERGEN_RUSTC_LLVM_VERSION")),
+				"runtime": env!("CANISTER_K8S_VERSION")
 			},
 
 			"reference": {
-				"docs": "https://docs.canister.me",
-				"privacy_policy": "https://canister.me/privacy",
-				"contact_email": "support@canister.me",
-				"copyright": "Aarnav Tale (c) 2022"
+				"docs": env!("CANISTER_DOCS_ENDPOINT"),
+				"privacy_policy": env!("CANISTER_PRIVACY_ENDPOINT"),
+				"contact_email": env!("CANISTER_CONTACT_EMAIL"),
+				"copyright": env!("CANISTER_COPYRIGHT").replace("{{year}}", &chrono::Utc::now().year().to_string())
 			},
 
 			"connection": {
