@@ -1,5 +1,5 @@
 use crate::prisma::package;
-use crate::utility::merge_json;
+use crate::utility::{merge_json, tokio_run};
 use crate::{db::prisma, utility::json_respond};
 
 use prisma_client_rust::Direction;
@@ -9,7 +9,6 @@ use tide::{
 	Request, Result,
 	StatusCode::{BadRequest, NotFound, Ok as OK, UnprocessableEntity},
 };
-use tokio::runtime::Builder;
 
 #[derive(Deserialize)]
 struct Query {
@@ -52,25 +51,21 @@ pub async fn package_multi_lookup(req: Request<()>) -> Result {
 		}
 	};
 
-	let packages = Builder::new_multi_thread()
-		.enable_all()
-		.build()
-		.unwrap()
-		.block_on(async move {
-			return prisma()
-				.await
-				.package()
-				.find_many(vec![
-					package::package::in_vec(ids),
-					package::is_current::equals(true),
-					package::is_pruned::equals(false),
-				])
-				.order_by(package::repository_tier::order(Direction::Asc))
-				.with(package::repository::fetch())
-				.exec()
-				.await
-				.unwrap();
-		});
+	let packages = tokio_run(async move {
+		return prisma()
+			.await
+			.package()
+			.find_many(vec![
+				package::package::in_vec(ids),
+				package::is_current::equals(true),
+				package::is_pruned::equals(false),
+			])
+			.order_by(package::repository_tier::order(Direction::Asc))
+			.with(package::repository::fetch())
+			.exec()
+			.await
+			.unwrap();
+	});
 
 	if packages.len() == 0 {
 		return Ok(json_respond(

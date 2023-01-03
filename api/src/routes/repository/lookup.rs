@@ -1,5 +1,5 @@
 use crate::prisma::repository;
-use crate::utility::json_respond;
+use crate::utility::{json_respond, tokio_run};
 use crate::{db::prisma, utility::merge_json};
 
 use serde_json::json;
@@ -7,7 +7,6 @@ use tide::{
 	Request, Result,
 	StatusCode::{BadRequest, NotFound, Ok as OK},
 };
-use tokio::runtime::Builder;
 
 pub async fn repository_lookup(req: Request<()>) -> Result {
 	let query = match req.param("repository") {
@@ -24,23 +23,19 @@ pub async fn repository_lookup(req: Request<()>) -> Result {
 		}
 	};
 
-	let repository = Builder::new_multi_thread()
-		.enable_all()
-		.build()
-		.unwrap()
-		.block_on(async move {
-			return prisma()
-				.await
-				.repository()
-				.find_first(vec![
-					repository::slug::equals(query.to_string()),
-					repository::is_pruned::equals(false),
-				])
-				.with(repository::origin::fetch())
-				.exec()
-				.await
-				.unwrap();
-		});
+	let repository = tokio_run(async move {
+		return prisma()
+			.await
+			.repository()
+			.find_first(vec![
+				repository::slug::equals(query.to_string()),
+				repository::is_pruned::equals(false),
+			])
+			.with(repository::origin::fetch())
+			.exec()
+			.await
+			.unwrap();
+	});
 
 	match repository {
 		Some(repository) => {

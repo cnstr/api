@@ -1,4 +1,4 @@
-use crate::utility::merge_json;
+use crate::utility::{merge_json, tokio_run};
 use crate::{db::prisma, utility::json_respond};
 
 use crate::prisma::repository;
@@ -9,7 +9,6 @@ use tide::{
 	Request, Result,
 	StatusCode::{BadRequest, Ok as OK, UnprocessableEntity},
 };
-use tokio::runtime::Builder;
 
 #[derive(Deserialize)]
 struct Query {
@@ -70,36 +69,32 @@ pub async fn repository_ranking(req: Request<()>) -> Result {
 		}
 	};
 
-	let repositories = Builder::new_multi_thread()
-		.enable_all()
-		.build()
-		.unwrap()
-		.block_on(async move {
-			return match query.as_str() {
-				"*" => prisma()
-					.await
-					.repository()
-					.find_many(vec![repository::is_pruned::equals(false)])
-					.order_by(repository::tier::order(Direction::Asc))
-					.with(repository::origin::fetch())
-					.exec()
-					.await
-					.unwrap(),
+	let repositories = tokio_run(async move {
+		return match query.as_str() {
+			"*" => prisma()
+				.await
+				.repository()
+				.find_many(vec![repository::is_pruned::equals(false)])
+				.order_by(repository::tier::order(Direction::Asc))
+				.with(repository::origin::fetch())
+				.exec()
+				.await
+				.unwrap(),
 
-				_ => prisma()
-					.await
-					.repository()
-					.find_many(vec![
-						repository::tier::equals(query.parse::<i32>().unwrap()),
-						repository::is_pruned::equals(false),
-					])
-					.order_by(repository::tier::order(Direction::Asc))
-					.with(repository::origin::fetch())
-					.exec()
-					.await
-					.unwrap(),
-			};
-		});
+			_ => prisma()
+				.await
+				.repository()
+				.find_many(vec![
+					repository::tier::equals(query.parse::<i32>().unwrap()),
+					repository::is_pruned::equals(false),
+				])
+				.order_by(repository::tier::order(Direction::Asc))
+				.with(repository::origin::fetch())
+				.exec()
+				.await
+				.unwrap(),
+		};
+	});
 
 	return Ok(json_respond(
 		OK,

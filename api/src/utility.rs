@@ -1,12 +1,12 @@
+use std::future::Future;
+
 use serde::Serialize;
 use serde_json::{ser::PrettyFormatter, to_value, Serializer, Value};
 use tide::StatusCode;
+use tokio::runtime::Builder;
 use url::Url;
 
-pub fn merge_json<T>(serial: T, json: Value) -> Value
-where
-	T: Serialize,
-{
+pub fn merge_json<T: Serialize>(serial: T, json: Value) -> Value {
 	let mut serial = to_value(serial).unwrap();
 	merge_json_value(&mut serial, json);
 	serial
@@ -71,4 +71,12 @@ pub fn page_links(url: &str, page: u8, next: bool) -> (Option<String>, Option<St
 	};
 
 	(prev_page, next_page)
+}
+
+pub fn tokio_run<F: Future>(future: F) -> <F as Future>::Output {
+	return Builder::new_multi_thread()
+		.enable_all()
+		.build()
+		.unwrap()
+		.block_on(future);
 }

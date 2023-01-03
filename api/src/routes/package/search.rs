@@ -1,6 +1,6 @@
 use crate::{
 	db::{elastic, prisma},
-	utility::{json_respond, merge_json, page_links},
+	utility::{json_respond, merge_json, page_links, tokio_run},
 };
 
 use elasticsearch::SearchParts;
@@ -12,7 +12,6 @@ use tide::{
 	Request, Result,
 	StatusCode::{BadRequest, InternalServerError, Ok as OK, UnprocessableEntity},
 };
-use tokio::runtime::Builder;
 
 #[derive(Deserialize)]
 struct Query {
@@ -103,105 +102,100 @@ pub async fn package_search(req: Request<()>) -> Result {
 		}
 	};
 
-	let request = Builder::new_multi_thread()
-		.enable_all()
-		.build()
-		.unwrap()
-		.block_on(async move {
-			let elastic_request = elastic()
-				.await
-				.search(SearchParts::Index(&["packages"]))
-				.body(json!({
-					"query": {
-						"query_string": {
-							"fields": ["name", "description", "author", "maintainer", "section"],
-							"fuzziness": "AUTO",
-							"fuzzy_transpositions": true,
-							"fuzzy_max_expansions": 100,
-							"query": format!("{}~", query),
-						}
+	let request = tokio_run(async move {
+		let elastic_request = elastic()
+			.await
+			.search(SearchParts::Index(&["packages"]))
+			.body(json!({
+				"query": {
+					"query_string": {
+						"fields": ["name", "description", "author", "maintainer", "section"],
+						"fuzziness": "AUTO",
+						"fuzzy_transpositions": true,
+						"fuzzy_max_expansions": 100,
+						"query": format!("{}~", query),
+					}
+				},
+				"sort": {
+					"repositoryTier": {
+						"order": "asc"
 					},
-					"sort": {
-						"repositoryTier": {
-							"order": "asc"
-						},
-						"_score": {
-							"order": "desc"
+					"_score": {
+						"order": "desc"
+					}
+				},
+				"from": (page - 1) * limit,
+				"size": limit
+			}))
+			.send()
+			.await;
+
+		let elastic_response = match elastic_request {
+			Ok(res) => res,
+			Err(err) => {
+				println!("Error: {}", err);
+				return Err(Ok(json_respond(
+					InternalServerError,
+					json!({
+						"message": "500 Internal Server Error",
+						"error": "Failed to connect to Elasticsearch",
+						"date": chrono::Utc::now().to_rfc3339(),
+					}),
+				)));
+			}
+		};
+
+		let json = elastic_response.json::<serde_json::Value>().await.unwrap();
+		let packages = json["hits"]["hits"].as_array().unwrap();
+
+		let repository_slugs = packages
+			.iter()
+			.map(|package| {
+				package["_source"]["repositorySlug"]
+					.as_str()
+					.unwrap()
+					.to_string()
+			})
+			.collect::<Vec<String>>();
+
+		let repositories = prisma()
+			.await
+			.repository()
+			.find_many(vec![repository::slug::in_vec(repository_slugs)])
+			.exec()
+			.await
+			.unwrap();
+
+		let packages = packages
+			.iter()
+			.map(|package| {
+				let repository = repositories
+					.iter()
+					.find(|repository| {
+						repository.slug == package["_source"]["repositorySlug"].as_str().unwrap()
+					})
+					.unwrap();
+
+				let mut package = package["_source"].clone();
+				package["repository"] = json!(repository);
+
+				let id = package["package"].as_str().unwrap();
+				let slug = package["repositorySlug"].as_str().unwrap();
+
+				return merge_json(
+					&package,
+					json!({
+						"refs": {
+							"meta": format!("{}/jailbreak/package/{}", env!("CANISTER_API_ENDPOINT"), id),
+							"repo": format!("{}/jailbreak/repository/{}", env!("CANISTER_API_ENDPOINT"), slug),
 						}
-					},
-					"from": (page - 1) * limit,
-					"size": limit
-				}))
-				.send()
-				.await;
+					}),
+				);
+			})
+			.collect::<Vec<Value>>();
 
-			let elastic_response = match elastic_request {
-				Ok(res) => res,
-				Err(err) => {
-					println!("Error: {}", err);
-					return Err(Ok(json_respond(
-						InternalServerError,
-						json!({
-							"message": "500 Internal Server Error",
-							"error": "Failed to connect to Elasticsearch",
-							"date": chrono::Utc::now().to_rfc3339(),
-						}),
-					)));
-				}
-			};
-
-			let json = elastic_response.json::<serde_json::Value>().await.unwrap();
-			let packages = json["hits"]["hits"].as_array().unwrap();
-
-			let repository_slugs = packages
-				.iter()
-				.map(|package| {
-					package["_source"]["repositorySlug"]
-						.as_str()
-						.unwrap()
-						.to_string()
-				})
-				.collect::<Vec<String>>();
-
-			let repositories = prisma()
-				.await
-				.repository()
-				.find_many(vec![repository::slug::in_vec(repository_slugs)])
-				.exec()
-				.await
-				.unwrap();
-
-			let packages = packages
-				.iter()
-				.map(|package| {
-					let repository = repositories
-						.iter()
-						.find(|repository| {
-							repository.slug
-								== package["_source"]["repositorySlug"].as_str().unwrap()
-						})
-						.unwrap();
-
-					let mut package = package["_source"].clone();
-					package["repository"] = json!(repository);
-
-					let id = package["package"].as_str().unwrap();
-					let slug = package["repositorySlug"].as_str().unwrap();
-
-					return merge_json(
-						&package,
-						json!({
-							"refs": {
-								"meta": format!("{}/jailbreak/package/{}", env!("CANISTER_API_ENDPOINT"), id),
-								"repo": format!("{}/jailbreak/repository/{}", env!("CANISTER_API_ENDPOINT"), slug),
-							}
-						}),
-					);
-				})
-				.collect::<Vec<Value>>();
-
-			Ok(packages)
-		});
+		Ok(packages)
+	});
 
 	let packages = match request {
 		Ok(packages) => packages,

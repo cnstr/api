@@ -1,5 +1,5 @@
 use crate::prisma::repository;
-use crate::utility::{json_respond, merge_json};
+use crate::utility::{json_respond, merge_json, tokio_run};
 use crate::{db::prisma, prisma::package};
 
 use serde_json::{json, Value};
@@ -7,7 +7,6 @@ use tide::{
 	Request, Result,
 	StatusCode::{BadRequest, NotFound, Ok as OK},
 };
-use tokio::runtime::Builder;
 
 pub async fn repository_packages(req: Request<()>) -> Result {
 	let query = match req.param("repository") {
@@ -24,40 +23,36 @@ pub async fn repository_packages(req: Request<()>) -> Result {
 		}
 	};
 
-	let request = Builder::new_multi_thread()
-		.enable_all()
-		.build()
-		.unwrap()
-		.block_on(async move {
-			let repository = prisma()
+	let request = tokio_run(async move {
+		let repository = prisma()
+			.await
+			.repository()
+			.find_first(vec![
+				repository::slug::equals(query.to_string()),
+				repository::is_pruned::equals(false),
+			])
+			.exec()
+			.await
+			.unwrap();
+
+		return match repository {
+			Some(repository) => Ok(prisma()
 				.await
-				.repository()
-				.find_first(vec![
-					repository::slug::equals(query.to_string()),
-					repository::is_pruned::equals(false),
-				])
+				.package()
+				.find_many(vec![package::repository_slug::equals(repository.slug)])
 				.exec()
 				.await
-				.unwrap();
-
-			return match repository {
-				Some(repository) => Ok(prisma()
-					.await
-					.package()
-					.find_many(vec![package::repository_slug::equals(repository.slug)])
-					.exec()
-					.await
-					.unwrap()),
-				None => Err(Ok(json_respond(
-					NotFound,
-					json!({
-						"message": "404 Not Found",
-						"error": "Repository not found",
-						"date": chrono::Utc::now().to_rfc3339(),
-					}),
-				))),
-			};
-		});
+				.unwrap()),
+			None => Err(Ok(json_respond(
+				NotFound,
+				json!({
+					"message": "404 Not Found",
+					"error": "Repository not found",
+					"date": chrono::Utc::now().to_rfc3339(),
+				}),
+			))),
+		};
+	});
 
 	let packages = match request {
 		Ok(packages) => {

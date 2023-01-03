@@ -1,6 +1,6 @@
 use crate::{
 	db::elastic,
-	utility::{json_respond, merge_json, page_links},
+	utility::{json_respond, merge_json, page_links, tokio_run},
 };
 
 use elasticsearch::SearchParts;
@@ -11,7 +11,6 @@ use tide::{
 	Request, Result,
 	StatusCode::{BadRequest, InternalServerError, Ok as OK, UnprocessableEntity},
 };
-use tokio::runtime::Builder;
 
 #[derive(Deserialize)]
 struct Query {
@@ -102,60 +101,56 @@ pub async fn repository_search(req: Request<()>) -> Result {
 		}
 	};
 
-	let request = Builder::new_multi_thread()
-		.enable_all()
-		.build()
-		.unwrap()
-		.block_on(async move {
-			let elastic_request = elastic()
-				.await
-				.search(SearchParts::Index(&["repositories"]))
-				.body(json!({
-					"query": {
-						"query_string": {
-							"fields": ["slug", "name", "description", "aliases"],
-							"query": format!("{}*", query),
-						}
+	let request = tokio_run(async move {
+		let elastic_request = elastic()
+			.await
+			.search(SearchParts::Index(&["repositories"]))
+			.body(json!({
+				"query": {
+					"query_string": {
+						"fields": ["slug", "name", "description", "aliases"],
+						"query": format!("{}*", query),
+					}
+				},
+				"sort": {
+					"tier": {
+						"order": "asc"
 					},
-					"sort": {
-						"tier": {
-							"order": "asc"
-						},
-						"_score": {
-							"order": "desc"
-						}
-					},
-					"from": (page - 1) * limit,
-					"size": limit
-				}))
-				.send()
-				.await;
+					"_score": {
+						"order": "desc"
+					}
+				},
+				"from": (page - 1) * limit,
+				"size": limit
+			}))
+			.send()
+			.await;
 
-			let elastic_response = match elastic_request {
-				Ok(res) => res,
-				Err(err) => {
-					println!("Error: {}", err);
-					return Err(Ok(json_respond(
-						InternalServerError,
-						json!({
-							"message": "500 Internal Server Error",
-							"error": "Failed to connect to Elasticsearch",
-							"date": chrono::Utc::now().to_rfc3339(),
-						}),
-					)));
-				}
-			};
+		let elastic_response = match elastic_request {
+			Ok(res) => res,
+			Err(err) => {
+				println!("Error: {}", err);
+				return Err(Ok(json_respond(
+					InternalServerError,
+					json!({
+						"message": "500 Internal Server Error",
+						"error": "Failed to connect to Elasticsearch",
+						"date": chrono::Utc::now().to_rfc3339(),
+					}),
+				)));
+			}
+		};
 
-			let json = elastic_response.json::<Value>().await.unwrap();
-			let repositories = json["hits"]["hits"].as_array().unwrap();
+		let json = elastic_response.json::<Value>().await.unwrap();
+		let repositories = json["hits"]["hits"].as_array().unwrap();
 
-			let repositories = repositories
-				.iter()
-				.map(|repository| repository["_source"].clone())
-				.collect::<Vec<Value>>();
+		let repositories = repositories
+			.iter()
+			.map(|repository| repository["_source"].clone())
+			.collect::<Vec<Value>>();
 
-			Ok(repositories)
-		});
+		Ok(repositories)
+	});
 
 	let repositories = match request {
 		Ok(repositories) => repositories,
