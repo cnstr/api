@@ -1,11 +1,12 @@
 use crate::{
 	db::{elastic, prisma},
-	utility::{json_respond, merge_json},
+	utility::{json_respond, merge_json, page_links},
 };
 
 use elasticsearch::SearchParts;
 use prisma::repository;
-use serde_json::json;
+use prisma_client_rust::bigdecimal::ToPrimitive;
+use serde_json::{json, Value};
 use tide::{
 	prelude::Deserialize,
 	Request, Result,
@@ -197,7 +198,7 @@ pub async fn package_search(req: Request<()>) -> Result {
 						}),
 					);
 				})
-				.collect::<Vec<serde_json::Value>>();
+				.collect::<Vec<Value>>();
 
 			Ok(packages)
 		});
@@ -207,11 +208,19 @@ pub async fn package_search(req: Request<()>) -> Result {
 		Err(err) => return err,
 	};
 
+	let url = req.url().path();
+	let next = packages.len().to_u8().unwrap() == limit;
+	let (prev_page, next_page) = page_links(url, page, next);
+
 	return Ok(json_respond(
 		OK,
 		json!({
 			"message": "200 Successful",
 			"date": chrono::Utc::now().to_rfc3339(),
+			"refs": {
+				"nextPage": next_page,
+				"previousPage": prev_page,
+			},
 			"count": packages.len(),
 			"data": packages,
 		}),

@@ -1,9 +1,10 @@
 use crate::{
 	db::elastic,
-	utility::{json_respond, merge_json},
+	utility::{json_respond, merge_json, page_links},
 };
 
 use elasticsearch::SearchParts;
+use prisma_client_rust::bigdecimal::ToPrimitive;
 use serde_json::{json, Value};
 use tide::{
 	prelude::Deserialize,
@@ -145,13 +146,13 @@ pub async fn repository_search(req: Request<()>) -> Result {
 				}
 			};
 
-			let json = elastic_response.json::<serde_json::Value>().await.unwrap();
+			let json = elastic_response.json::<Value>().await.unwrap();
 			let repositories = json["hits"]["hits"].as_array().unwrap();
 
 			let repositories = repositories
 				.iter()
 				.map(|repository| repository["_source"].clone())
-				.collect::<Vec<serde_json::Value>>();
+				.collect::<Vec<Value>>();
 
 			Ok(repositories)
 		});
@@ -161,11 +162,20 @@ pub async fn repository_search(req: Request<()>) -> Result {
 		Err(err) => return err,
 	};
 
+	let url = req.url().path();
+	let next = repositories.len().to_u8().unwrap() == limit;
+	let (prev_page, next_page) = page_links(url, page, next);
+
 	return Ok(json_respond(
 		OK,
 		json!({
 			"message": "200 OK",
 			"date": chrono::Utc::now().to_rfc3339(),
+			"refs": {
+				"nextPage": next_page,
+				"previousPage": prev_page,
+			},
+			"count": repositories.len(),
 			"repositories": repositories.iter().map(|repository| {
 				let slug = repository["slug"].as_str().unwrap();
 				return merge_json(repository, json!({

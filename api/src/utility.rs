@@ -1,6 +1,7 @@
 use serde::Serialize;
 use serde_json::{ser::PrettyFormatter, to_value, Serializer, Value};
 use tide::StatusCode;
+use url::Url;
 
 pub fn merge_json<T>(serial: T, json: Value) -> Value
 where
@@ -39,4 +40,35 @@ pub fn json_respond(status: StatusCode, value: Value) -> tide::Response {
 		.header("Content-Type", "application/json")
 		.body(json_stringify(value))
 		.build()
+}
+
+pub fn page_links(url: &str, page: u8, next: bool) -> (Option<String>, Option<String>) {
+	let base = Url::parse(env!("CANISTER_API_ENDPOINT")).unwrap();
+	let url = base.join(url).unwrap();
+
+	let prev_page = match page > 1 {
+		true => Some(
+			url.clone()
+				.query_pairs_mut()
+				.append_pair("page", (page - 1).to_string().as_str())
+				.finish()
+				.as_str()
+				.to_owned(),
+		),
+		false => None,
+	};
+
+	let next_page = match next {
+		true => Some(
+			url.clone()
+				.query_pairs_mut()
+				.append_pair("page", (page + 1).to_string().as_str())
+				.finish()
+				.as_str()
+				.to_owned(),
+		),
+		false => None,
+	};
+
+	(prev_page, next_page)
 }
