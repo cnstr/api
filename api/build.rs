@@ -1,7 +1,8 @@
 use anyhow::Result;
 use reqwest::ClientBuilder;
 use serde_json::{from_str, Value};
-use std::io::Write;
+use serde_yaml::from_str as from_yaml;
+use std::{fs::read_to_string, io::Write};
 use vergen::{vergen, Config, ShaKind};
 
 fn main() -> Result<()> {
@@ -19,17 +20,8 @@ fn main() -> Result<()> {
 	*config.git_mut().sha_kind_mut() = ShaKind::Short;
 
 	vergen(config)?;
-	fetch_k8s_details();
-
-	add_config("CANISTER_PRODUCT_NAME", "Canister");
-	add_config("CANISTER_CODE_NAME", "cnstr");
-	add_config("CANISTER_CONTACT_EMAIL", "support@canister.me");
-	add_config("CANISTER_COPYRIGHT", "Aarnav Tale (c) {{year}}");
-
-	add_config("CANISTER_API_ENDPOINT", "https://api.canister.me/v2");
-	add_config("CANISTER_DOCS_ENDPOINT", "https://docs.canister.me");
-	add_config("CANISTER_PRIVACY_ENDPOINT", "https://canister.me/privacy");
-	add_config("CANISTER_SITE_ENDPOINT", "https://canister.me");
+	let build_credentials = load_manifest();
+	fetch_k8s_details(build_credentials["k8s_control_plane"].as_str().unwrap());
 
 	return Ok(());
 }
@@ -44,14 +36,67 @@ fn add_config(key: &str, value: &str) {
 	}
 }
 
+fn load_manifest() -> Value {
+	let manifest = match read_to_string("../manifest.yaml") {
+		Ok(manifest) => manifest,
+		Err(err) => {
+			panic!("Failed to read manifest.yaml ({})", err)
+		}
+	};
+
+	let manifest: Value = from_yaml(&manifest).unwrap();
+
+	add_config(
+		"CANISTER_PRODUCT_NAME",
+		manifest["meta"]["product_name"].as_str().unwrap(),
+	);
+
+	add_config(
+		"CANISTER_CODE_NAME",
+		manifest["meta"]["code_name"].as_str().unwrap(),
+	);
+
+	add_config(
+		"CANISTER_CONTACT_EMAIL",
+		manifest["meta"]["contact_email"].as_str().unwrap(),
+	);
+
+	add_config(
+		"CANISTER_COPYRIGHT",
+		manifest["meta"]["copyright_string"].as_str().unwrap(),
+	);
+
+	add_config(
+		"CANISTER_API_ENDPOINT",
+		manifest["endpoints"]["api"].as_str().unwrap(),
+	);
+
+	add_config(
+		"CANISTER_DOCS_ENDPOINT",
+		manifest["endpoints"]["docs"].as_str().unwrap(),
+	);
+
+	add_config(
+		"CANISTER_PRIVACY_ENDPOINT",
+		manifest["endpoints"]["privacy"].as_str().unwrap(),
+	);
+
+	add_config(
+		"CANISTER_SITE_ENDPOINT",
+		manifest["endpoints"]["site"].as_str().unwrap(),
+	);
+
+	return manifest["build"].clone();
+}
+
 #[tokio::main]
-async fn fetch_k8s_details() {
+async fn fetch_k8s_details(control_plane_host: &str) {
 	let client = ClientBuilder::new()
 		.danger_accept_invalid_certs(true)
 		.build()
 		.unwrap();
 
-	let url = format!("https://{}/version", "k8s-ctl-plane.tale.me:6443");
+	let url = format!("https://{}/version", control_plane_host);
 	let response = client.get(url).send().await.unwrap();
 	let value: Value = from_str(&response.text().await.unwrap()).unwrap();
 

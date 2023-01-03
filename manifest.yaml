@@ -1,0 +1,14 @@
+meta:
+  product_name: 'Canister'
+  code_name: 'cnstr'
+  contact_email: 'support@canister.me'
+  copyright_string: 'Aarnav Tale (c) {{year}}'
+
+endpoints:
+  api: 'https://api.canister.me/v2'
+  docs: 'https://docs.canister.me'
+  privacy: 'https://canister.me/privacy'
+  site: 'https://canister.me'
+
+build:
+  k8s_control_plane: 'k8s-ctl-plane.tale.me:6443'
