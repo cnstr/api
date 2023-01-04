@@ -3,13 +3,18 @@ pub mod prisma;
 mod routes;
 pub mod utility;
 
+use serde_json::json;
 use std::{future::Future, pin::Pin};
+use tokio::io::Error;
 
 use db::{create_elastic, create_prisma};
 use tide::{
 	security::{CorsMiddleware, Origin},
-	Next, Request, Result,
+	utils::After,
+	Next, Request, Response, Result,
+	StatusCode::InternalServerError,
 };
+use utility::json_respond;
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -21,6 +26,20 @@ async fn main() -> Result<()> {
 
 	app.with(cors);
 	app.with(response_time);
+	app.with(After(|mut res: Response| async {
+		if let Some(err) = res.downcast_error::<Error>() {
+			println!("Error: {}", err);
+			res = json_respond(
+				InternalServerError,
+				json!({
+					"message": "500 Internal Server Error",
+					"date": chrono::Utc::now().to_rfc3339(),
+				}),
+			);
+		}
+
+		Ok(res)
+	}));
 
 	app.at("/v2").nest({
 		let mut api = tide::new();
