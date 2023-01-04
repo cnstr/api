@@ -1,0 +1,45 @@
+{
+	"schema_name": "Landing",
+	"schema": {
+		"info": {
+			"name": "Canister (cnstr)",
+			"version": "2.0.0",
+			"build": "2023-01-04T19:23:23.765094Z+git-146c6fc-tree/main",
+			"platform": "rust-1.66.0+aarch64-apple-darwin_llvm15.0",
+			"runtime": "k8s_v1.26.0-linux/amd64"
+		},
+		"reference": {
+			"docs": "https://docs.canister.me",
+			"privacy_policy": "https://canister.me/privacy",
+			"contact_email": "support@canister.me",
+			"copyright": "Aarnav Tale (c) 2023"
+		},
+		"connection": {
+			"current_date": "2023-01-04",
+			"current_epoch": 1672860274,
+			"remote_address": "127.0.0.1:61994",
+			"user_agent": "PostmanRuntime/7.30.0"
+		}
+	},
+	"descriptions": {
+		"info": {
+			"name": "Production name of the API",
+			"version": "Current deployed API version",
+			"build": "Build date and git commit hash",
+			"platform": "Platform and compiler version",
+			"runtime": "Runtime environment and version"
+		},
+		"reference": {
+			"docs": "Link to the API documentation",
+			"privacy_policy": "Link to the API privacy policy",
+			"contact_email": "Support email for questions or concerns",
+			"copyright": "Copyright notice"
+		},
+		"connection": {
+			"current_date": "Current date in YYYY-MM-DD format",
+			"current_epoch": "Current date in Unix epoch format",
+			"remote_address": "Remote IP address",
+			"user_agent": "User agent string"
+		}
+	}
+}

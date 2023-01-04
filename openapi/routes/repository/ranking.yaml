@@ -1,0 +1,52 @@
+/jailbreak/repository/ranking:
+  get:
+    summary: Repository Rank Search
+    description: Retrieve an indexed repository using a ranking number
+    operationId: repository-rank-search
+    tags:
+      - search
+    parameters:
+      - name: rank
+        in: query
+        description: The repository ranking to filter by
+        required: true
+        schema:
+          type: string
+          enum:
+            - '1'
+            - '2'
+            - '3'
+            - '4'
+            - '5'
+            - '*'
+          format: query
+          minLength: 1
+          maxLength: 1
+    responses:
+      '200':
+        description: 'OK'
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                message:
+                  type: string
+                  enum:
+                    - 200 Successful
+                date:
+                  type: string
+                  format: date-time
+                count:
+                  type: integer
+                  minimum: 0
+                data:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/Repository'
+      '400':
+        description: 'Bad Request'
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BadRequest'

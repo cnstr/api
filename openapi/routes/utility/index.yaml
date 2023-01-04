@@ -1,0 +1,14 @@
+/:
+  get:
+    summary: Landing Page
+    description: Canister API Landing Page
+    operationId: landing
+    tags:
+      - endpoint
+    responses:
+      '200':
+        description: 'OK'
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Landing'

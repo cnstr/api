@@ -1,0 +1,71 @@
+/jailbreak/repository/search:
+  get:
+    summary: Repository Search
+    description: Retrieve an indexed repository using a search query
+    operationId: repository-search
+    tags:
+      - search
+    parameters:
+      - name: q
+        in: query
+        description: The search query
+        example: myrepo
+        required: true
+        schema:
+          type: string
+          format: query
+          minLength: 3
+      - name: limit
+        in: query
+        description: Search response limit
+        required: false
+        schema:
+          type: integer
+          default: 100
+          minimum: 1
+          maximum: 250
+      - name: page
+        in: query
+        description: Pagination number (starting from 1)
+        required: false
+        schema:
+          type: integer
+          default: 1
+          minimum: 1
+    responses:
+      '200':
+        description: 'OK'
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                message:
+                  type: string
+                  enum:
+                    - 200 Successful
+                date:
+                  type: string
+                  format: date-time
+                refs:
+                  type: object
+                  properties:
+                    nextPage:
+                      type: string
+                      format: uri
+                    previousPage:
+                      type: string
+                      format: uri
+                count:
+                  type: integer
+                  minimum: 0
+                data:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/Repository'
+      '400':
+        description: 'Bad Request'
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BadRequest'

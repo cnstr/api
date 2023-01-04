@@ -1,8 +1,12 @@
 use anyhow::Result;
+use openapi::{build_openapi, Metadata};
 use reqwest::ClientBuilder;
 use serde_json::{from_str, Value};
 use serde_yaml::from_str as from_yaml;
-use std::{fs::read_to_string, io::Write};
+use std::{
+	fs::read_to_string,
+	io::{stdout, Write},
+};
 use vergen::{vergen, Config, ShaKind};
 
 fn main() -> Result<()> {
@@ -20,16 +24,25 @@ fn main() -> Result<()> {
 	*config.git_mut().sha_kind_mut() = ShaKind::Short;
 
 	vergen(config)?;
-	let build_credentials = load_manifest();
-	fetch_k8s_details(build_credentials["k8s_control_plane"].as_str().unwrap());
-	fetch_piracy_urls(build_credentials["piracy_endpoint"].as_str().unwrap());
-	set_database_urls(build_credentials);
+	let manifest = load_manifest();
+	fetch_k8s_details(manifest["build"]["k8s_control_plane"].as_str().unwrap());
+	fetch_piracy_urls(manifest["build"]["piracy_endpoint"].as_str().unwrap());
+	set_database_urls(manifest["build"].clone());
 
+	// CANISTER_OPENAPI_YAML
+	build_openapi(&Metadata {
+		name: manifest["meta"]["product_name"].as_str().unwrap(),
+		version: env!("CARGO_PKG_VERSION"),
+		description: manifest["meta"]["description"].as_str().unwrap(),
+		contact: manifest["meta"]["contact_email"].as_str().unwrap(),
+		license: manifest["meta"]["copyright_string"].as_str().unwrap(),
+		endpoint: manifest["endpoints"]["api"].as_str().unwrap(),
+	});
 	return Ok(());
 }
 
 fn add_config(key: &str, value: &str) {
-	let stdout = &mut std::io::stdout();
+	let stdout = &mut stdout();
 	match writeln!(stdout, "cargo:rustc-env={}={}", key, value) {
 		Ok(_) => {}
 		Err(err) => {
@@ -92,7 +105,7 @@ fn load_manifest() -> Value {
 		manifest["endpoints"]["site"].as_str().unwrap(),
 	);
 
-	return manifest["build"].clone();
+	return manifest;
 }
 
 #[tokio::main]

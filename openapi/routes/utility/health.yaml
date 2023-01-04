@@ -1,0 +1,18 @@
+/healthz:
+  get:
+    summary: Health Check
+    description: Reliable endpoint to check API health
+    operationId: healthz
+    tags:
+      - endpoint
+    responses:
+      '200':
+        description: 'OK'
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status:
+                  type: string
+                  example: 'OK'

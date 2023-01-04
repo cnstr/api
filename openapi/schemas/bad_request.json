@@ -1,0 +1,13 @@
+{
+	"schema_name": "BadRequest",
+	"schema": {
+		"message": "400 Bad Request",
+		"error": "Missing query parameter: 'q'",
+		"date": "2023-01-04T20:34:05.627525+00:00"
+	},
+	"descriptions": {
+		"message": "The HTTP status code for the error",
+		"error": "The error message",
+		"date": "The date and time of the error"
+	}
+}

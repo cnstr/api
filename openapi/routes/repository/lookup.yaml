@@ -1,0 +1,44 @@
+/jailbreak/repository/{repositorySlug}:
+  get:
+    summary: Repository Lookup
+    description: Retrieve a repository's metadata by its slug
+    operationId: repository-lookup
+    tags:
+      - lookup
+    parameters:
+      - name: repositorySlug
+        in: path
+        description: The slug to lookup
+        example: myrepo
+        required: true
+        schema:
+          type: string
+    responses:
+      '200':
+        description: 'OK'
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                message:
+                  type: string
+                  enum:
+                    - 200 Successful
+                date:
+                  type: string
+                  format: date-time
+                data:
+                  $ref: '#/components/schemas/Repository'
+      '400':
+        description: 'Bad Request'
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BadRequest'
+      '404':
+        description: 'Not Found'
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NotFoundRequest'
