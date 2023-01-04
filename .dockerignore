@@ -1,0 +1,9 @@
+/.vscode/
+/api/src/prisma/
+/target/
+.dockerignore
+docker-compose.yaml
+Dockerfile
+LICENSE
+README.md
+Taskfile.yaml
