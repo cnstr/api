@@ -22,6 +22,7 @@ fn main() -> Result<()> {
 	vergen(config)?;
 	let build_credentials = load_manifest();
 	fetch_k8s_details(build_credentials["k8s_control_plane"].as_str().unwrap());
+	set_database_urls(build_credentials);
 
 	return Ok(());
 }
@@ -34,6 +35,10 @@ fn add_config(key: &str, value: &str) {
 			panic!("Failed to configure config-key: {} ({})", key, err)
 		}
 	}
+}
+
+fn is_debug() -> bool {
+	return std::env::var("PROFILE").unwrap() == "debug";
 }
 
 fn load_manifest() -> Value {
@@ -109,4 +114,20 @@ async fn fetch_k8s_details(control_plane_host: &str) {
 		)
 		.as_str(),
 	);
+}
+
+fn set_database_urls(value: Value) {
+	let postgres_url = match is_debug() {
+		true => value["postgres_url"]["debug"].as_str().unwrap(),
+		false => value["postgres_url"]["release"].as_str().unwrap(),
+	};
+
+	add_config("CANISTER_POSTGRES_URL", postgres_url);
+
+	let elastic_url = match is_debug() {
+		true => value["elastic_url"]["debug"].as_str().unwrap(),
+		false => value["elastic_url"]["release"].as_str().unwrap(),
+	};
+
+	add_config("CANISTER_ELASTIC_URL", elastic_url);
 }

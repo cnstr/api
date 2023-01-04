@@ -9,7 +9,7 @@ static ELASTIC: OnceCell<Elasticsearch> = OnceCell::new();
 
 pub async fn create_prisma() {
 	let client = PrismaClient::_builder()
-		.with_url("postgresql://cnstr:pg@localhost:5432/cnstr".to_string())
+		.with_url(env!("CANISTER_POSTGRES_URL").to_string())
 		.build()
 		.await;
 
@@ -20,7 +20,7 @@ pub async fn create_prisma() {
 }
 
 pub async fn create_elastic() {
-	let transport = Transport::single_node("http://localhost:9200").unwrap();
+	let transport = Transport::single_node(&env!("CANISTER_ELASTIC_URL").to_string()).unwrap();
 	let client = Elasticsearch::new(transport);
 	ELASTIC.set(client).unwrap()
 }

@@ -12,3 +12,9 @@ endpoints:
 
 build:
   k8s_control_plane: 'k8s-ctl-plane.tale.me:6443'
+  postgres_url:
+    debug: postgresql://cnstr:pg@localhost:5432/cnstr
+    release: postgresql://cnstr-pg:cnstr-pg@pg-cluster-replicas/canister
+  elastic_url:
+    debug: http://localhost:9200
+    release: http://ec-cluster-es-http:9200
