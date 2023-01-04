@@ -25,7 +25,6 @@ pub async fn repository_packages(req: Request<()>) -> Result {
 
 	let request = tokio_run(async move {
 		let repository = prisma()
-			.await
 			.repository()
 			.find_first(vec![
 				repository::slug::equals(query.to_string()),
@@ -37,7 +36,6 @@ pub async fn repository_packages(req: Request<()>) -> Result {
 
 		return match repository {
 			Some(repository) => Ok(prisma()
-				.await
 				.package()
 				.find_many(vec![package::repository_slug::equals(repository.slug)])
 				.exec()

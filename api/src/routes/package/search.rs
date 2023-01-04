@@ -104,7 +104,6 @@ pub async fn package_search(req: Request<()>) -> Result {
 
 	let request = tokio_run(async move {
 		let elastic_request = elastic()
-			.await
 			.search(SearchParts::Index(&["packages"]))
 			.body(json!({
 				"query": {
@@ -159,7 +158,6 @@ pub async fn package_search(req: Request<()>) -> Result {
 			.collect::<Vec<String>>();
 
 		let repositories = prisma()
-			.await
 			.repository()
 			.find_many(vec![repository::slug::in_vec(repository_slugs)])
 			.exec()

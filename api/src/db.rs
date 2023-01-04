@@ -25,10 +25,10 @@ pub async fn create_elastic() {
 	ELASTIC.set(client).unwrap()
 }
 
-pub async fn prisma() -> &'static PrismaClient {
+pub fn prisma() -> &'static PrismaClient {
 	PRISMA.get().unwrap()
 }
 
-pub async fn elastic() -> &'static Elasticsearch {
+pub fn elastic() -> &'static Elasticsearch {
 	ELASTIC.get().unwrap()
 }

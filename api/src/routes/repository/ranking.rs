@@ -72,7 +72,6 @@ pub async fn repository_ranking(req: Request<()>) -> Result {
 	let repositories = tokio_run(async move {
 		return match query.as_str() {
 			"*" => prisma()
-				.await
 				.repository()
 				.find_many(vec![repository::is_pruned::equals(false)])
 				.order_by(repository::tier::order(Direction::Asc))
@@ -82,7 +81,6 @@ pub async fn repository_ranking(req: Request<()>) -> Result {
 				.unwrap(),
 
 			_ => prisma()
-				.await
 				.repository()
 				.find_many(vec![
 					repository::tier::equals(query.parse::<i32>().unwrap()),

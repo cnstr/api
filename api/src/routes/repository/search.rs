@@ -103,7 +103,6 @@ pub async fn repository_search(req: Request<()>) -> Result {
 
 	let request = tokio_run(async move {
 		let elastic_request = elastic()
-			.await
 			.search(SearchParts::Index(&["repositories"]))
 			.body(json!({
 				"query": {

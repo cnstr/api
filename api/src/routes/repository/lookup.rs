@@ -25,7 +25,6 @@ pub async fn repository_lookup(req: Request<()>) -> Result {
 
 	let repository = tokio_run(async move {
 		return prisma()
-			.await
 			.repository()
 			.find_first(vec![
 				repository::slug::equals(query.to_string()),

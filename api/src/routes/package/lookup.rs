@@ -27,7 +27,6 @@ pub async fn package_lookup(req: Request<()>) -> Result {
 
 	let packages = tokio_run(async move {
 		return prisma()
-			.await
 			.package()
 			.find_many(vec![
 				package::package::equals(query.to_string()),

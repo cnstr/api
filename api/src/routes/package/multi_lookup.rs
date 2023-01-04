@@ -53,7 +53,6 @@ pub async fn package_multi_lookup(req: Request<()>) -> Result {
 
 	let packages = tokio_run(async move {
 		return prisma()
-			.await
 			.package()
 			.find_many(vec![
 				package::package::in_vec(ids),
