@@ -114,6 +114,7 @@ dependencies = [
  "chrono",
  "elasticsearch",
  "lazy_static",
+ "once_cell",
  "prisma-client-rust",
  "reqwest",
  "serde",

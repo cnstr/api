@@ -5,6 +5,7 @@ pub mod utility;
 
 use std::{future::Future, pin::Pin};
 
+use db::{create_elastic, create_prisma};
 use tide::{
 	security::{CorsMiddleware, Origin},
 	Next, Request, Result,
@@ -12,6 +13,9 @@ use tide::{
 
 #[tokio::main]
 async fn main() -> Result<()> {
+	create_prisma().await;
+	create_elastic().await;
+
 	let mut app = tide::new();
 	let cors = CorsMiddleware::new().allow_origin(Origin::from("*"));
 
