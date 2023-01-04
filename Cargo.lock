@@ -113,6 +113,7 @@ dependencies = [
  "anyhow",
  "chrono",
  "elasticsearch",
+ "lazy_static",
  "prisma-client-rust",
  "reqwest",
  "serde",
