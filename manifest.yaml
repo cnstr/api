@@ -12,6 +12,7 @@ endpoints:
 
 build:
   k8s_control_plane: 'k8s-ctl-plane.tale.me:6443'
+  piracy_endpoint: https://source.canister.me/piracy-repositories.json
   postgres_url:
     debug: postgresql://cnstr:pg@localhost:5432/cnstr
     release: postgresql://cnstr-pg:cnstr-pg@pg-cluster-replicas/canister

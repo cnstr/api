@@ -1,4 +1,5 @@
-use serde_json::json;
+use once_cell::sync::OnceCell;
+use serde_json::{from_str, json, Value};
 use tide::{
 	prelude::Deserialize,
 	Request, Result,
@@ -12,8 +13,21 @@ struct Query {
 	uris: Option<String>,
 }
 
+static REPOSITORIES: OnceCell<Vec<String>> = OnceCell::new();
+
 pub async fn repository_safety(req: Request<()>) -> Result {
-	let unsafe_repositories = vec!["repo.hackyouriphone.org"];
+	if REPOSITORIES.get().is_none() {
+		let raw_repositories = env!("CANISTER_PIRACY_URLS");
+		let repositories = from_str::<Value>(&raw_repositories)
+			.unwrap()
+			.as_array()
+			.unwrap()
+			.iter()
+			.map(|repo| repo.as_str().unwrap().to_string())
+			.collect();
+
+		REPOSITORIES.set(repositories).unwrap();
+	}
 
 	let uris = match req.query::<Query>() {
 		Ok(query) => {
@@ -55,6 +69,7 @@ pub async fn repository_safety(req: Request<()>) -> Result {
 	};
 
 	let mut repositories = Vec::new();
+	let unsafe_repositories = REPOSITORIES.get().unwrap();
 
 	for uri in uris {
 		let mut is_safe = true;

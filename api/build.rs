@@ -22,6 +22,7 @@ fn main() -> Result<()> {
 	vergen(config)?;
 	let build_credentials = load_manifest();
 	fetch_k8s_details(build_credentials["k8s_control_plane"].as_str().unwrap());
+	fetch_piracy_urls(build_credentials["piracy_endpoint"].as_str().unwrap());
 	set_database_urls(build_credentials);
 
 	return Ok(());
@@ -114,6 +115,13 @@ async fn fetch_k8s_details(control_plane_host: &str) {
 		)
 		.as_str(),
 	);
+}
+
+#[tokio::main]
+async fn fetch_piracy_urls(json_endpoint: &str) {
+	let response = reqwest::get(json_endpoint).await.unwrap();
+	let value = response.text().await.unwrap();
+	add_config("CANISTER_PIRACY_URLS", &value);
 }
 
 fn set_database_urls(value: Value) {
