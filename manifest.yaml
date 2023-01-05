@@ -20,3 +20,6 @@ build:
   elastic_url:
     debug: http://localhost:9200
     release: http://ec-cluster-es-http:9200
+  bump:
+    documentation_id: e353670b-7643-4f62-a542-af3c617eb735
+    access_token: gUJwT9PGKbDoVZw674CJQa8dN5VEZNor

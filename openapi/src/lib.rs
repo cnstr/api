@@ -38,7 +38,7 @@ pub fn build_openapi(meta: &Metadata) {
 		},
 		"servers": [
 			{
-				"url":  meta.endpoint,
+				"url": meta.endpoint,
 				"description": "Production API",
 			},
 		],
@@ -53,6 +53,37 @@ pub fn build_openapi(meta: &Metadata) {
 
 	let openapi_json = to_json_string(&openapi).unwrap();
 	add_config("CANISTER_OPENAPI_JSON", &openapi_json);
+}
+
+pub fn dump_openapi(meta: &Metadata) -> String {
+	let openapi = json!({
+		"openapi": "3.0.0",
+		"info": {
+			"title": meta.name,
+			"version": meta.version,
+			"description": meta.description,
+			"contact": {
+				"name": "Aarnav Tale",
+				"email": meta.contact,
+			},
+			"license": {
+				"name": meta.license.replace("{{year}}", &chrono::Utc::now().year().to_string()),
+			},
+		},
+		"servers": [
+			{
+				"url": meta.endpoint,
+				"description": "Production API",
+			},
+		],
+		"paths": read_manifests(),
+		"components": {
+			"schemas": read_schemas()
+		}
+	});
+
+	let openapi_yaml = to_yaml_string(&openapi).unwrap();
+	return openapi_yaml;
 }
 
 fn read_schemas() -> Value {

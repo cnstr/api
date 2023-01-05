@@ -2,6 +2,7 @@
 resolver = "2"
 members = [
 	"api",
+	"deploy",
 	"openapi",
 	"prisma-cli"
 ]
