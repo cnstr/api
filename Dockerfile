@@ -3,7 +3,7 @@ WORKDIR /app
 
 ADD . .
 RUN cargo prisma generate
-RUN cargo build --release
+RUN cargo build --release -p api
 
 FROM gcr.io/distroless/cc
 COPY --from=builder /app/target/release/api /
