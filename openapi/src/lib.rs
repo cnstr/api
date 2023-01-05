@@ -42,9 +42,9 @@ pub fn build_openapi(meta: &Metadata) {
 				"description": "Production API",
 			},
 		],
-		"paths": read_manifests(),
+		"paths": read_manifests("../openapi/routes"),
 		"components": {
-			"schemas": read_schemas()
+			"schemas": read_schemas("../openapi/schemas")
 		}
 	});
 
@@ -76,9 +76,9 @@ pub fn dump_openapi(meta: &Metadata) -> String {
 				"description": "Production API",
 			},
 		],
-		"paths": read_manifests(),
+		"paths": read_manifests("./openapi/routes"),
 		"components": {
-			"schemas": read_schemas()
+			"schemas": read_schemas("./openapi/schemas")
 		}
 	});
 
@@ -86,8 +86,8 @@ pub fn dump_openapi(meta: &Metadata) -> String {
 	return openapi_yaml;
 }
 
-fn read_schemas() -> Value {
-	let path = Path::new("../openapi/schemas");
+fn read_schemas(folder: &str) -> Value {
+	let path = Path::new(folder);
 	let mut openapi_files = Vec::<String>::new();
 
 	let files = match read_dir(path) {
@@ -135,8 +135,8 @@ fn read_schemas() -> Value {
 	});
 }
 
-fn read_manifests() -> Value {
-	let path = Path::new("../openapi/routes");
+fn read_manifests(folder: &str) -> Value {
+	let path = Path::new(folder);
 	let mut openapi_files = Vec::<String>::new();
 
 	let folders = match read_dir(path) {
