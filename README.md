@@ -1,4 +1,4 @@
-# Canister Core
+# Canister API
 This is the API frontend of Canister (version 2).<br>
 It works by completing the following tasks in its pipeline:
 * Generate and publish the OpenAPI reference
