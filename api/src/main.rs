@@ -41,34 +41,28 @@ async fn main() -> Result<()> {
 		Ok(res)
 	}));
 
-	app.at("/v2").nest({
-		let mut api = tide::new();
+	app.at("/").get(routes::index);
+	app.at("/healthz").get(routes::health);
+	app.at("/openapi.json").get(routes::openapi_json);
+	app.at("/openapi.yaml").get(routes::openapi_yaml);
 
-		api.at("/").get(routes::index);
-		api.at("/healthz").get(routes::health);
-		api.at("/openapi.json").get(routes::openapi_json);
-		api.at("/openapi.yaml").get(routes::openapi_yaml);
+	app.at("/jailbreak/package").nest({
+		let mut nest = tide::new();
+		nest.at("/search").get(routes::package_search);
+		nest.at("/multi").get(routes::package_multi_lookup);
+		nest.at("/:package").get(routes::package_lookup);
+		nest
+	});
 
-		api.at("/jailbreak/package").nest({
-			let mut nest = tide::new();
-			nest.at("/search").get(routes::package_search);
-			nest.at("/multi").get(routes::package_multi_lookup);
-			nest.at("/:package").get(routes::package_lookup);
-			nest
-		});
-
-		api.at("/jailbreak/repository").nest({
-			let mut nest = tide::new();
-			nest.at("/search").get(routes::repository_search);
-			nest.at("/ranking").get(routes::repository_ranking);
-			nest.at("/safety").get(routes::repository_safety);
-			nest.at("/:repository").get(routes::repository_lookup);
-			nest.at("/:repository/packages")
-				.get(routes::repository_packages);
-			nest
-		});
-
-		api
+	app.at("/jailbreak/repository").nest({
+		let mut nest = tide::new();
+		nest.at("/search").get(routes::repository_search);
+		nest.at("/ranking").get(routes::repository_ranking);
+		nest.at("/safety").get(routes::repository_safety);
+		nest.at("/:repository").get(routes::repository_lookup);
+		nest.at("/:repository/packages")
+			.get(routes::repository_packages);
+		nest
 	});
 
 	app.listen("0.0.0.0:3000").await?;
