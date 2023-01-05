@@ -82,8 +82,8 @@ pub fn dump_openapi(meta: &Metadata) -> String {
 		}
 	});
 
-	let openapi_yaml = to_yaml_string(&openapi).unwrap();
-	return openapi_yaml;
+	let openapi_json = to_json_string(&openapi).unwrap();
+	return openapi_json;
 }
 
 fn read_schemas(folder: &str) -> Value {
