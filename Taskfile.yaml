@@ -1,0 +1,10 @@
+version: '3'
+
+tasks:
+  dev:
+    desc: 'Run the project locally using Docker Compose'
+    cmds:
+      - cmd: docker compose -p canister up -d
+      - defer: docker compose -p canister down
+      - cmd: cargo watch -- cargo run --bin api
+        ignore_error: true
