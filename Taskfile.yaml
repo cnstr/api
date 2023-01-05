@@ -13,6 +13,8 @@ tasks:
     cmds:
       - cmd: cargo release -p api -p deploy --no-publish --sign-commit --sign-tag --tag-prefix '' --push-remote origin {{.CLI_ARGS}}
         silent: true
+      - cmd: cargo release -p api -p deploy --no-publish --sign-commit --sign-tag --tag-prefix '' --push-remote origin -x {{.CLI_ARGS}}
+        silent: true
       - cmd: docker buildx create --name canister-api-builder --use --bootstrap
         silent: true
       - defer: docker buildx rm canister-api-builder
