@@ -15,12 +15,6 @@ tasks:
         silent: true
       - cmd: cargo release -p api -p deploy --no-publish --sign-commit --sign-tag --tag-prefix '' --push-remote origin -x {{.CLI_ARGS}}
         silent: true
-      - cmd: docker buildx create --name canister-api-builder --use --bootstrap
-        silent: true
-      - defer: docker buildx rm canister-api-builder
-        silent: true
-      - cmd: docker buildx build --platform linux/amd64 -t tale.me/canister/api:$(git tag --sort=-v:refname | cut -c 2- | head -n 1) --push --build-arg BUILD_DATE=$(date --rfc-3339=date) --build-arg VERSION=$(git tag --sort=-v:refname | cut -c 2- | head -n 1) --build-arg GIT_STATE=$(git rev-parse HEAD) .
-        silent: true
   deploy:
     desc: 'Deploys the latest production build to Kubernetes'
     cmds:
