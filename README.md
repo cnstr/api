@@ -8,10 +8,12 @@ It works by completing the following tasks in its pipeline:
 ### Development
 This project utilizes [`task`](https://taskfile.dev) and `docker compose` for the databases relied on by the API.<br>
 In order to populate the databases, [`cnstr/core`](https://github.com/cnstr/core) needs to be setup and run once.<br>
+The project also requires that you have a Rust toolchain installed and run `cargo install cargo-watch`.<br>
 Once you have setup everything, simply running `task dev` will start the API with hot-reloading and the databases.
 
 ### Deployment
 The project is deployed as a Deployment on Kubernetes.<br>
+Ensure that you have `cargo-release` installed and `~/.kube/config` configured.<br>
 The `task deploy` command will automatically configure the following:
 * Build and publish the Docker image to the [tale.me](https://tale.me/docker) registry
 * Distribute and upload the OpenAPI reference to [bump.sh](https://bump.sh)
