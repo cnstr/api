@@ -10,5 +10,4 @@ tokio = { version = "1.23.1", features = ["full"] }
 reqwest = "0.11.13"
 serde_yaml = "0.9.16"
 serde_json = "1.0.91"
-bollard = "0.13.0"
 openapi = { version = "2.0.0", path = "../openapi" }

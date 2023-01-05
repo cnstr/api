@@ -3,7 +3,6 @@ use std::{
 	path::Path,
 };
 
-use bollard::Docker;
 use openapi::{dump_openapi, Metadata};
 use reqwest::Client;
 use serde_json::{json, Value};
@@ -11,7 +10,7 @@ use serde_yaml::{from_str as from_yaml_str, to_string as to_yaml_string};
 
 #[tokio::main]
 async fn main() {
-	let image_tag = get_docker_tag().await;
+	let image_tag = format!("tale.me/canister/api:{}", env!("CARGO_PKG_VERSION"));
 	update_manifest(image_tag);
 	update_bump().await;
 }
@@ -97,27 +96,4 @@ fn update_manifest(image_tag: String) {
 		),
 	)
 	.unwrap();
-}
-
-async fn get_docker_tag() -> String {
-	let docker = match Docker::connect_with_local_defaults() {
-		Ok(docker) => docker,
-		Err(e) => panic!("Error connecting to docker: {}", e),
-	};
-
-	let mut image_tag = format!("tale.me/canister/api:{}", env!("CARGO_PKG_VERSION"));
-	println!("Pulling hash for image: {}", image_tag);
-
-	let image_hash = match docker.inspect_image(&image_tag).await {
-		Ok(image) => match image.id {
-			Some(id) => id,
-			None => panic!("Image not found: {}", image_tag),
-		},
-		Err(e) => panic!("Error inspecting image: {}", e),
-	};
-
-	println!("Image hash: {}", image_hash);
-	image_tag.push_str("@");
-	image_tag.push_str(&image_hash);
-	return image_tag;
 }
