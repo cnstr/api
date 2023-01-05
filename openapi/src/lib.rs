@@ -6,8 +6,8 @@ use std::{
 
 use chrono::Datelike;
 use schema::generate_schema;
-use serde_json::{from_str, json, Value};
-use serde_yaml::{from_str as from_yaml_str, to_string};
+use serde_json::{from_str as from_json_str, json, to_string as to_json_string, Value};
+use serde_yaml::{from_str as from_yaml_str, to_string as to_yaml_string};
 
 mod schema;
 
@@ -48,8 +48,11 @@ pub fn build_openapi(meta: &Metadata) {
 		}
 	});
 
-	let openapi_yaml = to_string(&openapi).unwrap();
+	let openapi_yaml = to_yaml_string(&openapi).unwrap();
 	add_config("CANISTER_OPENAPI_YAML", &openapi_yaml.replace("\n", "\\n"));
+
+	let openapi_json = to_json_string(&openapi).unwrap();
+	add_config("CANISTER_OPENAPI_JSON", &openapi_json);
 }
 
 fn read_schemas() -> Value {
@@ -83,7 +86,7 @@ fn read_schemas() -> Value {
 	let openapi_schemas = openapi_files
 		.iter()
 		.map(|file| {
-			let value: Value = from_str(file).unwrap();
+			let value: Value = from_json_str(file).unwrap();
 			let schema = generate_schema(value);
 			return schema;
 		})

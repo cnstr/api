@@ -12,5 +12,12 @@ pub async fn openapi_yaml(_req: Request<()>) -> Result {
 }
 
 pub async fn openapi_json(_req: Request<()>) -> Result {
-	return Ok(("").into());
+	let body = env!("CANISTER_OPENAPI_JSON");
+
+	let res = Response::builder(OK)
+		.header("Content-Type", "application/json")
+		.body(body)
+		.build();
+
+	return Ok(res);
 }
