@@ -1,4 +1,4 @@
-name: Docker Image CI
+name: API Deploy
 
 on:
   push:
@@ -20,6 +20,6 @@ jobs:
           username: bot-github
           password: ${{ secrets.REGISTRY_TOKEN }}
       - name: Build container image
-        run: docker build -t tale.me/canister/api:$GITHUB_REF_NAME --build-arg BUILD_DATE=$(date --rfc-3339=date) --build-arg VERSION=$GITHUB_REF_NAME --build-arg GIT_STATE=$GITHUB_SHA .
+        run: docker build -t tale.me/canister/api:$(echo "$GITHUB_REF_NAME" | cut -c 2-) --build-arg BUILD_DATE=$(date --rfc-3339=date) --build-arg VERSION=$(echo "$GITHUB_REF_NAME" | cut -c 2-) --build-arg GIT_STATE=$GITHUB_SHA .
       - name: Push container image to tale.me
         run: docker push tale.me/canister/api:$GITHUB_REF_NAME
