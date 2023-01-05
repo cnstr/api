@@ -13,7 +13,7 @@ Once you have setup everything, simply running `task dev` will start the API wit
 
 ### Deployment
 The project is deployed as a Deployment on Kubernetes.<br>
-Ensure that you have `cargo-release` installed and `~/.kube/config` configured.<br>
+Ensure that you have `cargo-release` installed and `kubectl` installed and configured.<br>
 The `task deploy` command will automatically configure the following:
 * Build and publish the Docker image to the [tale.me](https://tale.me/docker) registry
 * Distribute and upload the OpenAPI reference to [bump.sh](https://bump.sh)
