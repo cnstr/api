@@ -5,7 +5,7 @@ use std::{
 
 use openapi::{dump_openapi, Metadata};
 use reqwest::Client;
-use serde_json::{json, Value};
+use serde_json::{json, to_string as to_json_string, Value};
 use serde_yaml::{from_str as from_yaml_str, to_string as to_yaml_string};
 
 #[tokio::main]
@@ -32,13 +32,16 @@ async fn update_bump() {
 	let access_token = manifest["build"]["bump"]["access_token"].as_str().unwrap();
 
 	let client = Client::new();
+	let body = to_json_string(&json!({
+		"documentation": documentation_id,
+		"definition": yaml
+	}))
+	.unwrap();
+
 	let response = client
 		.post("https://bump.sh/api/v1/versions")
 		.header("Authorization", format!("Token {}", access_token))
-		.json(&json!({
-			"documentation": documentation_id,
-			"definition": yaml
-		}))
+		.body(body)
 		.send()
 		.await;
 
