@@ -16,7 +16,7 @@ build:
   piracy_endpoint: https://source.canister.me/piracy-repositories.json
   postgres_url:
     debug: postgresql://cnstr:pg@localhost:5432/cnstr
-    release: postgresql://cnstr-pg:cnstr-pg@pg-cluster-replicas/canister
+    release: postgresql://cnstr-pg:cnstr-pg@postgres/canister
   elastic_url:
     debug: http://localhost:9200
     release: http://ec-cluster-es-http:9200
