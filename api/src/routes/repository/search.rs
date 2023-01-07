@@ -170,7 +170,7 @@ pub async fn repository_search(req: Request<()>) -> Result {
 				"previousPage": prev_page,
 			},
 			"count": repositories.len(),
-			"repositories": repositories.iter().map(|repository| {
+			"data": repositories.iter().map(|repository| {
 				let slug = repository["slug"].as_str().unwrap();
 				return merge_json(repository, json!({
 					"refs": {
