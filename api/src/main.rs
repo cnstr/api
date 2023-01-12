@@ -65,6 +65,7 @@ async fn main() -> Result<()> {
 		nest
 	});
 
+	app.at("*").all(routes::not_found);
 	app.listen("0.0.0.0:3000").await?;
 	return Ok(());
 }
