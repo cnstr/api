@@ -29,7 +29,7 @@ fn merge_json_value(left: &mut Value, right: Value) {
 
 pub fn json_stringify(value: Value) -> String {
 	let buffer = Vec::new();
-	let formatter = PrettyFormatter::with_indent(b"\t");
+	let formatter = PrettyFormatter::with_indent(b"    ");
 	let mut serialized = Serializer::with_formatter(buffer, formatter);
 
 	value.serialize(&mut serialized).unwrap();
