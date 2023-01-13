@@ -1,8 +1,8 @@
 [workspace]
 resolver = "2"
 members = [
-	"api",
-	"deploy",
-	"openapi",
-	"prisma-cli"
+	"crates/api",
+	"crates/deploy",
+	"crates/openapi",
+	"crates/prisma-cli"
 ]

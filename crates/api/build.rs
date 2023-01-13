@@ -56,7 +56,7 @@ fn is_debug() -> bool {
 }
 
 fn load_manifest() -> Value {
-	let manifest = match read_to_string("../manifest.yaml") {
+	let manifest = match read_to_string("../../manifest.yaml") {
 		Ok(manifest) => manifest,
 		Err(err) => {
 			panic!("Failed to read manifest.yaml ({})", err)

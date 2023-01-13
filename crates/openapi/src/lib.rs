@@ -76,9 +76,9 @@ pub fn dump_openapi(meta: &Metadata) -> String {
 				"description": "Production API",
 			},
 		],
-		"paths": read_manifests("./openapi/routes"),
+		"paths": read_manifests("./crates/openapi/routes"),
 		"components": {
-			"schemas": read_schemas("./openapi/schemas")
+			"schemas": read_schemas("./crates/openapi/schemas")
 		}
 	});
 
