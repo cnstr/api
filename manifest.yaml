@@ -1,5 +1,5 @@
 meta:
-  product_name: 'Canister'
+  production_name: 'Canister'
   description: A high-speed search engine for APT software packages.
   code_name: 'cnstr'
   contact_email: 'support@canister.me'

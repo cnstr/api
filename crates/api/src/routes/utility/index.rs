@@ -9,7 +9,7 @@ pub async fn index(req: Request<()>) -> Result {
 		OK,
 		json!({
 			"info": {
-				"name": format!("{} ({})", env!("CANISTER_PRODUCT_NAME"), env!("CANISTER_CODE_NAME")),
+				"name": format!("{} ({})", env!("CANISTER_PRODUCTION_NAME"), env!("CANISTER_CODE_NAME")),
 				"version": env!("VERGEN_BUILD_SEMVER"),
 				"build": format!("{}+git-{}-tree/{}", env!("VERGEN_BUILD_TIMESTAMP"), env!("VERGEN_GIT_SHA_SHORT"), env!("VERGEN_GIT_BRANCH")),
 				"platform": format!("rust-{}+{}_llvm{}", env!("VERGEN_RUSTC_SEMVER"), env!("VERGEN_RUSTC_HOST_TRIPLE"), env!("VERGEN_RUSTC_LLVM_VERSION")),

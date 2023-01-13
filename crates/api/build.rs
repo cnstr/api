@@ -1,12 +1,13 @@
-use anyhow::Result;
 use openapi::{build_openapi, Metadata};
 use reqwest::ClientBuilder;
-use serde_json::{from_str, Value};
+use serde::Deserialize;
+use serde_json::from_str as from_json;
 use serde_yaml::from_str as from_yaml;
 use std::{
-	fs::read_to_string,
-	io::{stdout, Write},
+	fs::{canonicalize, read_to_string},
+	path::Path,
 };
+use tokio::main;
 use vergen::{vergen, Config, ShaKind};
 
 #[warn(clippy::all)]
@@ -17,146 +18,207 @@ use vergen::{vergen, Config, ShaKind};
 #[warn(clippy::complexity)]
 #[warn(clippy::perf)]
 
-fn main() -> Result<()> {
-	// VERGEN_BUILD_TIMESTAMP
-	// VERGEN_BUILD_SEMVER
+/// Strongly-typed manifest
+#[derive(Deserialize)]
+struct Manifest {
+	meta: Meta,
+	build: Build,
+	endpoints: Endpoints,
+}
 
-	// VERGEN_GIT_BRANCH
-	// VERGEN_GIT_SHA_SHORT
+/// Strongly-typed meta section
+#[derive(Deserialize)]
+struct Meta {
+	code_name: String,
+	description: String,
+	contact_email: String,
+	production_name: String,
+	copyright_string: String,
+}
 
-	// VERGEN_RUSTC_HOST_TRIPLE
-	// VERGEN_RUSTC_LLVM_VERSION
-	// VERGEN_RUSTC_SEMVER
+/// Strongly-typed build section
+#[derive(Deserialize)]
+struct Build {
+	elastic_url: Database,
+	postgres_url: Database,
+	piracy_endpoint: String,
+	k8s_control_plane: String,
+}
 
-	let mut config = Config::default();
-	*config.git_mut().sha_kind_mut() = ShaKind::Short;
+#[derive(Deserialize)]
+struct Database {
+	debug: String,
+	release: String,
+}
 
-	vergen(config)?;
+/// Strongly-typed endpoints section
+#[derive(Deserialize)]
+struct Endpoints {
+	api: String,
+	docs: String,
+	site: String,
+	privacy: String,
+}
+
+/// Kubernetes HTTP Response
+#[derive(Deserialize)]
+struct K8sResponse {
+	#[serde(rename = "gitVersion")]
+	git_version: String,
+	platform: String,
+}
+
+fn main() {
+	register_vergen_envs();
 	let manifest = load_manifest();
-	fetch_k8s_details(manifest["build"]["k8s_control_plane"].as_str().unwrap());
-	fetch_piracy_urls(manifest["build"]["piracy_endpoint"].as_str().unwrap());
-	set_database_urls(manifest["build"].clone());
+
+	set_env("CANISTER_PRODUCTION_NAME", &manifest.meta.production_name);
+	set_env("CANISTER_PRIVACY_ENDPOINT", &manifest.endpoints.privacy);
+	set_env("CANISTER_CONTACT_EMAIL", &manifest.meta.contact_email);
+	set_env("CANISTER_COPYRIGHT", &manifest.meta.copyright_string);
+	set_env("CANISTER_DOCS_ENDPOINT", &manifest.endpoints.docs);
+	set_env("CANISTER_SITE_ENDPOINT", &manifest.endpoints.site);
+	set_env("CANISTER_API_ENDPOINT", &manifest.endpoints.api);
+	set_env("CANISTER_CODE_NAME", &manifest.meta.code_name);
+
+	load_k8s_info(manifest.build.k8s_control_plane);
+	load_piracy_urls(&manifest.build.piracy_endpoint);
+	load_database_urls(manifest.build.postgres_url, manifest.build.elastic_url);
 
 	// CANISTER_OPENAPI_YAML
 	build_openapi(&Metadata {
-		name: manifest["meta"]["product_name"].as_str().unwrap(),
+		name: &manifest.meta.production_name,
 		version: env!("CARGO_PKG_VERSION"),
-		description: manifest["meta"]["description"].as_str().unwrap(),
-		contact: manifest["meta"]["contact_email"].as_str().unwrap(),
-		license: manifest["meta"]["copyright_string"].as_str().unwrap(),
-		endpoint: manifest["endpoints"]["api"].as_str().unwrap(),
+		description: &manifest.meta.description,
+		contact: &manifest.meta.contact_email,
+		license: &manifest.meta.copyright_string,
+		endpoint: &manifest.endpoints.api,
 	});
-	return Ok(());
 }
 
-fn add_config(key: &str, value: &str) {
-	let stdout = &mut stdout();
-	match writeln!(stdout, "cargo:rustc-env={}={}", key, value) {
-		Ok(_) => {}
-		Err(err) => {
-			panic!("Failed to configure config-key: {} ({})", key, err)
-		}
+/// Registers environment variables from the 'vergen' crate
+/// While unnecessary, the defaults are tuned to only what we want
+fn register_vergen_envs() {
+	let mut config = Config::default();
+
+	// Disable default features we don't need
+	*config.rustc_mut().sha_mut() = false;
+	*config.git_mut().semver_mut() = false;
+	*config.cargo_mut().enabled_mut() = false;
+	*config.rustc_mut().channel_mut() = false;
+	*config.sysinfo_mut().enabled_mut() = false;
+	*config.rustc_mut().commit_date_mut() = false;
+	*config.git_mut().commit_timestamp_mut() = false;
+
+	// Reconfigure the Git SHA to be shortened output
+	*config.git_mut().sha_kind_mut() = ShaKind::Short;
+
+	match vergen(config) {
+		Ok(_) => (),
+		Err(e) => panic!("Failed to register 'vergen' configuration ({e})"),
 	}
 }
 
-fn is_debug() -> bool {
-	return std::env::var("PROFILE").unwrap() == "debug";
+/// Set a cargo environment variable
+/// Used for build-time variables
+fn set_env(key: &str, value: &str) {
+	println!("Registering environment variable: {key}={value}");
+	println!("cargo:rustc-env={key}={value}");
 }
 
-fn load_manifest() -> Value {
-	let manifest = match read_to_string("../../manifest.yaml") {
-		Ok(manifest) => manifest,
-		Err(err) => {
-			panic!("Failed to read manifest.yaml ({})", err)
+/// Loads the manifest.yaml file and deserializes it
+/// Panics if the file is not found or if it fails to deserialize
+fn load_manifest() -> Manifest {
+	let manifest_path = Path::new("../../manifest.yaml");
+	let manifest = match read_to_string(manifest_path) {
+		Ok(manifest) => {
+			match canonicalize(manifest_path) {
+				Ok(path) => println!("cargo:rerun-if-changed={}", path.display()),
+				Err(e) => panic!("Failed to canonicalize manifest path ({e})"),
+			};
+
+			match from_yaml(&manifest) {
+				Ok(value) => {
+					let value: Manifest = value;
+					value
+				}
+				Err(e) => panic!("Failed to parse manifest.yaml ({e})"),
+			}
+		}
+		Err(e) => {
+			panic!("Failed to read manifest.yaml ({e})")
 		}
 	};
 
-	let manifest: Value = from_yaml(&manifest).unwrap();
-
-	add_config(
-		"CANISTER_PRODUCT_NAME",
-		manifest["meta"]["product_name"].as_str().unwrap(),
-	);
-
-	add_config(
-		"CANISTER_CODE_NAME",
-		manifest["meta"]["code_name"].as_str().unwrap(),
-	);
-
-	add_config(
-		"CANISTER_CONTACT_EMAIL",
-		manifest["meta"]["contact_email"].as_str().unwrap(),
-	);
-
-	add_config(
-		"CANISTER_COPYRIGHT",
-		manifest["meta"]["copyright_string"].as_str().unwrap(),
-	);
-
-	add_config(
-		"CANISTER_API_ENDPOINT",
-		manifest["endpoints"]["api"].as_str().unwrap(),
-	);
-
-	add_config(
-		"CANISTER_DOCS_ENDPOINT",
-		manifest["endpoints"]["docs"].as_str().unwrap(),
-	);
-
-	add_config(
-		"CANISTER_PRIVACY_ENDPOINT",
-		manifest["endpoints"]["privacy"].as_str().unwrap(),
-	);
-
-	add_config(
-		"CANISTER_SITE_ENDPOINT",
-		manifest["endpoints"]["site"].as_str().unwrap(),
-	);
-
-	return manifest;
+	manifest
 }
 
-#[tokio::main]
-async fn fetch_k8s_details(control_plane_host: &str) {
-	let client = ClientBuilder::new()
+/// Fetches the Kubernetes version from the control plane
+/// Sets the CANISTER_K8S_VERSION environment variable
+#[main]
+async fn load_k8s_info(k8s_host: String) {
+	let client = match ClientBuilder::new()
 		.danger_accept_invalid_certs(true)
 		.build()
-		.unwrap();
+	{
+		Ok(client) => client,
+		Err(e) => panic!("Failed to build insecure HTTP client ({e})"),
+	};
 
-	let url = format!("https://{}/version", control_plane_host);
-	let response = client.get(url).send().await.unwrap();
-	let value: Value = from_str(&response.text().await.unwrap()).unwrap();
+	let url = format!("https://{k8s_host}/version");
+	let json = match client.get(url).send().await {
+		Ok(response) => match response.text().await {
+			Ok(value) => {
+				let value: K8sResponse = match from_json(&value) {
+					Ok(value) => value,
+					Err(e) => panic!("Failed to deserialize Kubernetes HTTP response ({e})"),
+				};
 
-	add_config(
+				value
+			}
+			Err(e) => panic!("Failed to parse Kubernetes HTTP response ({e})"),
+		},
+		Err(e) => panic!("Failed to fetch Kubernetes version ({e})"),
+	};
+
+	set_env(
 		"CANISTER_K8S_VERSION",
-		format!(
-			"k8s_{}-{}",
-			value["gitVersion"].as_str().unwrap(),
-			value["platform"].as_str().unwrap()
-		)
-		.as_str(),
+		format!("k8s_{}-{}", &json.git_version, &json.platform).as_str(),
 	);
 }
 
-#[tokio::main]
-async fn fetch_piracy_urls(json_endpoint: &str) {
-	let response = reqwest::get(json_endpoint).await.unwrap();
-	let value = response.text().await.unwrap();
-	add_config("CANISTER_PIRACY_URLS", &value);
+/// Fetches the piracy URLs from the piracy endpoint
+/// Sets the CANISTER_PIRACY_URLS environment variable
+/// Viewable at github.com/cnstr/manifests
+#[main]
+async fn load_piracy_urls(json_endpoint: &str) {
+	let response = match reqwest::get(json_endpoint).await {
+		Ok(response) => response,
+		Err(e) => panic!("Failed to fetch piracy URLs ({e})"),
+	};
+
+	let value = match response.text().await {
+		Ok(value) => value,
+		Err(e) => panic!("Failed to parse piracy URLs ({e})"),
+	};
+
+	set_env("CANISTER_PIRACY_URLS", &value);
 }
 
-fn set_database_urls(value: Value) {
-	let postgres_url = match is_debug() {
-		true => value["postgres_url"]["debug"].as_str().unwrap(),
-		false => value["postgres_url"]["release"].as_str().unwrap(),
+/// Loads the databse connection strings from the build details
+/// Sets the CANISTER_POSTGRES_URL and CANISTER_ELASTIC_URL environment variables
+fn load_database_urls(postgres: Database, elastic: Database) {
+	let postgres_url = match cfg!(debug_assertions) {
+		true => &postgres.debug,
+		false => &postgres.release,
 	};
 
-	add_config("CANISTER_POSTGRES_URL", postgres_url);
+	set_env("CANISTER_POSTGRES_URL", postgres_url);
 
-	let elastic_url = match is_debug() {
-		true => value["elastic_url"]["debug"].as_str().unwrap(),
-		false => value["elastic_url"]["release"].as_str().unwrap(),
+	let elastic_url = match cfg!(debug_assertions) {
+		true => &elastic.debug,
+		false => &elastic.release,
 	};
 
-	add_config("CANISTER_ELASTIC_URL", elastic_url);
+	set_env("CANISTER_ELASTIC_URL", elastic_url);
 }
