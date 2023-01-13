@@ -9,6 +9,14 @@ use std::{
 };
 use vergen::{vergen, Config, ShaKind};
 
+#[warn(clippy::all)]
+#[warn(clippy::correctness)]
+#[warn(clippy::suspicious)]
+#[warn(clippy::pedantic)]
+#[warn(clippy::style)]
+#[warn(clippy::complexity)]
+#[warn(clippy::perf)]
+
 fn main() -> Result<()> {
 	// VERGEN_BUILD_TIMESTAMP
 	// VERGEN_BUILD_SEMVER

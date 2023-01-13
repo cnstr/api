@@ -1,13 +1,19 @@
+use openapi::{dump_openapi, Metadata};
+use reqwest::Client;
+use serde_json::{json, to_string as to_json_string, Value};
+use serde_yaml::{from_str as from_yaml_str, to_string as to_yaml_string};
 use std::{
 	fs::{read_to_string, write},
 	path::Path,
 };
 
-use openapi::{dump_openapi, Metadata};
-use reqwest::Client;
-use serde_json::{json, to_string as to_json_string, Value};
-use serde_yaml::{from_str as from_yaml_str, to_string as to_yaml_string};
-
+#[warn(clippy::all)]
+#[warn(clippy::correctness)]
+#[warn(clippy::suspicious)]
+#[warn(clippy::pedantic)]
+#[warn(clippy::style)]
+#[warn(clippy::complexity)]
+#[warn(clippy::perf)]
 #[tokio::main]
 async fn main() {
 	let image_tag = format!("tale.me/canister/api:{}", env!("CARGO_PKG_VERSION"));

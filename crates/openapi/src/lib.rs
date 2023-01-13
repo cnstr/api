@@ -1,15 +1,22 @@
+use chrono::Datelike;
+use schema::generate_schema;
+use serde_json::{from_str as from_json_str, json, to_string as to_json_string, Value};
+use serde_yaml::{from_str as from_yaml_str, to_string as to_yaml_string};
 use std::{
 	fs::{read_dir, read_to_string},
 	io::{stdout, Write},
 	path::Path,
 };
 
-use chrono::Datelike;
-use schema::generate_schema;
-use serde_json::{from_str as from_json_str, json, to_string as to_json_string, Value};
-use serde_yaml::{from_str as from_yaml_str, to_string as to_yaml_string};
-
 mod schema;
+
+#[warn(clippy::all)]
+#[warn(clippy::correctness)]
+#[warn(clippy::suspicious)]
+#[warn(clippy::pedantic)]
+#[warn(clippy::style)]
+#[warn(clippy::complexity)]
+#[warn(clippy::perf)]
 
 pub struct Metadata<'a> {
 	pub name: &'a str,

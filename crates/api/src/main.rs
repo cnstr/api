@@ -1,21 +1,27 @@
-mod db;
-pub mod prisma;
-mod routes;
-pub mod utility;
-
+use db::{create_elastic, create_prisma};
 use serde_json::json;
 use std::{future::Future, pin::Pin};
-use tokio::io::Error;
-
-use db::{create_elastic, create_prisma};
 use tide::{
 	security::{CorsMiddleware, Origin},
 	utils::After,
 	Next, Request, Response, Result,
 	StatusCode::InternalServerError,
 };
+use tokio::io::Error;
 use utility::json_respond;
 
+mod db;
+pub mod prisma;
+mod routes;
+pub mod utility;
+
+#[warn(clippy::all)]
+#[warn(clippy::correctness)]
+#[warn(clippy::suspicious)]
+#[warn(clippy::pedantic)]
+#[warn(clippy::style)]
+#[warn(clippy::complexity)]
+#[warn(clippy::perf)]
 #[tokio::main]
 async fn main() -> Result<()> {
 	create_prisma().await;
