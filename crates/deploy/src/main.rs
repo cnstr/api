@@ -40,7 +40,8 @@ async fn update_bump() {
 
 	let response = client
 		.post("https://bump.sh/api/v1/versions")
-		.header("Authorization", format!("Token {}", access_token))
+		.header("Authorization", format!("Token {access_token}"))
+		.header("Content-Type", "application/json")
 		.body(body)
 		.send()
 		.await;
