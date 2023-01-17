@@ -15,7 +15,7 @@ tasks:
         silent: true
       - cmd: 'yq -er .build.github_pat manifest.yaml >/dev/null 2>&1 || { echo -e >&2 "[\e[31mx\e[0m] \e[1mbuild.github_pat\e[0m is missing from manifest.yaml."; exit 1; }'
         silent: true
-      - cmd: 'test -z "{{.CLI_ARGS}}" && { echo -e >&2 "[\e[31mx\e[0m] Usage: task deploy -- <major|minor|patch|release|rc|beta|alpha>"; exit 1; }'
+      - cmd: 'if [ -z "{{.CLI_ARGS}}" ]; then echo -e >&2 "[\e[31mx\e[0m] Usage: task deploy -- <major|minor|patch|release|rc|beta|alpha>"; exit 1; fi'
         silent: true
       - cmd: echo "major minor patch release rc beta alpha" | grep -w -q "{{.CLI_ARGS}}" || exit 1
         silent: true
