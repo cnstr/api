@@ -113,13 +113,13 @@ dependencies = [
  "chrono",
  "elasticsearch",
  "lazy_static",
+ "manifest",
  "once_cell",
  "openapi",
  "prisma-client-rust",
  "reqwest",
  "serde",
  "serde_json",
- "serde_yaml",
  "tide",
  "tokio",
  "url",
@@ -932,6 +932,7 @@ dependencies = [
 name = "deploy"
 version = "2.3.10"
 dependencies = [
+ "manifest",
  "openapi",
  "reqwest",
  "serde_json",
@@ -1912,6 +1913,14 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b823e83b2affd8f40a9ee8c29dbc56404c1e34cd2710921f2801e2cf29527afa"
 dependencies = [
  "libc",
+]
+
+[[package]]
+name = "manifest"
+version = "2.0.0"
+dependencies = [
+ "serde",
+ "serde_yaml",
 ]
 
 [[package]]

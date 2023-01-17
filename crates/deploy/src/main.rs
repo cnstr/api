@@ -1,11 +1,9 @@
+use manifest::load_manifest;
 use openapi::{dump_openapi, Metadata};
 use reqwest::Client;
 use serde_json::{json, to_string as to_json_string, Value};
 use serde_yaml::{from_str as from_yaml_str, to_string as to_yaml_string};
-use std::{
-	fs::{read_to_string, write},
-	path::Path,
-};
+use std::{fs::write, path::Path};
 
 #[warn(clippy::all)]
 #[warn(clippy::correctness)]
@@ -24,29 +22,27 @@ async fn main() {
 async fn update_bump() {
 	let manifest = load_manifest();
 	let yaml = dump_openapi(&Metadata {
-		name: manifest["meta"]["product_name"].as_str().unwrap(),
-		version: env!("CARGO_PKG_VERSION"),
-		description: manifest["meta"]["description"].as_str().unwrap(),
-		contact: manifest["meta"]["contact_email"].as_str().unwrap(),
-		license: manifest["meta"]["copyright_string"].as_str().unwrap(),
-		endpoint: manifest["endpoints"]["api"].as_str().unwrap(),
+		name: manifest.meta.production_name,
+		version: env!("CARGO_PKG_VERSION").to_string(),
+		description: manifest.meta.description,
+		contact: manifest.meta.contact_email,
+		license: manifest.meta.copyright_string,
+		endpoint: manifest.endpoints.api,
 	});
-
-	let documentation_id = manifest["build"]["bump"]["documentation_id"]
-		.as_str()
-		.unwrap();
-	let access_token = manifest["build"]["bump"]["access_token"].as_str().unwrap();
 
 	let client = Client::new();
 	let body = to_json_string(&json!({
-		"documentation": documentation_id,
+		"documentation": manifest.build.bump.documentation_id,
 		"definition": yaml
 	}))
 	.unwrap();
 
 	let response = client
 		.post("https://bump.sh/api/v1/versions")
-		.header("Authorization", format!("Token {access_token}"))
+		.header(
+			"Authorization",
+			format!("Token {}", manifest.build.bump.access_token),
+		)
 		.header("Content-Type", "application/json")
 		.body(body)
 		.send()
@@ -76,18 +72,6 @@ async fn update_bump() {
 			println!("Failed to request bump.sh API ({})", err);
 		}
 	};
-}
-
-fn load_manifest() -> Value {
-	let manifest = match read_to_string("./manifest.yaml") {
-		Ok(manifest) => manifest,
-		Err(err) => {
-			panic!("Failed to read manifest.yaml ({})", err)
-		}
-	};
-
-	let manifest: Value = from_yaml_str(&manifest).unwrap();
-	return manifest;
 }
 
 fn update_manifest(image_tag: String) {

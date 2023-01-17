@@ -1,12 +1,8 @@
+use manifest::{load_manifest, Database};
 use openapi::{build_openapi, Metadata};
 use reqwest::ClientBuilder;
 use serde::Deserialize;
 use serde_json::from_str as from_json;
-use serde_yaml::from_str as from_yaml;
-use std::{
-	fs::{canonicalize, read_to_string},
-	path::Path,
-};
 use tokio::main;
 use vergen::{vergen, Config, ShaKind};
 
@@ -17,48 +13,6 @@ use vergen::{vergen, Config, ShaKind};
 #[warn(clippy::style)]
 #[warn(clippy::complexity)]
 #[warn(clippy::perf)]
-
-/// Strongly-typed manifest
-#[derive(Deserialize)]
-struct Manifest {
-	meta: Meta,
-	build: Build,
-	endpoints: Endpoints,
-}
-
-/// Strongly-typed meta section
-#[derive(Deserialize)]
-struct Meta {
-	code_name: String,
-	description: String,
-	contact_email: String,
-	production_name: String,
-	copyright_string: String,
-}
-
-/// Strongly-typed build section
-#[derive(Deserialize)]
-struct Build {
-	elastic_url: Database,
-	postgres_url: Database,
-	piracy_endpoint: String,
-	k8s_control_plane: String,
-}
-
-#[derive(Deserialize)]
-struct Database {
-	debug: String,
-	release: String,
-}
-
-/// Strongly-typed endpoints section
-#[derive(Deserialize)]
-struct Endpoints {
-	api: String,
-	docs: String,
-	site: String,
-	privacy: String,
-}
 
 /// Kubernetes HTTP Response
 #[derive(Deserialize)]
@@ -124,33 +78,6 @@ fn register_vergen_envs() {
 fn set_env(key: &str, value: &str) {
 	println!("Registering environment variable: {key}={value}");
 	println!("cargo:rustc-env={key}={value}");
-}
-
-/// Loads the manifest.yaml file and deserializes it
-/// Panics if the file is not found or if it fails to deserialize
-fn load_manifest() -> Manifest {
-	let manifest_path = Path::new("../../manifest.yaml");
-	let manifest = match read_to_string(manifest_path) {
-		Ok(manifest) => {
-			match canonicalize(manifest_path) {
-				Ok(path) => println!("cargo:rerun-if-changed={}", path.display()),
-				Err(e) => panic!("Failed to canonicalize manifest path ({e})"),
-			};
-
-			match from_yaml(&manifest) {
-				Ok(value) => {
-					let value: Manifest = value;
-					value
-				}
-				Err(e) => panic!("Failed to parse manifest.yaml ({e})"),
-			}
-		}
-		Err(e) => {
-			panic!("Failed to read manifest.yaml ({e})")
-		}
-	};
-
-	manifest
 }
 
 /// Fetches the Kubernetes version from the control plane

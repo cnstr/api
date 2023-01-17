@@ -3,6 +3,7 @@ resolver = "2"
 members = [
 	"crates/api",
 	"crates/deploy",
+	"crates/manifest",
 	"crates/openapi",
 	"crates/prisma-cli"
 ]
