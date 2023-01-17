@@ -1,0 +1,76 @@
+---
+schema_name: Repository
+schema:
+  slug: havoc
+  aliases: []
+  tier: 1
+  packageCount: 473
+  sections:
+    - Tweaks
+    - Development
+    - Themes
+    - Applications
+  uri: https://havoc.app
+  suite: './'
+  component:
+  name: Havoc
+  version: '1.0'
+  description: The Havoc Repository
+  date:
+  paymentGateway:
+  sileoEndpoint: https://havoc.app/api/sileo/
+  isPruned: false
+  origin:
+    uuid: clbygg1ht0gckph35gtsqzngb
+    hostname: havoc.app
+    releasePath: '/Release'
+    packagesPath: '/Packages.zst'
+    lastUpdated: '2022-12-22T02:18:43.984+00:00'
+    hasInRelease: false
+    hasReleaseGpg: false
+    supportsPaymentV1: true
+    supportsPaymentV2: false
+    usesHttps: true
+  originId: clbygg1ht0gckph35gtsqzngb
+  packages:
+  refs:
+    packages: https://api.canister.me/v2/jailbreak/repository/havoc/packages
+descriptions:
+  slug: Slug of the package repository
+  aliases: Aliases of the package repository
+  tier: Tier ranking of the package repository
+  packageCount: Number of packages in the package repository
+  sections: Sections of the package repository
+  uri: URL to the package repository
+  suite: Suite of the package repository
+  component: Component of the package repository
+  name: Name of the package repository
+  version: Version of the package repository
+  description: Description of the package repository
+  date: Date of the package repository
+  paymentGateway: Payment gateway of the package repository
+  sileoEndpoint: Sileo endpoint of the package repository
+  isPruned: If the package repository is pruned/hidden from indexing
+  origin:
+    uuid: Database ID of the package repository origin
+    hostname: Hostname of the package repository
+    releasePath: Release path of the package repository
+    packagesPath: Packages path of the package repository
+    lastUpdated: Last updated date of the package repository
+    hasInRelease: If the package repository has an InRelease file
+    hasReleaseGpg: If the package repository has a Release.gpg file
+    supportsPaymentV1: If the package repository supports payment v1
+    supportsPaymentV2: If the package repository supports payment v2
+    usesHttps: If the package repository uses HTTPS
+  originId: Database ID of the package repository
+  packages: Packages in the package repository
+  refs:
+    packages: URL to the packages in the package repository
+nullables:
+  - component
+  - name
+  - version
+  - description
+  - date
+  - paymentGateway
+  - sileoEndpoint
