@@ -1,5 +1,5 @@
 use manifest::load_manifest;
-use openapi::{dump_openapi, Metadata};
+use openapi::{generate_openapi, Metadata};
 use reqwest::Client;
 use serde_json::{json, to_string as to_json_string, Value};
 use serde_yaml::{from_str as from_yaml_str, to_string as to_yaml_string};
@@ -21,14 +21,17 @@ async fn main() {
 
 async fn update_bump() {
 	let manifest = load_manifest("./manifest.yaml");
-	let yaml = dump_openapi(&Metadata {
+	let api = generate_openapi(&Metadata {
 		name: manifest.meta.production_name,
 		version: env!("CARGO_PKG_VERSION").to_string(),
 		description: manifest.meta.description,
 		contact: manifest.meta.contact_email,
 		license: manifest.meta.copyright_string,
 		endpoint: manifest.endpoints.api,
+		cwd: "./crates/openapi".to_string(),
 	});
+
+	let yaml = to_yaml_string(&api).unwrap();
 
 	let client = Client::new();
 	let body = to_json_string(&json!({

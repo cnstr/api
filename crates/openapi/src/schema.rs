@@ -1,39 +1,31 @@
 use std::collections::HashMap;
 
+use serde::Deserialize;
 use serde_json::{json, Map, Value};
 
-pub fn generate_schema(options: Value) -> Value {
-	let schema_name = match options["schema_name"].is_string() {
-		true => options["schema_name"].as_str().unwrap(),
-		false => panic!("Attempting to generate schema without a schema_name"),
-	};
-
-	let mut schema = match options["schema"].is_object() {
-		true => options["schema"].as_object().unwrap().to_owned(),
-		false => panic!("Failed to generate {} (missing schema)", schema_name),
-	};
-
-	let mut descriptions = match options["descriptions"].is_object() {
-		true => options["descriptions"].as_object().unwrap().to_owned(),
-		false => panic!("Failed to generate {} (missing descriptions)", schema_name),
-	};
-
-	let nullables = match options["nullables"].is_array() {
-		true => options["nullables"]
-			.as_array()
-			.unwrap()
-			.iter()
-			.map(|key| key.as_str().unwrap().to_string())
-			.collect::<Vec<String>>(),
-		false => Vec::<String>::new(),
-	};
-
-	let schema = translate_schema(&mut schema, &mut descriptions, &nullables);
-	return json!({ schema_name: schema });
-
-	// return recursive_records(&mut schema, &options);
+/// Strongly-typed OpenAPI Component schema
+#[derive(Deserialize)]
+pub struct Schema {
+	pub schema_name: String,
+	pub schema: Map<String, Value>,
+	pub descriptions: Map<String, Value>,
+	pub nullables: Option<Vec<String>>,
 }
 
+/// Generates the OpenAPI compliant schema from the provided options
+/// Recursively transverses the object to handle nested objects and arrays
+pub fn generate_schema(mut options: Schema) -> Value {
+	let nullables = match options.nullables {
+		Some(options) => options,
+		None => Vec::<String>::new(),
+	};
+
+	let schema = translate_schema(&mut options.schema, &mut options.descriptions, &nullables);
+	return json!({ options.schema_name: schema });
+}
+
+/// Translates the provided schema into an OpenAPI compliant schema
+/// This is the recursive function that handles nested objects and arrays
 fn translate_schema(
 	schema: &mut Map<String, Value>,
 	descriptions: &mut Map<String, Value>,
@@ -47,7 +39,10 @@ fn translate_schema(
 				key,
 				json!({
 					"type": "array",
-					"description": descriptions.get(key).unwrap(),
+					"description": match descriptions.get(key) {
+						Some(description) => description,
+						None => panic!("Missing description for {}", key),
+					},
 					"nullable": nullables.contains(key),
 					"items": {
 						"type": "string"
@@ -59,13 +54,19 @@ fn translate_schema(
 		}
 
 		if value.is_object() {
-			let mut sub_object = value.as_object().unwrap().to_owned();
-			let mut sub_descriptions = descriptions
-				.get(key)
-				.unwrap()
-				.as_object()
-				.unwrap()
-				.to_owned();
+			let mut sub_object = match value.as_object() {
+				Some(object) => object.to_owned(),
+				None => panic!("Failed to convert {} to object", key),
+			};
+
+			let mut sub_descriptions = match descriptions.get(key) {
+				Some(description) => match description.as_object() {
+					Some(object) => object.to_owned(),
+					None => panic!("Failed to convert {} to object", key),
+				},
+
+				None => panic!("Missing description for {}", key),
+			};
 
 			openapi_properties.insert(
 				key,
@@ -84,7 +85,10 @@ fn translate_schema(
 				"type": get_type(value),
 				"example": value,
 				"nullable": nullables.contains(&key),
-				"description": descriptions.get(key).unwrap(),
+				"description": match descriptions.get(key) {
+					Some(description) => description,
+					None => panic!("Missing description for {}", key),
+				},
 			}),
 		);
 	}
@@ -95,6 +99,7 @@ fn translate_schema(
 	});
 }
 
+/// Returns the OpenAPI type for the provided value
 fn get_type(value: &mut Value) -> &'static str {
 	if value.is_array() {
 		return "array";

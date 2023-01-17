@@ -1,8 +1,9 @@
 use manifest::{load_manifest, Database};
-use openapi::{build_openapi, Metadata};
+use openapi::{generate_openapi, Metadata};
 use reqwest::ClientBuilder;
 use serde::Deserialize;
-use serde_json::from_str as from_json;
+use serde_json::{from_str as from_json, to_string as to_string_json};
+use serde_yaml::to_string as to_string_yaml;
 use tokio::main;
 use vergen::{vergen, Config, ShaKind};
 
@@ -35,19 +36,19 @@ fn main() {
 	set_env("CANISTER_API_ENDPOINT", &manifest.endpoints.api);
 	set_env("CANISTER_CODE_NAME", &manifest.meta.code_name);
 
+	load_openapi(Metadata {
+		name: manifest.meta.production_name,
+		version: env!("CARGO_PKG_VERSION").to_string(),
+		description: manifest.meta.description,
+		contact: manifest.meta.contact_email,
+		license: manifest.meta.copyright_string,
+		endpoint: manifest.endpoints.api,
+		cwd: "../openapi".to_string(),
+	});
+
 	load_k8s_info(manifest.build.k8s_control_plane);
 	load_piracy_urls(&manifest.build.piracy_endpoint);
 	load_database_urls(manifest.build.postgres_url, manifest.build.elastic_url);
-
-	// CANISTER_OPENAPI_YAML
-	build_openapi(&Metadata {
-		name: &manifest.meta.production_name,
-		version: env!("CARGO_PKG_VERSION"),
-		description: &manifest.meta.description,
-		contact: &manifest.meta.contact_email,
-		license: &manifest.meta.copyright_string,
-		endpoint: &manifest.endpoints.api,
-	});
 }
 
 /// Registers environment variables from the 'vergen' crate
@@ -78,6 +79,26 @@ fn register_vergen_envs() {
 fn set_env(key: &str, value: &str) {
 	println!("Registering environment variable: {key}={value}");
 	println!("cargo:rustc-env={key}={value}");
+}
+
+/// Loads the OpenAPI schema via the 'openapi' crate
+/// Sets the CANISTER_OPENAPI_YAML and CANISTER_OPENAPI_JSON environment variables
+fn load_openapi(metadata: Metadata) {
+	let api = generate_openapi(&metadata);
+
+	let yaml = match to_string_yaml(&api) {
+		Ok(yaml) => yaml.replace("\n", "\\n"),
+		Err(e) => panic!("Failed to serialize OpenAPI YAML ({e})"),
+	};
+
+	set_env("CANISTER_OPENAPI_YAML", &yaml);
+
+	let json = match to_string_json(&api) {
+		Ok(json) => json,
+		Err(e) => panic!("Failed to serialize OpenAPI JSON ({e})"),
+	};
+
+	set_env("CANISTER_OPENAPI_JSON", &json);
 }
 
 /// Fetches the Kubernetes version from the control plane

@@ -1,10 +1,10 @@
-use chrono::Datelike;
-use schema::generate_schema;
-use serde_json::{from_str as from_json_str, json, to_string as to_json_string, Value};
-use serde_yaml::{from_str as from_yaml_str, to_string as to_yaml_string};
+use chrono::{Datelike, Utc};
+use schema::{generate_schema, Schema};
+use serde::Serialize;
+use serde_json::{Map, Value};
+use serde_yaml::from_str;
 use std::{
 	fs::{read_dir, read_to_string},
-	io::{stdout, Write},
 	path::Path,
 };
 
@@ -18,84 +18,98 @@ mod schema;
 #[warn(clippy::complexity)]
 #[warn(clippy::perf)]
 
-pub struct Metadata<'a> {
-	pub name: &'a str,
-	pub version: &'a str,
-	pub description: &'a str,
-	pub contact: &'a str,
-	pub license: &'a str,
-	pub endpoint: &'a str,
+/// Metadatata needed to generate OpenAPI
+pub struct Metadata {
+	pub name: String,
+	pub version: String,
+	pub description: String,
+	pub contact: String,
+	pub license: String,
+	pub endpoint: String,
+	pub cwd: String,
 }
 
-// Working directory is /api/
-pub fn build_openapi(meta: &Metadata) {
-	let openapi = json!({
-		"openapi": "3.0.0",
-		"info": {
-			"title": meta.name,
-			"version": meta.version,
-			"description": meta.description,
-			"contact": {
-				"name": "Aarnav Tale",
-				"email": meta.contact,
+/// Strongly-typed OpenAPI schema
+#[derive(Serialize)]
+pub struct OpenAPI {
+	pub openapi: String,
+	pub info: Info,
+	pub servers: Vec<Server>,
+	pub paths: Value,
+	pub components: Components,
+}
+
+/// Strongly-typed info section
+#[derive(Serialize)]
+pub struct Info {
+	pub title: String,
+	pub version: String,
+	pub description: String,
+	pub contact: Contact,
+	pub license: License,
+}
+
+/// Strongly-typed contact section
+#[derive(Serialize)]
+pub struct Contact {
+	pub name: String,
+	pub email: String,
+}
+
+/// Strongly-typed license section
+#[derive(Serialize)]
+pub struct License {
+	pub name: String,
+}
+
+/// Strongly-typed server section
+#[derive(Serialize)]
+pub struct Server {
+	pub url: String,
+	pub description: String,
+}
+
+/// Strongly-typed components section
+#[derive(Serialize)]
+pub struct Components {
+	pub schemas: Value,
+}
+
+/// Generates the OpenAPI schema with the given Metadata
+/// Returns it it as a strongly-typed struct for further processing
+pub fn generate_openapi(meta: &Metadata) -> OpenAPI {
+	OpenAPI {
+		openapi: "3.0.0".to_string(),
+		info: Info {
+			title: meta.name.clone(),
+			version: meta.version.clone(),
+			description: meta.description.clone(),
+			contact: Contact {
+				name: "Aarnav Tale".to_string(),
+				email: meta.contact.clone(),
 			},
-			"license": {
-				"name": meta.license.replace("{{year}}", &chrono::Utc::now().year().to_string()),
+			license: License {
+				name: meta
+					.license
+					.replace("{{year}}", &Utc::now().year().to_string()),
 			},
 		},
-		"servers": [
-			{
-				"url": meta.endpoint,
-				"description": "Production API",
-			},
-		],
-		"paths": read_manifests("../openapi/routes"),
-		"components": {
-			"schemas": read_schemas("../openapi/schemas")
-		}
-	});
-
-	let openapi_yaml = to_yaml_string(&openapi).unwrap();
-	add_config("CANISTER_OPENAPI_YAML", &openapi_yaml.replace("\n", "\\n"));
-
-	let openapi_json = to_json_string(&openapi).unwrap();
-	add_config("CANISTER_OPENAPI_JSON", &openapi_json);
-}
-
-pub fn dump_openapi(meta: &Metadata) -> String {
-	let openapi = json!({
-		"openapi": "3.0.0",
-		"info": {
-			"title": meta.name,
-			"version": meta.version,
-			"description": meta.description,
-			"contact": {
-				"name": "Aarnav Tale",
-				"email": meta.contact,
-			},
-			"license": {
-				"name": meta.license.replace("{{year}}", &chrono::Utc::now().year().to_string()),
-			},
+		servers: vec![Server {
+			url: meta.endpoint.clone(),
+			description: "Production API".to_string(),
+		}],
+		paths: generate_routes(&meta.cwd),
+		components: Components {
+			schemas: generate_schemas(&meta.cwd),
 		},
-		"servers": [
-			{
-				"url": meta.endpoint,
-				"description": "Production API",
-			},
-		],
-		"paths": read_manifests("./crates/openapi/routes"),
-		"components": {
-			"schemas": read_schemas("./crates/openapi/schemas")
-		}
-	});
-
-	let openapi_json = to_json_string(&openapi).unwrap();
-	return openapi_json;
+	}
 }
 
-fn read_schemas(folder: &str) -> Value {
-	let path = Path::new(folder);
-	let mut openapi_files = Vec::<String>::new();
+/// Reads schemas, populates descriptions, and returns them as a Value
+/// This is used to populate the components section of the OpenAPI schema
+fn generate_schemas(cwd: &str) -> Value {
+	let joined_cwd = format!("{}/schemas", cwd);
+	let path = Path::new(&joined_cwd);
 
 	let files = match read_dir(path) {
 		Ok(files) => files,
@@ -104,11 +118,22 @@ fn read_schemas(folder: &str) -> Value {
 		}
 	};
 
-	for file in files {
-		let file = file.unwrap();
-		let file_name = file.file_name().into_string().unwrap();
+	let schemas = files
+		.map(|file| {
+			let file = match file {
+				Ok(file) => file,
+				Err(err) => {
+					panic!("Failed to read schema ({})", err)
+				}
+			};
 
-		if file.path().is_file() && file_name.ends_with(".json") {
+			let file_name = match file.file_name().into_string() {
+				Ok(file_name) => file_name,
+				Err(err) => {
+					panic!("Failed to read schema file ({:?})", err)
+				}
+			};
+
 			let file = match read_to_string(file.path()) {
 				Ok(file) => file,
 				Err(err) => {
@@ -117,23 +142,22 @@ fn read_schemas(folder: &str) -> Value {
 			};
 
 			let contents = file;
-			openapi_files.push(contents);
-		}
-	}
-
-	let openapi_schemas = openapi_files
-		.iter()
-		.map(|file| {
-			let value: Value = from_json_str(file).unwrap();
+			let value: Schema = from_str(&contents).unwrap();
 			let schema = generate_schema(value);
 			return schema;
 		})
 		.collect::<Vec<Value>>();
 
 	return Value::Object({
-		let mut map = serde_json::Map::new();
-		for schema in openapi_schemas {
-			let schema = schema.as_object().unwrap();
+		let mut map = Map::new();
+		for schema in schemas {
+			let schema = match schema.as_object() {
+				Some(schema) => schema,
+				None => {
+					panic!("Failed to parse schema")
+				}
+			};
+
 			for (key, value) in schema {
 				map.insert(key.to_string(), value.clone());
 			}
@@ -142,66 +166,55 @@ fn read_schemas(folder: &str) -> Value {
 	});
 }
 
-fn read_manifests(folder: &str) -> Value {
-	let path = Path::new(folder);
-	let mut openapi_files = Vec::<String>::new();
+/// Reads routes, populates descriptions, and returns them as a Value
+/// This is used to populate the paths section of the OpenAPI schema
+fn generate_routes(cwd: &str) -> Value {
+	let joined_cwd = format!("{}/routes", cwd);
+	let path = Path::new(&joined_cwd);
 
-	let folders = match read_dir(path) {
+	let files = match read_dir(path) {
 		Ok(files) => files,
 		Err(err) => {
 			panic!("Failed to read routes directory ({})", err)
 		}
 	};
 
-	for folder in folders {
-		let folder = folder.unwrap();
-
-		if folder.path().is_dir() {
-			let files = match read_dir(folder.path()) {
-				Ok(files) => files,
+	let routes = files
+		.map(|file| {
+			let file = match file {
+				Ok(file) => file,
 				Err(err) => {
-					panic!(
-						"Failed to read routes/{} directory ({})",
-						folder.file_name().to_str().unwrap(),
-						err
-					)
+					panic!("Failed to read route ({})", err)
 				}
 			};
 
-			for file in files {
-				let file = file.unwrap();
-				let file_name = file.file_name().into_string().unwrap();
-
-				if file.path().is_file() && file_name.ends_with(".yaml") {
-					let file = match read_to_string(file.path()) {
-						Ok(file) => file,
-						Err(err) => {
-							panic!(
-								"Failed to open routes/{}/{} ({})",
-								folder.file_name().to_str().unwrap(),
-								file_name,
-								err
-							)
-						}
-					};
-
-					let contents = file;
-					openapi_files.push(contents);
+			let file_name = match file.file_name().into_string() {
+				Ok(file_name) => file_name,
+				Err(err) => {
+					panic!("Failed to read route file ({:?})", err)
 				}
-			}
+			};
+
+			let file = match read_to_string(file.path()) {
+				Ok(file) => file,
+				Err(err) => {
+					panic!("Failed to open routes/{} ({})", file_name, err)
+				}
+			};
+
+			let contents = file;
+			return contents;
+		})
+		.collect::<Vec<String>>()
+		.join("\n");
+
+	match from_str(&routes) {
+		Ok(combined) => {
+			let value: Value = combined;
+			return value;
 		}
-	}
-
-	let value: Value = from_yaml_str(&openapi_files.join("\n")).unwrap();
-	return value;
-}
-
-fn add_config(key: &str, value: &str) {
-	let stdout = &mut stdout();
-	match writeln!(stdout, "cargo:rustc-env={}={}", key, value) {
-		Ok(_) => {}
 		Err(err) => {
-			panic!("Failed to configure config-key: {} ({})", key, err)
+			panic!("Failed to parse routes ({})", err)
 		}
-	}
+	};
 }
