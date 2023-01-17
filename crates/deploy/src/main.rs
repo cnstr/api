@@ -20,7 +20,7 @@ async fn main() {
 }
 
 async fn update_bump() {
-	let manifest = load_manifest();
+	let manifest = load_manifest("./manifest.yaml");
 	let yaml = dump_openapi(&Metadata {
 		name: manifest.meta.production_name,
 		version: env!("CARGO_PKG_VERSION").to_string(),

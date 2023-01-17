@@ -24,7 +24,7 @@ struct K8sResponse {
 
 fn main() {
 	register_vergen_envs();
-	let manifest = load_manifest();
+	let manifest = load_manifest("../../manifest.yaml");
 
 	set_env("CANISTER_PRODUCTION_NAME", &manifest.meta.production_name);
 	set_env("CANISTER_PRIVACY_ENDPOINT", &manifest.endpoints.privacy);

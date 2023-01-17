@@ -64,8 +64,8 @@ pub struct Endpoints {
 
 /// Loads the manifest.yaml file and deserializes it
 /// Panics if the file is not found or if it fails to deserialize
-pub fn load_manifest() -> Manifest {
-	let manifest_path = Path::new("../../manifest.yaml");
+pub fn load_manifest(path: &str) -> Manifest {
+	let manifest_path = Path::new(path);
 	let manifest = match read_to_string(manifest_path) {
 		Ok(manifest) => {
 			match canonicalize(manifest_path) {
