@@ -3,7 +3,12 @@ use openapi::{generate_openapi, Metadata};
 use reqwest::Client;
 use serde_json::{json, to_string as to_json_string, Value};
 use serde_yaml::{from_str as from_yaml_str, to_string as to_yaml_string};
-use std::{fs::write, path::Path};
+use std::{
+	env,
+	fs::{read_to_string, write},
+	path::Path,
+};
+use tokio::main;
 
 #[warn(clippy::all)]
 #[warn(clippy::correctness)]
@@ -12,14 +17,22 @@ use std::{fs::write, path::Path};
 #[warn(clippy::style)]
 #[warn(clippy::complexity)]
 #[warn(clippy::perf)]
-#[tokio::main]
-async fn main() {
-	let image_tag = format!("tale.me/canister/api:{}", env!("CARGO_PKG_VERSION"));
-	update_manifest(image_tag);
-	update_bump().await;
+
+fn main() {
+	// Don't run if not in CI
+	if env::var("CI").is_err() {
+		println!("Not in CI, skipping deployment...");
+		return;
+	}
+
+	update_kubernetes_manifest();
+	publish_openapi();
 }
 
-async fn update_bump() {
+/// Sends a POST request to bump.sh to update the OpenAPI documentation
+/// The changes are automatically deployed to docs.canister.me
+#[main]
+async fn publish_openapi() {
 	let manifest = load_manifest("./manifest.yaml");
 	let api = generate_openapi(&Metadata {
 		name: manifest.meta.production_name,
@@ -31,16 +44,27 @@ async fn update_bump() {
 		cwd: "./crates/openapi".to_string(),
 	});
 
-	let yaml = to_yaml_string(&api).unwrap();
+	let openapi_yaml = match to_yaml_string(&api) {
+		Ok(yaml) => yaml,
+		Err(err) => {
+			println!("Failed to serialize OpenAPI to YAML ({})", err);
+			return;
+		}
+	};
 
-	let client = Client::new();
-	let body = to_json_string(&json!({
+	let http = Client::new();
+	let body = match to_json_string(&json!({
 		"documentation": manifest.build.bump.documentation_id,
-		"definition": yaml
-	}))
-	.unwrap();
+		"definition": openapi_yaml
+	})) {
+		Ok(body) => body,
+		Err(err) => {
+			println!("Failed to build bump.sh request body ({})", err);
+			return;
+		}
+	};
 
-	let response = client
+	let response = http
 		.post("https://bump.sh/api/v1/versions")
 		.header(
 			"Authorization",
@@ -52,45 +76,71 @@ async fn update_bump() {
 		.await;
 
 	match response {
-		Ok(response) => {
-			// check if status is 201 or 204
-			match response.status().as_u16() {
-				201 => {
-					println!("Successfully updated bump.sh documentation");
-				}
-
-				204 => {
-					println!("Already updated bump.sh documentation");
-				}
-
-				_ => {
-					println!(
-						"Failed to update bump.sh documentation ({})",
-						response.status()
-					);
-				}
+		Ok(response) => match response.status().as_u16() {
+			201 => {
+				println!("Successfully updated bump.sh documentation");
 			}
-		}
+
+			204 => {
+				println!("Already updated bump.sh documentation");
+			}
+
+			_ => {
+				println!(
+					"Failed to update bump.sh documentation ({})",
+					response.status()
+				);
+			}
+		},
 		Err(err) => {
 			println!("Failed to request bump.sh API ({})", err);
 		}
 	};
 }
 
-fn update_manifest(image_tag: String) {
-	let path = Path::new("./kubernetes/api.yaml");
-	let raw_manifest = std::fs::read_to_string(path).unwrap();
-	let kube_objects = raw_manifest.split("---").collect::<Vec<&str>>();
-	let mut manifest: Value = from_yaml_str(kube_objects[1]).unwrap();
+/// Modifies the Kubernetes manifest to use the latest image tag
+/// This is done by parsing the manifest as YAML and modifying the image tag
+fn update_kubernetes_manifest() {
+	let image = format!("tale.me/canister/api:{}", env!("CARGO_PKG_VERSION"));
 
-	manifest["spec"]["template"]["spec"]["containers"][0]["image"] = Value::String(image_tag);
-	write(
+	let path = Path::new("./kubernetes/api.yaml");
+	let raw_manifest = match read_to_string(path) {
+		Ok(manifest) => manifest,
+		Err(err) => {
+			println!("Failed to read Kubernetes manifest ({})", err);
+			return;
+		}
+	};
+
+	let kube_objects = raw_manifest.split("---").collect::<Vec<&str>>();
+	let mut manifest: Value = match from_yaml_str(kube_objects[1]) {
+		Ok(manifest) => manifest,
+		Err(err) => {
+			println!("Failed to parse Kubernetes manifest ({})", err);
+			return;
+		}
+	};
+
+	manifest["spec"]["template"]["spec"]["containers"][0]["image"] = Value::String(image);
+	match write(
 		path,
 		format!(
 			"{}---\n{}",
 			kube_objects[0],
-			to_yaml_string(&manifest).unwrap()
+			match to_yaml_string(&manifest) {
+				Ok(yaml) => yaml,
+				Err(err) => {
+					println!("Failed to serialize Kubernetes manifest ({})", err);
+					return;
+				}
+			}
 		),
-	)
-	.unwrap();
+	) {
+		Ok(_) => {
+			println!("Successfully updated Kubernetes manifest");
+		}
+		Err(err) => {
+			println!("Failed to write Kubernetes manifest ({})", err);
+		}
+	}
 }
