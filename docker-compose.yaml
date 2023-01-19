@@ -21,9 +21,8 @@ services:
       TYPESENSE_DATA_DIR: /data
       TYPESENSE_ENABLE_CORS: "true"
     volumes:
-      - typesense:/data
+      - search:/data
 
 volumes:
   db:
   search:
-  typesense:
