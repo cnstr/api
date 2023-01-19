@@ -193,9 +193,8 @@ pub async fn repository_search(req: Request<()>) -> Result {
 		Err(err) => return Ok(err),
 	};
 
-	let url = req.url().path();
 	let next = repositories.len().to_u8().unwrap() == limit;
-	let (prev_page, next_page) = page_links(url, page, next);
+	let (prev_page, next_page) = page_links("/jailbreak/repository/search", page, next);
 
 	return Ok(json_respond(
 		OK,

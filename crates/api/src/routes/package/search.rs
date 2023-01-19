@@ -189,12 +189,11 @@ pub async fn package_search(req: Request<()>) -> Result {
 
 	let packages = match request {
 		Ok(packages) => packages,
-		Err(err) => return err,
+		Err(err) => return Ok(err),
 	};
 
-	let url = req.url().path();
 	let next = packages.len().to_u8().unwrap() == limit;
-	let (prev_page, next_page) = page_links(url, page, next);
+	let (prev_page, next_page) = page_links("/jailbreak/packages/search", page, next);
 
 	return Ok(json_respond(
 		OK,

@@ -43,9 +43,18 @@ pub fn json_respond(status: StatusCode, value: Value) -> tide::Response {
 		.build()
 }
 
-pub fn page_links(url: &str, page: u8, next: bool) -> (Option<String>, Option<String>) {
-	let base = Url::parse(env!("CANISTER_API_ENDPOINT")).unwrap();
-	let url = base.join(url).unwrap();
+/// Generates pagination links with the given URL path and page number
+/// The next parameter determines if this is the last page or not
+pub fn page_links(path: &str, page: u8, next: bool) -> (Option<String>, Option<String>) {
+	let url = format!("{}{}", env!("CANISTER_API_ENDPOINT"), path);
+
+	let url = match Url::parse(&url) {
+		Ok(url) => url,
+		Err(_) => {
+			// TODO: Sentry Error
+			return (None, None);
+		}
+	};
 
 	let prev_page = match page > 1 {
 		true => Some(
