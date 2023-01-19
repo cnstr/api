@@ -154,8 +154,8 @@ async fn load_piracy_urls(json_endpoint: &str) {
 }
 
 /// Loads the databse connection strings from the build details
-/// Sets the CANISTER_POSTGRES_URL and CANISTER_ELASTIC_URL environment variables
-fn load_database_urls(postgres: Database, elastic: Database) {
+/// Sets the CANISTER_POSTGRES_URL, CANISTER_TYPESENSE_HOST, and CANISTER_TYPESENSE_KEY environment variables
+fn load_database_urls(postgres: Database, typesense: Database) {
 	let postgres_url = match cfg!(debug_assertions) {
 		true => &postgres.debug,
 		false => &postgres.release,
@@ -165,11 +165,11 @@ fn load_database_urls(postgres: Database, elastic: Database) {
 
 	let typesense_host = match cfg!(debug_assertions) {
 		true => {
-			let binding = elastic.debug.split("@").collect::<Vec<&str>>();
+			let binding = typesense.debug.split("@").collect::<Vec<&str>>();
 			binding
 		}
 		false => {
-			let binding = elastic.release.split("@").collect::<Vec<&str>>();
+			let binding = typesense.release.split("@").collect::<Vec<&str>>();
 			binding
 		}
 	};

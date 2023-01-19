@@ -12,8 +12,8 @@ This project hosts the Canister API and accompanying services.<br>
 It is written in Rust and utilizes various crates such as:
 
 - [`tide`](https://github.com/http-rs/tide) for the web server
+- [`surf`](https://github.com/http-rs/surf) for Typesense fetching
 - [`prisma`](https://prisma.io) for the Postgres client (via [`prisma-client-rs`](https://github.com/Brendonovich/prisma-client-rust))
-- [`elasticsearch-rs`](https://github.com/elastic/elasticsearch-rs) for the Elasticsearch client
 
 The API is deployed on Kubernetes and is accessible [here](https://api.canister.me/v2/).<br>
 If you're interested in the API documentation, you can find it [here](https://docs.canister.me).
