@@ -12,19 +12,18 @@ services:
       - db:/var/lib/postgresql/data
 
   search:
-    image: docker.elastic.co/elasticsearch/elasticsearch:8.5.3
+    image: typesense/typesense:0.23.0
     container_name: canister-search
     ports:
-      - 9300:9300
-      - 9200:9200
+      - 8108:8108
     environment:
-      bootstrap.memory_lock: "true"
-      discovery.type: single-node
-      xpack.security.enabled: "false"
-      xpack.security.http.ssl.enabled: "false"
+      TYPESENSE_API_KEY: typesense
+      TYPESENSE_DATA_DIR: /data
+      TYPESENSE_ENABLE_CORS: "true"
     volumes:
-      - search:/usr/share/elasticsearch/data
+      - typesense:/data
 
 volumes:
   db:
   search:
+  typesense:

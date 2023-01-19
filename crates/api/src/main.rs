@@ -1,4 +1,4 @@
-use db::{create_elastic, create_prisma};
+use db::{create_prisma, create_typesense_client};
 use serde_json::json;
 use std::{future::Future, pin::Pin};
 use tide::{
@@ -25,7 +25,7 @@ pub mod utility;
 #[tokio::main]
 async fn main() -> Result<()> {
 	create_prisma().await;
-	create_elastic().await;
+	create_typesense_client();
 
 	let mut app = tide::new();
 	let cors = CorsMiddleware::new().allow_origin(Origin::from("*"));

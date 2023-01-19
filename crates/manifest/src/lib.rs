@@ -35,9 +35,9 @@ pub struct Meta {
 #[derive(Deserialize)]
 pub struct Build {
 	pub bump: Bump,
-	pub elastic_url: Database,
 	pub postgres_url: Database,
 	pub piracy_endpoint: String,
+	pub typesense_host: Database,
 	pub k8s_control_plane: String,
 }
 

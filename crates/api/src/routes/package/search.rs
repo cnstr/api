@@ -1,11 +1,10 @@
 use crate::{
-	db::{elastic, prisma},
+	db::typesense,
+	prisma::package,
 	utility::{json_respond, merge_json, page_links, tokio_run},
 };
-
-use elasticsearch::SearchParts;
-use prisma::repository;
 use prisma_client_rust::bigdecimal::ToPrimitive;
+use serde::Serialize;
 use serde_json::{json, Value};
 use tide::{
 	prelude::Deserialize,
@@ -18,6 +17,26 @@ struct Query {
 	q: Option<String>,
 	limit: Option<u8>,
 	page: Option<u8>,
+}
+
+#[derive(Deserialize, Serialize)]
+struct TypesenseQuery {
+	q: String,
+	query_by: String,
+	sort_by: String,
+	page: String,
+	per_page: String,
+}
+
+#[derive(Deserialize, Serialize)]
+struct TypesenseResponse {
+	found: u32,
+	hits: Vec<Document>,
+}
+
+#[derive(Deserialize, Serialize)]
+struct Document {
+	document: package::Data,
 }
 
 pub async fn package_search(req: Request<()>) -> Result {
@@ -103,89 +122,62 @@ pub async fn package_search(req: Request<()>) -> Result {
 	};
 
 	let request = tokio_run(async move {
-		let elastic_request = elastic()
-			.search(SearchParts::Index(&["packages"]))
-			.body(json!({
-				"query": {
-					"query_string": {
-						"fields": ["name", "description", "author", "maintainer", "section"],
-						"fuzziness": "AUTO",
-						"fuzzy_transpositions": true,
-						"fuzzy_max_expansions": 100,
-						"query": format!("{}~", query),
-					}
-				},
-				"sort": {
-					"repositoryTier": {
-						"order": "asc"
-					},
-					"_score": {
-						"order": "desc"
-					}
-				},
-				"from": (page - 1) * limit,
-				"size": limit
-			}))
-			.send()
-			.await;
+		let query = TypesenseQuery {
+			q: query,
+			query_by: "name,description,author,maintainer,section".to_string(),
+			sort_by: "repositoryTier:asc".to_string(),
+			page: page.to_string(),
+			per_page: limit.to_string(),
+		};
 
-		let elastic_response = match elastic_request {
-			Ok(res) => res,
+		let request = typesense()
+			.get("/collections/packages/documents/search")
+			.query(&query);
+
+		let request = match request {
+			Ok(request) => request,
 			Err(err) => {
 				println!("Error: {}", err);
-				return Err(Ok(json_respond(
+				return Err(json_respond(
 					InternalServerError,
 					json!({
 						"message": "500 Internal Server Error",
-						"error": "Failed to connect to Elasticsearch",
+						"error": "Failed to build Typesense query",
 						"date": chrono::Utc::now().to_rfc3339(),
 					}),
-				)));
+				));
 			}
 		};
 
-		let json = elastic_response.json::<serde_json::Value>().await.unwrap();
-		let packages = json["hits"]["hits"].as_array().unwrap();
+		let response = match typesense().recv_json(request).await {
+			Ok(response) => {
+				let response: TypesenseResponse = response;
+				response
+			}
+			Err(err) => {
+				println!("Error: {}", err);
+				return Err(json_respond(
+					InternalServerError,
+					json!({
+						"message": "500 Internal Server Error",
+						"error": "Failed to send Typesense query",
+						"date": chrono::Utc::now().to_rfc3339(),
+					}),
+				));
+			}
+		};
 
-		let repository_slugs = packages
+		let packages = response
+			.hits
 			.iter()
 			.map(|package| {
-				package["_source"]["repositorySlug"]
-					.as_str()
-					.unwrap()
-					.to_string()
-			})
-			.collect::<Vec<String>>();
-
-		let repositories = prisma()
-			.repository()
-			.find_many(vec![repository::slug::in_vec(repository_slugs)])
-			.exec()
-			.await
-			.unwrap();
-
-		let packages = packages
-			.iter()
-			.map(|package| {
-				let repository = repositories
-					.iter()
-					.find(|repository| {
-						repository.slug == package["_source"]["repositorySlug"].as_str().unwrap()
-					})
-					.unwrap();
-
-				let mut package = package["_source"].clone();
-				package["repository"] = json!(repository);
-
-				let id = package["package"].as_str().unwrap();
-				let slug = package["repositorySlug"].as_str().unwrap();
-
+				let package = &package.document;
 				return merge_json(
 					&package,
 					json!({
 						"refs": {
-							"meta": format!("{}/jailbreak/package/{}", env!("CANISTER_API_ENDPOINT"), id),
-							"repo": format!("{}/jailbreak/repository/{}", env!("CANISTER_API_ENDPOINT"), slug),
+							"meta": format!("{}/jailbreak/package/{}", env!("CANISTER_API_ENDPOINT"), package.package),
+							"repo": format!("{}/jailbreak/repository/{}", env!("CANISTER_API_ENDPOINT"), package.repository_slug),
 						}
 					}),
 				);

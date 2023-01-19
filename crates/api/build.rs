@@ -48,7 +48,7 @@ fn main() {
 
 	load_k8s_info(manifest.build.k8s_control_plane);
 	load_piracy_urls(&manifest.build.piracy_endpoint);
-	load_database_urls(manifest.build.postgres_url, manifest.build.elastic_url);
+	load_database_urls(manifest.build.postgres_url, manifest.build.typesense_host);
 }
 
 /// Registers environment variables from the 'vergen' crate
@@ -163,10 +163,27 @@ fn load_database_urls(postgres: Database, elastic: Database) {
 
 	set_env("CANISTER_POSTGRES_URL", postgres_url);
 
-	let elastic_url = match cfg!(debug_assertions) {
-		true => &elastic.debug,
-		false => &elastic.release,
+	let typesense_host = match cfg!(debug_assertions) {
+		true => {
+			let binding = elastic.debug.split("@").collect::<Vec<&str>>();
+			binding
+		}
+		false => {
+			let binding = elastic.release.split("@").collect::<Vec<&str>>();
+			binding
+		}
 	};
 
-	set_env("CANISTER_ELASTIC_URL", elastic_url);
+	let key = match typesense_host.get(0) {
+		Some(key) => key,
+		None => panic!("Failed to parse Typesense key"),
+	};
+
+	let host = match typesense_host.get(1) {
+		Some(host) => host,
+		None => panic!("Failed to parse Typesense host"),
+	};
+
+	set_env("CANISTER_TYPESENSE_KEY", key);
+	set_env("CANISTER_TYPESENSE_HOST", host);
 }

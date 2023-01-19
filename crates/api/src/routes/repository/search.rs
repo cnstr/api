@@ -1,10 +1,11 @@
 use crate::{
-	db::elastic,
+	db::typesense,
+	prisma::repository,
 	utility::{json_respond, merge_json, page_links, tokio_run},
 };
 
-use elasticsearch::SearchParts;
 use prisma_client_rust::bigdecimal::ToPrimitive;
+use serde::Serialize;
 use serde_json::{json, Value};
 use tide::{
 	prelude::Deserialize,
@@ -17,6 +18,26 @@ struct Query {
 	q: Option<String>,
 	limit: Option<u8>,
 	page: Option<u8>,
+}
+
+#[derive(Deserialize, Serialize)]
+struct TypesenseQuery {
+	q: String,
+	query_by: String,
+	sort_by: String,
+	page: String,
+	per_page: String,
+}
+
+#[derive(Deserialize, Serialize)]
+struct TypesenseResponse {
+	found: u32,
+	hits: Vec<Document>,
+}
+
+#[derive(Deserialize, Serialize)]
+struct Document {
+	document: repository::Data,
 }
 
 pub async fn repository_search(req: Request<()>) -> Result {
@@ -102,50 +123,66 @@ pub async fn repository_search(req: Request<()>) -> Result {
 	};
 
 	let request = tokio_run(async move {
-		let elastic_request = elastic()
-			.search(SearchParts::Index(&["repositories"]))
-			.body(json!({
-				"query": {
-					"query_string": {
-						"fields": ["slug", "name", "description", "aliases"],
-						"query": format!("{}*", query),
-					}
-				},
-				"sort": {
-					"tier": {
-						"order": "asc"
-					},
-					"_score": {
-						"order": "desc"
-					}
-				},
-				"from": (page - 1) * limit,
-				"size": limit
-			}))
-			.send()
-			.await;
+		let query = TypesenseQuery {
+			q: query,
+			query_by: "slug,name,description,aliases".to_string(),
+			sort_by: "tier:asc".to_string(),
+			page: page.to_string(),
+			per_page: limit.to_string(),
+		};
 
-		let elastic_response = match elastic_request {
-			Ok(res) => res,
+		let request = typesense()
+			.get("/collections/repositories/documents/search")
+			.query(&query);
+
+		let request = match request {
+			Ok(request) => request,
 			Err(err) => {
 				println!("Error: {}", err);
-				return Err(Ok(json_respond(
+				return Err(json_respond(
 					InternalServerError,
 					json!({
 						"message": "500 Internal Server Error",
-						"error": "Failed to connect to Elasticsearch",
+						"error": "Failed to build Typesense query",
 						"date": chrono::Utc::now().to_rfc3339(),
 					}),
-				)));
+				));
 			}
 		};
 
-		let json = elastic_response.json::<Value>().await.unwrap();
-		let repositories = json["hits"]["hits"].as_array().unwrap();
+		let response = match typesense().recv_json(request).await {
+			Ok(response) => {
+				let response: TypesenseResponse = response;
+				response
+			}
+			Err(err) => {
+				println!("Error: {}", err);
+				return Err(json_respond(
+					InternalServerError,
+					json!({
+						"message": "500 Internal Server Error",
+						"error": "Failed to send Typesense query",
+						"date": chrono::Utc::now().to_rfc3339(),
+					}),
+				));
+			}
+		};
 
-		let repositories = repositories
+		let repositories = response
+			.hits
 			.iter()
-			.map(|repository| repository["_source"].clone())
+			.map(|repository| {
+				let repository = &repository.document;
+				return merge_json(
+					&repository,
+					json!({
+						"refs": {
+							"meta": format!("{}/jailbreak/repository/{}", env!("CANISTER_API_ENDPOINT"), repository.slug),
+							"packages": format!("{}/jailbreak/repository/{}/packages", env!("CANISTER_API_ENDPOINT"), repository.slug),
+						}
+					}),
+				);
+			})
 			.collect::<Vec<Value>>();
 
 		Ok(repositories)
@@ -153,7 +190,7 @@ pub async fn repository_search(req: Request<()>) -> Result {
 
 	let repositories = match request {
 		Ok(repositories) => repositories,
-		Err(err) => return err,
+		Err(err) => return Ok(err),
 	};
 
 	let url = req.url().path();
@@ -170,15 +207,7 @@ pub async fn repository_search(req: Request<()>) -> Result {
 				"previousPage": prev_page,
 			},
 			"count": repositories.len(),
-			"data": repositories.iter().map(|repository| {
-				let slug = repository["slug"].as_str().unwrap();
-				return merge_json(repository, json!({
-					"refs": {
-						"meta": format!("{}/jailbreak/repository/{}", env!("CANISTER_API_ENDPOINT"), slug),
-						"packages": format!("{}/jailbreak/repository/{}/packages", env!("CANISTER_API_ENDPOINT"), slug),
-					}
-				}))
-			}).collect::<Vec<Value>>(),
+			"data": repositories
 		}),
 	));
 }
