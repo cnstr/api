@@ -1,25 +1,14 @@
 use crate::prisma::repository;
-use crate::utility::{json_respond, tokio_run};
+use crate::utility::{api_respond, error_respond, tokio_run};
 use crate::{db::prisma, utility::merge_json};
-
 use serde_json::json;
-use tide::{
-	Request, Result,
-	StatusCode::{BadRequest, NotFound, Ok as OK},
-};
+use tide::{Request, Result};
 
 pub async fn repository_lookup(req: Request<()>) -> Result {
 	let query = match req.param("repository") {
 		Ok(query) => query.to_string(),
 		Err(_) => {
-			return Ok(json_respond(
-				BadRequest,
-				json!({
-					"message": "400 Bad Request",
-					"error": "Missing URL parameter: \':repository\'",
-					"date": chrono::Utc::now().to_rfc3339(),
-				}),
-			));
+			return error_respond(400, "Missing URL parameter: \':repository\'");
 		}
 	};
 
@@ -48,24 +37,15 @@ pub async fn repository_lookup(req: Request<()>) -> Result {
 				}),
 			);
 
-			return Ok(json_respond(
-				OK,
+			return api_respond(
+				200,
 				json!({
-					"message": "200 Successful",
-					"date": chrono::Utc::now().to_rfc3339(),
 					"data": repository,
 				}),
-			));
+			);
 		}
 		None => {
-			return Ok(json_respond(
-				NotFound,
-				json!({
-					"message": "404 Not Found",
-					"error": "Repository not found",
-					"date": chrono::Utc::now().to_rfc3339(),
-				}),
-			))
+			return error_respond(404, "Repository not found");
 		}
 	}
 }

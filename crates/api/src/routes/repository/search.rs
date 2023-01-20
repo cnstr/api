@@ -1,17 +1,12 @@
 use crate::{
 	db::typesense,
 	prisma::repository,
-	utility::{json_respond, merge_json, page_links, tokio_run},
+	utility::{api_respond, error_respond, merge_json, page_links, tokio_run},
 };
-
 use prisma_client_rust::bigdecimal::ToPrimitive;
 use serde::Serialize;
 use serde_json::{json, Value};
-use tide::{
-	prelude::Deserialize,
-	Request, Result,
-	StatusCode::{BadRequest, InternalServerError, Ok as OK, UnprocessableEntity},
-};
+use tide::{prelude::Deserialize, Request, Result};
 
 #[derive(Deserialize)]
 struct Query {
@@ -46,41 +41,26 @@ pub async fn repository_search(req: Request<()>) -> Result {
 			let q = match query.q {
 				Some(q) => {
 					if q.len() < 3 {
-						return Ok(json_respond(
-							BadRequest,
-							json!({
-								"message": "400 Bad Request",
-								"error": "Query parameter \'q\' must be at least 3 characters",
-								"date": chrono::Utc::now().to_rfc3339(),
-							}),
-						));
+						return error_respond(
+							400,
+							"Query parameter \'q\' must be at least 3 characters",
+						);
 					}
 
 					q
 				}
 				None => {
-					return Ok(json_respond(
-						BadRequest,
-						json!({
-							"message": "400 Bad Request",
-							"error": "Missing query parameter: \'q\'",
-							"date": chrono::Utc::now().to_rfc3339(),
-						}),
-					));
+					return error_respond(400, "Missing query parameter: \'q\'");
 				}
 			};
 
 			let page = match query.page {
 				Some(page) => {
 					if page < 1 {
-						return Ok(json_respond(
-							BadRequest,
-							json!({
-								"message": "400 Bad Request",
-								"error": "Query parameter \'page\' must be greater than 0",
-								"date": chrono::Utc::now().to_rfc3339(),
-							}),
-						));
+						return error_respond(
+							400,
+							"Query parameter \'page\' must be greater than 0",
+						);
 					}
 
 					page
@@ -91,14 +71,10 @@ pub async fn repository_search(req: Request<()>) -> Result {
 			let limit = match query.limit {
 				Some(limit) => {
 					if limit < 1 || limit > 250 {
-						return Ok(json_respond(
-							BadRequest,
-							json!({
-								"message": "400 Bad Request",
-								"error": "Query parameter \'limit\' must be between 1 and 250",
-								"date": chrono::Utc::now().to_rfc3339(),
-							}),
-						));
+						return error_respond(
+							400,
+							"Query parameter \'limit\' must be between 1 and 250",
+						);
 					}
 
 					limit
@@ -111,14 +87,7 @@ pub async fn repository_search(req: Request<()>) -> Result {
 
 		Err(err) => {
 			println!("Error: {}", err);
-			return Ok(json_respond(
-				UnprocessableEntity,
-				json!({
-					"message": "422 Unprocessable Entity",
-					"error": "Malformed query parameters",
-					"date": chrono::Utc::now().to_rfc3339(),
-				}),
-			));
+			return error_respond(422, "Malformed query parameters");
 		}
 	};
 
@@ -139,14 +108,7 @@ pub async fn repository_search(req: Request<()>) -> Result {
 			Ok(request) => request,
 			Err(err) => {
 				println!("Error: {}", err);
-				return Err(json_respond(
-					InternalServerError,
-					json!({
-						"message": "500 Internal Server Error",
-						"error": "Failed to build Typesense query",
-						"date": chrono::Utc::now().to_rfc3339(),
-					}),
-				));
+				return Err(error_respond(500, "Failed to build Typesense query"));
 			}
 		};
 
@@ -157,14 +119,7 @@ pub async fn repository_search(req: Request<()>) -> Result {
 			}
 			Err(err) => {
 				println!("Error: {}", err);
-				return Err(json_respond(
-					InternalServerError,
-					json!({
-						"message": "500 Internal Server Error",
-						"error": "Failed to send Typesense query",
-						"date": chrono::Utc::now().to_rfc3339(),
-					}),
-				));
+				return Err(error_respond(500, "Failed to send Typesense query"));
 			}
 		};
 
@@ -190,17 +145,15 @@ pub async fn repository_search(req: Request<()>) -> Result {
 
 	let repositories = match request {
 		Ok(repositories) => repositories,
-		Err(err) => return Ok(err),
+		Err(response) => return response,
 	};
 
 	let next = repositories.len().to_u8().unwrap() == limit;
 	let (prev_page, next_page) = page_links("/jailbreak/repository/search", page, next);
 
-	return Ok(json_respond(
-		OK,
+	return api_respond(
+		200,
 		json!({
-			"message": "200 OK",
-			"date": chrono::Utc::now().to_rfc3339(),
 			"refs": {
 				"nextPage": next_page,
 				"previousPage": prev_page,
@@ -208,5 +161,5 @@ pub async fn repository_search(req: Request<()>) -> Result {
 			"count": repositories.len(),
 			"data": repositories
 		}),
-	));
+	);
 }

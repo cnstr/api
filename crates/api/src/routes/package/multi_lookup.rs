@@ -1,14 +1,9 @@
+use crate::db::prisma;
 use crate::prisma::package;
-use crate::utility::{merge_json, tokio_run};
-use crate::{db::prisma, utility::json_respond};
-
+use crate::utility::{api_respond, error_respond, merge_json, tokio_run};
 use prisma_client_rust::Direction;
 use serde_json::{json, Value};
-use tide::{
-	prelude::Deserialize,
-	Request, Result,
-	StatusCode::{BadRequest, NotFound, Ok as OK, UnprocessableEntity},
-};
+use tide::{prelude::Deserialize, Request, Result};
 
 #[derive(Deserialize)]
 struct Query {
@@ -24,14 +19,7 @@ pub async fn package_multi_lookup(req: Request<()>) -> Result {
 					ids
 				}
 				None => {
-					return Ok(json_respond(
-						BadRequest,
-						json!({
-							"message": "400 Bad Request",
-							"error": "Missing query parameter: \'ids\'",
-							"date": chrono::Utc::now().to_rfc3339(),
-						}),
-					));
+					return error_respond(400, "Missing query parameter: \'ids\'");
 				}
 			};
 
@@ -40,14 +28,7 @@ pub async fn package_multi_lookup(req: Request<()>) -> Result {
 
 		Err(err) => {
 			println!("Error: {}", err);
-			return Ok(json_respond(
-				UnprocessableEntity,
-				json!({
-					"message": "422 Unprocessable Entity",
-					"error": "Malformed query parameters",
-					"date": chrono::Utc::now().to_rfc3339(),
-				}),
-			));
+			return error_respond(422, "Malformed query parameters");
 		}
 	};
 
@@ -67,21 +48,12 @@ pub async fn package_multi_lookup(req: Request<()>) -> Result {
 	});
 
 	if packages.len() == 0 {
-		return Ok(json_respond(
-			NotFound,
-			json!({
-				"message": "404 Not Found",
-				"error": "Packages not found",
-				"date": chrono::Utc::now().to_rfc3339(),
-			}),
-		));
+		return error_respond(400, "Packages not found");
 	}
 
-	return Ok(json_respond(
-		OK,
+	return api_respond(
+		200,
 		json!({
-			"message": "200 Successful",
-			"date": chrono::Utc::now().to_rfc3339(),
 			"count": packages.len(),
 			"data": packages.iter().map(|package| {
 				let slug = package.repository_slug.clone();
@@ -92,5 +64,5 @@ pub async fn package_multi_lookup(req: Request<()>) -> Result {
 				}))
 			}).collect::<Vec<Value>>(),
 		}),
-	));
+	);
 }

@@ -1,14 +1,10 @@
-use crate::utility::{merge_json, tokio_run};
-use crate::{db::prisma, utility::json_respond};
-
+use crate::db::prisma;
 use crate::prisma::repository;
+use crate::utility::{api_respond, error_respond, merge_json, tokio_run};
 use prisma_client_rust::Direction;
 use serde_json::{json, Value};
-use tide::{
-	prelude::Deserialize,
-	Request, Result,
-	StatusCode::{BadRequest, Ok as OK, UnprocessableEntity},
-};
+use tide::prelude::Deserialize;
+use tide::{Request, Result};
 
 #[derive(Deserialize)]
 struct Query {
@@ -28,28 +24,17 @@ pub async fn repository_ranking(req: Request<()>) -> Result {
 						"5" => q,
 						"*" => q,
 						_ => {
-							return Ok(json_respond(
-								BadRequest,
-								json!({
-									"message": "400 Bad Request",
-									"error": "Query parameter \'rank\' must be 1, 2, 3, 4, 5, or *",
-									"date": chrono::Utc::now().to_rfc3339(),
-								}),
-							));
+							return error_respond(
+								400,
+								"Query parameter \'rank\' must be 1, 2, 3, 4, 5, or *",
+							)
 						}
 					};
 
 					match_q
 				}
 				None => {
-					return Ok(json_respond(
-						BadRequest,
-						json!({
-							"message": "400 Bad Request",
-							"error": "Missing query parameter: \'rank\'",
-							"date": chrono::Utc::now().to_rfc3339(),
-						}),
-					));
+					return error_respond(400, "Missing query parameter: \'rank\'");
 				}
 			};
 
@@ -58,14 +43,7 @@ pub async fn repository_ranking(req: Request<()>) -> Result {
 
 		Err(err) => {
 			println!("Error: {}", err);
-			return Ok(json_respond(
-				UnprocessableEntity,
-				json!({
-					"message": "422 Unprocessable Entity",
-					"error": "Malformed query parameters",
-					"date": chrono::Utc::now().to_rfc3339(),
-				}),
-			));
+			return error_respond(422, "Malformed query parameters");
 		}
 	};
 
@@ -94,22 +72,20 @@ pub async fn repository_ranking(req: Request<()>) -> Result {
 		};
 	});
 
-	return Ok(json_respond(
-		OK,
+	return api_respond(
+		200,
 		json!({
-			"message": "200 Successful",
-			"date": chrono::Utc::now().to_rfc3339(),
 			"count": repositories.len(),
-			"data": repositories.iter().map(|repository|{
-				let slug = repository.slug.clone();
+				"data": repositories.iter().map(|repository|{
+					let slug = repository.slug.clone();
 
-				return merge_json(repository, json!({
-					"refs": {
-						"meta": format!("{}/jailbreak/repository/{}", env!("CANISTER_API_ENDPOINT"), slug),
-						"packages": format!("{}/jailbreak/repository/{}/packages", env!("CANISTER_API_ENDPOINT"), slug),
-					}
-				}))
-			}).collect::<Vec<Value>>(),
+					return merge_json(repository, json!({
+						"refs": {
+							"meta": format!("{}/jailbreak/repository/{}", env!("CANISTER_API_ENDPOINT"), slug),
+							"packages": format!("{}/jailbreak/repository/{}/packages", env!("CANISTER_API_ENDPOINT"), slug),
+						}
+					}))
+				}).collect::<Vec<Value>>(),
 		}),
-	));
+	);
 }

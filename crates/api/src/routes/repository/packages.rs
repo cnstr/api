@@ -1,25 +1,14 @@
 use crate::prisma::repository;
-use crate::utility::{json_respond, merge_json, tokio_run};
+use crate::utility::{api_respond, error_respond, merge_json, tokio_run};
 use crate::{db::prisma, prisma::package};
-
 use serde_json::{json, Value};
-use tide::{
-	Request, Result,
-	StatusCode::{BadRequest, NotFound, Ok as OK},
-};
+use tide::{Request, Result};
 
 pub async fn repository_packages(req: Request<()>) -> Result {
 	let query = match req.param("repository") {
 		Ok(query) => query.to_string(),
 		Err(_) => {
-			return Ok(json_respond(
-				BadRequest,
-				json!({
-					"message": "400 Bad Request",
-					"error": "Missing URL parameter: \':repository\'",
-					"date": chrono::Utc::now().to_rfc3339(),
-				}),
-			));
+			return error_respond(400, "Missing URL parameter: \':repository\'");
 		}
 	};
 
@@ -41,14 +30,7 @@ pub async fn repository_packages(req: Request<()>) -> Result {
 				.exec()
 				.await
 				.unwrap()),
-			None => Err(Ok(json_respond(
-				NotFound,
-				json!({
-					"message": "404 Not Found",
-					"error": "Repository not found",
-					"date": chrono::Utc::now().to_rfc3339(),
-				}),
-			))),
+			None => Err(error_respond(404, "Repository not found")),
 		};
 	});
 
@@ -77,13 +59,11 @@ pub async fn repository_packages(req: Request<()>) -> Result {
 		Err(response) => return response,
 	};
 
-	return Ok(json_respond(
-		OK,
+	return api_respond(
+		200,
 		json!({
-			"message": "200 Successful",
-			"date": chrono::Utc::now().to_rfc3339(),
 			"count": packages.len(),
-			"data": packages,
+				"data": packages,
 		}),
-	));
+	);
 }

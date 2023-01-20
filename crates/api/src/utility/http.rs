@@ -5,6 +5,7 @@ use tide::{Response, Result};
 
 use super::merge_json;
 
+/// Returns a response with the given status code and body
 fn respond(status_code: u16, mut body: Value, should_merge: bool) -> Result {
 	let status_verb = match StatusCode::from_u16(status_code) {
 		Ok(status) => status.canonical_reason().unwrap_or("Unknown"),
@@ -36,10 +37,18 @@ fn respond(status_code: u16, mut body: Value, should_merge: bool) -> Result {
 		.build())
 }
 
+/// Returns a response with the given status code and body
 pub fn http_respond(status_code: u16, body: Value) -> Result {
 	respond(status_code, body, false)
 }
 
+/// Returns a response with the given status code and body
+/// The body is merged with a date and status message
 pub fn api_respond(status_code: u16, body: Value) -> Result {
 	respond(status_code, body, true)
+}
+
+/// Returns a response with the given status code and error message
+pub fn error_respond(status_code: u16, message: &str) -> Result {
+	api_respond(status_code, json!({ "error": message }))
 }
