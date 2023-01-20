@@ -1,8 +1,7 @@
-use std::future::Future;
-
 use lazy_static::lazy_static;
 use serde::Serialize;
-use serde_json::{ser::PrettyFormatter, to_value, Serializer, Value};
+use serde_json::{to_value, Value};
+use std::future::Future;
 use tokio::runtime::{Builder, Runtime};
 use url::Url;
 
@@ -26,22 +25,6 @@ fn merge_json_value(left: &mut Value, right: Value) {
 
 		(left, right) => *left = right,
 	}
-}
-
-pub fn json_stringify(value: Value) -> String {
-	let buffer = Vec::new();
-	let formatter = PrettyFormatter::with_indent(b"    ");
-	let mut serialized = Serializer::with_formatter(buffer, formatter);
-
-	value.serialize(&mut serialized).unwrap();
-	String::from_utf8(serialized.into_inner()).unwrap()
-}
-
-pub fn json_respond(status: tide::StatusCode, value: Value) -> tide::Response {
-	tide::Response::builder(status)
-		.header("Content-Type", "application/json")
-		.body(json_stringify(value))
-		.build()
 }
 
 /// Generates pagination links with the given URL path and page number

@@ -1,3 +1,4 @@
+use crate::utility::api_respond;
 use db::{create_prisma, create_typesense_client};
 use serde_json::json;
 use std::{future::Future, pin::Pin};
@@ -5,10 +6,8 @@ use tide::{
 	security::{CorsMiddleware, Origin},
 	utils::After,
 	Next, Request, Response, Result,
-	StatusCode::InternalServerError,
 };
 use tokio::io::Error;
-use utility::json_respond;
 
 mod db;
 pub mod prisma;
@@ -32,16 +31,10 @@ async fn main() -> Result<()> {
 
 	app.with(cors);
 	app.with(response_time);
-	app.with(After(|mut res: Response| async {
+	app.with(After(|res: Response| async {
 		if let Some(err) = res.downcast_error::<Error>() {
 			println!("Error: {}", err);
-			res = json_respond(
-				InternalServerError,
-				json!({
-					"message": "500 Internal Server Error",
-					"date": chrono::Utc::now().to_rfc3339(),
-				}),
-			);
+			return api_respond(500, json!({}));
 		}
 
 		Ok(res)
