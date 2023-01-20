@@ -111,6 +111,7 @@ name = "api"
 version = "2.4.2"
 dependencies = [
  "chrono",
+ "http",
  "lazy_static",
  "manifest",
  "once_cell",
