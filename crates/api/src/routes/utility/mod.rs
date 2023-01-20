@@ -3,8 +3,8 @@ mod index;
 mod not_found;
 mod openapi;
 
-pub use health::health;
-pub use index::index;
-pub use not_found::not_found;
-pub use openapi::openapi_json;
-pub use openapi::openapi_yaml;
+pub use self::health::health;
+pub use self::index::index;
+pub use self::not_found::not_found;
+pub use self::openapi::openapi_json;
+pub use self::openapi::openapi_yaml;
