@@ -3,11 +3,11 @@ use crate::{
 	utility::{api_respond, error_respond, handle_async, merge_json, page_links, typesense},
 };
 use prisma_client_rust::bigdecimal::ToPrimitive;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
-use tide::{prelude::Deserialize, Request, Result};
+use tide::{Request, Result};
 
-#[derive(Deserialize)]
+#[derive(Serialize, Deserialize)]
 struct Query {
 	q: Option<String>,
 	limit: Option<u8>,

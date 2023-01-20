@@ -3,10 +3,11 @@ use crate::{
 	utility::{api_respond, error_respond, handle_async, merge_json, prisma},
 };
 use prisma_client_rust::Direction;
+use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
-use tide::{prelude::Deserialize, Request, Result};
+use tide::{Request, Result};
 
-#[derive(Deserialize)]
+#[derive(Serialize, Deserialize)]
 struct Query {
 	ids: Option<String>,
 }

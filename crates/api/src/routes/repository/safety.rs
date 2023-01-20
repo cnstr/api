@@ -1,9 +1,10 @@
 use crate::utility::{api_respond, error_respond};
 use once_cell::sync::OnceCell;
+use serde::{Deserialize, Serialize};
 use serde_json::{from_str, json, Value};
-use tide::{prelude::Deserialize, Request, Result};
+use tide::{Request, Result};
 
-#[derive(Deserialize)]
+#[derive(Serialize, Deserialize)]
 struct Query {
 	uris: Option<String>,
 }
