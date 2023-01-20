@@ -1,6 +1,7 @@
-use crate::prisma::repository;
-use crate::utility::{api_respond, error_respond, handle_async};
-use crate::{db::prisma, utility::merge_json};
+use crate::{
+	prisma::repository,
+	utility::{api_respond, error_respond, handle_async, merge_json, prisma},
+};
 use serde_json::json;
 use tide::{Request, Result};
 

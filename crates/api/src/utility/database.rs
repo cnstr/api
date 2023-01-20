@@ -1,24 +1,32 @@
-pub use crate::prisma;
-
 use self::prisma::PrismaClient;
+use super::handle_async;
+use crate::prisma;
 use once_cell::sync::OnceCell;
 use surf::{Client, Config, Url};
 
 static PRISMA: OnceCell<PrismaClient> = OnceCell::new();
 static TYPESENSE: OnceCell<Client> = OnceCell::new();
 
-pub async fn create_prisma() {
-	let client = PrismaClient::_builder()
-		.with_url(env!("CANISTER_POSTGRES_URL").to_string())
-		.build()
-		.await;
+/// Connects to the Prisma client and globalizes it
+pub fn create_prisma_client() {
+	handle_async(async {
+		let client = match PrismaClient::_builder()
+			.with_url(env!("CANISTER_POSTGRES_URL").to_string())
+			.build()
+			.await
+		{
+			Ok(client) => client,
+			Err(err) => panic!("Failed to connect to database: {}", err),
+		};
 
-	match client {
-		Ok(client) => PRISMA.set(client).unwrap(),
-		Err(err) => panic!("Failed to connect to database: {}", err),
-	}
+		match PRISMA.set(client) {
+			Ok(_) => (),
+			Err(_) => panic!("Failed to globalize Prisma Client"),
+		}
+	})
 }
 
+/// Connects to the Typesense client and globalizes it
 pub fn create_typesense_client() {
 	let url = format!("http://{}:8108", env!("CANISTER_TYPESENSE_HOST"));
 	let base_url = match Url::parse(&url) {
@@ -47,10 +55,15 @@ pub fn create_typesense_client() {
 	}
 }
 
+/// Returns the globalized Prisma Client
 pub fn prisma() -> &'static PrismaClient {
-	PRISMA.get().unwrap()
+	match PRISMA.get() {
+		Some(client) => client,
+		None => panic!("Prisma Client not initialized"),
+	}
 }
 
+/// Returns the globalized Typesense Client
 pub fn typesense() -> &'static Client {
 	match TYPESENSE.get() {
 		Some(client) => client,

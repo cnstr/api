@@ -1,5 +1,4 @@
 use crate::utility::api_respond;
-use db::{create_prisma, create_typesense_client};
 use serde_json::json;
 use std::{future::Future, pin::Pin};
 use tide::{
@@ -8,11 +7,11 @@ use tide::{
 	Next, Request, Response, Result,
 };
 use tokio::io::Error;
+use utility::{create_prisma_client, create_typesense_client};
 
-mod db;
-pub mod prisma;
+mod prisma;
 mod routes;
-pub mod utility;
+mod utility;
 
 #[warn(clippy::all)]
 #[warn(clippy::correctness)]
@@ -23,7 +22,7 @@ pub mod utility;
 #[warn(clippy::perf)]
 #[tokio::main]
 async fn main() -> Result<()> {
-	create_prisma().await;
+	create_prisma_client();
 	create_typesense_client();
 
 	let mut app = tide::new();

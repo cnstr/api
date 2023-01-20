@@ -1,7 +1,6 @@
 use crate::{
-	db::typesense,
 	prisma::package,
-	utility::{api_respond, error_respond, handle_async, merge_json, page_links},
+	utility::{api_respond, error_respond, handle_async, merge_json, page_links, typesense},
 };
 use prisma_client_rust::bigdecimal::ToPrimitive;
 use serde::Serialize;

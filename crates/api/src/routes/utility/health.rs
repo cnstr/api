@@ -1,7 +1,4 @@
-use crate::{
-	db::{prisma, typesense},
-	utility::{handle_async, http_respond},
-};
+use crate::utility::{handle_async, http_respond, prisma, typesense};
 use prisma_client_rust::Raw;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
