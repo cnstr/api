@@ -1,9 +1,8 @@
+use super::merge_json;
 use chrono::Utc;
 use http::StatusCode;
 use serde_json::{json, to_string_pretty, Value};
 use tide::{Response, Result};
-
-use super::merge_json;
 
 /// Returns a response with the given status code and body
 fn respond(status_code: u16, mut body: Value, should_merge: bool) -> Result {
