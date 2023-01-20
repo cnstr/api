@@ -13,6 +13,12 @@
             schema:
               type: object
               properties:
-                status:
-                  type: string
-                  example: 'OK'
+                healthy:
+                  type: boolean
+                  example: true
+                typesense_healthy:
+                  type: boolean
+                  example: true
+                postgres_healthy:
+                  type: boolean
+                  example: true
