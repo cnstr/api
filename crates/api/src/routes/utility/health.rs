@@ -1,6 +1,6 @@
 use crate::{
 	db::{prisma, typesense},
-	utility::{http_respond, tokio_run},
+	utility::{handle_async, http_respond},
 };
 use prisma_client_rust::Raw;
 use serde::{Deserialize, Serialize};
@@ -23,7 +23,7 @@ struct PostgresHealth {
 /// Returns the health of the API
 /// Calculated by checking the health of Typesense and Postgres
 pub async fn health(_req: Request<()>) -> Result {
-	let (typesense_healthy, postgres_healthy) = tokio_run(async move {
+	let (typesense_healthy, postgres_healthy) = handle_async(async move {
 		let typesense_healthy = match typesense().get("/health").await {
 			Ok(mut response) => {
 				let health: TypesenseHealth = match response.body_json().await {

@@ -1,6 +1,6 @@
 use crate::db::prisma;
 use crate::prisma::repository;
-use crate::utility::{api_respond, error_respond, merge_json, tokio_run};
+use crate::utility::{api_respond, error_respond, handle_async, merge_json};
 use prisma_client_rust::Direction;
 use serde_json::{json, Value};
 use tide::prelude::Deserialize;
@@ -47,7 +47,7 @@ pub async fn repository_ranking(req: Request<()>) -> Result {
 		}
 	};
 
-	let repositories = tokio_run(async move {
+	let repositories = handle_async(async move {
 		return match query.as_str() {
 			"*" => prisma()
 				.repository()

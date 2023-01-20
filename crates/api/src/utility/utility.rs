@@ -1,8 +1,5 @@
-use lazy_static::lazy_static;
 use serde::Serialize;
 use serde_json::{to_value, Value};
-use std::future::Future;
-use tokio::runtime::{Builder, Runtime};
 use url::Url;
 
 pub fn merge_json<L: Serialize, R: Serialize>(left: L, right: R) -> Value {
@@ -65,12 +62,4 @@ pub fn page_links(path: &str, page: u8, next: bool) -> (Option<String>, Option<S
 	};
 
 	(prev_page, next_page)
-}
-
-lazy_static! {
-	static ref RUNTIME: Runtime = Builder::new_multi_thread().enable_all().build().unwrap();
-}
-
-pub fn tokio_run<F: Future>(future: F) -> <F as Future>::Output {
-	return RUNTIME.block_on(future);
 }

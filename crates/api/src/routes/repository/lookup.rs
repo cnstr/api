@@ -1,5 +1,5 @@
 use crate::prisma::repository;
-use crate::utility::{api_respond, error_respond, tokio_run};
+use crate::utility::{api_respond, error_respond, handle_async};
 use crate::{db::prisma, utility::merge_json};
 use serde_json::json;
 use tide::{Request, Result};
@@ -12,7 +12,7 @@ pub async fn repository_lookup(req: Request<()>) -> Result {
 		}
 	};
 
-	let repository = tokio_run(async move {
+	let repository = handle_async(async move {
 		return prisma()
 			.repository()
 			.find_first(vec![

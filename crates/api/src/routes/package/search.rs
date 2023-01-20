@@ -1,7 +1,7 @@
 use crate::{
 	db::typesense,
 	prisma::package,
-	utility::{api_respond, error_respond, merge_json, page_links, tokio_run},
+	utility::{api_respond, error_respond, handle_async, merge_json, page_links},
 };
 use prisma_client_rust::bigdecimal::ToPrimitive;
 use serde::Serialize;
@@ -91,7 +91,7 @@ pub async fn package_search(req: Request<()>) -> Result {
 		}
 	};
 
-	let request = tokio_run(async move {
+	let request = handle_async(async move {
 		let query = TypesenseQuery {
 			q: query,
 			query_by: "name,description,author,maintainer,section".to_string(),

@@ -1,6 +1,6 @@
 use crate::db::prisma;
 use crate::prisma::package;
-use crate::utility::{api_respond, error_respond, merge_json, tokio_run};
+use crate::utility::{api_respond, error_respond, handle_async, merge_json};
 use prisma_client_rust::Direction;
 use serde_json::{json, Value};
 use tide::{Request, Result};
@@ -13,7 +13,7 @@ pub async fn package_lookup(req: Request<()>) -> Result {
 		}
 	};
 
-	let packages = tokio_run(async move {
+	let packages = handle_async(async move {
 		return prisma()
 			.package()
 			.find_many(vec![
