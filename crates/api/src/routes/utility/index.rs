@@ -1,18 +1,52 @@
-use chrono::Datelike;
+use crate::utility::http_respond;
+use chrono::{Datelike, Utc};
 use serde_json::json;
-use tide::{Request, Result, StatusCode::Ok as OK};
+use tide::{Request, Result};
 
-use crate::utility::json_respond;
-
+/// Returns the landing page for the Canister API
 pub async fn index(req: Request<()>) -> Result {
-	return Ok(json_respond(
-		OK,
+	let name = format!(
+		"{} ({})",
+		env!("CANISTER_PRODUCTION_NAME"),
+		env!("CANISTER_CODE_NAME")
+	);
+
+	let build = format!(
+		"{}+git-{}-tree/{}",
+		env!("VERGEN_BUILD_TIMESTAMP"),
+		env!("VERGEN_GIT_SHA_SHORT"),
+		env!("VERGEN_GIT_BRANCH")
+	);
+
+	let platform = format!(
+		"rust-{}+{}_llvm{}",
+		env!("VERGEN_RUSTC_SEMVER"),
+		env!("VERGEN_RUSTC_HOST_TRIPLE"),
+		env!("VERGEN_RUSTC_LLVM_VERSION")
+	);
+
+	let copyright = env!("CANISTER_COPYRIGHT").replace("{{year}}", &Utc::now().year().to_string());
+	let current_date = Utc::now().date_naive().to_string();
+	let current_epoch = Utc::now().timestamp();
+
+	let remote_address = match req.remote() {
+		Some(remote) => remote,
+		None => "Unknown",
+	};
+
+	let user_agent = match req.header("User-Agent") {
+		Some(user_agent) => user_agent.as_str(),
+		None => "Unknown",
+	};
+
+	http_respond(
+		200,
 		json!({
 			"info": {
-				"name": format!("{} ({})", env!("CANISTER_PRODUCTION_NAME"), env!("CANISTER_CODE_NAME")),
+				"name": name,
 				"version": env!("VERGEN_BUILD_SEMVER"),
-				"build": format!("{}+git-{}-tree/{}", env!("VERGEN_BUILD_TIMESTAMP"), env!("VERGEN_GIT_SHA_SHORT"), env!("VERGEN_GIT_BRANCH")),
-				"platform": format!("rust-{}+{}_llvm{}", env!("VERGEN_RUSTC_SEMVER"), env!("VERGEN_RUSTC_HOST_TRIPLE"), env!("VERGEN_RUSTC_LLVM_VERSION")),
+				"build": build,
+				"platform": platform,
 				"runtime": env!("CANISTER_K8S_VERSION")
 			},
 
@@ -20,15 +54,15 @@ pub async fn index(req: Request<()>) -> Result {
 				"docs": env!("CANISTER_DOCS_ENDPOINT"),
 				"privacy_policy": env!("CANISTER_PRIVACY_ENDPOINT"),
 				"contact_email": env!("CANISTER_CONTACT_EMAIL"),
-				"copyright": env!("CANISTER_COPYRIGHT").replace("{{year}}", &chrono::Utc::now().year().to_string())
+				"copyright": copyright,
 			},
 
 			"connection": {
-				"current_date": chrono::Utc::now().date_naive().to_string(),
-				"current_epoch": chrono::Utc::now().timestamp(),
-				"remote_address": req.remote().unwrap_or("Unknown").to_string(),
-				"user_agent": req.header("User-Agent").unwrap()[0].to_string()
+				"current_date": current_date,
+				"current_epoch": current_epoch,
+				"remote_address": remote_address,
+				"user_agent": user_agent,
 			}
 		}),
-	));
+	)
 }
