@@ -193,7 +193,7 @@ pub async fn package_search(req: Request<()>) -> Result {
 	};
 
 	let next = packages.len().to_u8().unwrap() == limit;
-	let (prev_page, next_page) = page_links("/jailbreak/packages/search", page, next);
+	let (prev_page, next_page) = page_links("/jailbreak/package/search", page, next);
 
 	return Ok(json_respond(
 		OK,
