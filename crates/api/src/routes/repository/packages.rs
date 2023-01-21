@@ -1,6 +1,6 @@
 use crate::{
 	prisma::{package, repository},
-	utility::{api_respond, error_respond, handle_async, merge_json, prisma},
+	utility::{api_respond, error_respond, handle_async, handle_prisma, merge_json, prisma},
 };
 use serde_json::{json, Value};
 use tide::{Request, Result};
@@ -14,24 +14,40 @@ pub async fn repository_packages(req: Request<()>) -> Result {
 	};
 
 	let request = handle_async(async move {
-		let repository = prisma()
-			.repository()
-			.find_first(vec![
-				repository::slug::equals(query.to_string()),
-				repository::is_pruned::equals(false),
-			])
-			.exec()
-			.await
-			.unwrap();
+		let repository = handle_prisma(
+			prisma()
+				.repository()
+				.find_first(vec![
+					repository::slug::equals(query.to_string()),
+					repository::is_pruned::equals(false),
+				])
+				.exec(),
+		);
 
 		return match repository {
-			Some(repository) => Ok(prisma()
-				.package()
-				.find_many(vec![package::repository_slug::equals(repository.slug)])
-				.exec()
-				.await
-				.unwrap()),
-			None => Err(error_respond(404, "Repository not found")),
+			Ok(repository) => match repository {
+				Some(repository) => {
+					match handle_prisma(
+						prisma()
+							.package()
+							.find_many(vec![package::repository_slug::equals(repository.slug)])
+							.exec(),
+					) {
+						Ok(packages) => Ok(packages),
+						Err(err) => {
+							// TODO: Sentry Error
+							println!("Failed to query database: {}", err);
+							return Err(error_respond(500, "Failed to query database"));
+						}
+					}
+				}
+				None => Err(error_respond(404, "Repository not found")),
+			},
+			Err(err) => {
+				// TODO: Sentry Error
+				println!("Failed to query database: {}", err);
+				return Err(error_respond(500, "Failed to query database"));
+			}
 		};
 	});
 

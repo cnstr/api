@@ -1,6 +1,6 @@
 use crate::{
 	prisma::repository,
-	utility::{api_respond, error_respond, handle_async, merge_json, prisma},
+	utility::{api_respond, error_respond, handle_async, handle_prisma, merge_json, prisma},
 };
 use prisma_client_rust::Direction;
 use serde::{Deserialize, Serialize};
@@ -50,28 +50,36 @@ pub async fn repository_ranking(req: Request<()>) -> Result {
 
 	let repositories = handle_async(async move {
 		return match query.as_str() {
-			"*" => prisma()
-				.repository()
-				.find_many(vec![repository::is_pruned::equals(false)])
-				.order_by(repository::tier::order(Direction::Asc))
-				.with(repository::origin::fetch())
-				.exec()
-				.await
-				.unwrap(),
+			"*" => handle_prisma(
+				prisma()
+					.repository()
+					.find_many(vec![repository::is_pruned::equals(false)])
+					.order_by(repository::tier::order(Direction::Asc))
+					.with(repository::origin::fetch())
+					.exec(),
+			),
 
-			_ => prisma()
-				.repository()
-				.find_many(vec![
-					repository::tier::equals(query.parse::<i32>().unwrap()),
-					repository::is_pruned::equals(false),
-				])
-				.order_by(repository::tier::order(Direction::Asc))
-				.with(repository::origin::fetch())
-				.exec()
-				.await
-				.unwrap(),
+			_ => handle_prisma(
+				prisma()
+					.repository()
+					.find_many(vec![
+						repository::tier::equals(query.parse::<i32>().unwrap()),
+						repository::is_pruned::equals(false),
+					])
+					.order_by(repository::tier::order(Direction::Asc))
+					.with(repository::origin::fetch())
+					.exec(),
+			),
 		};
 	});
+
+	let repositories = match repositories {
+		Ok(repositories) => repositories,
+		Err(err) => {
+			println!("Error: {}", err);
+			return error_respond(500, "Internal server error");
+		}
+	};
 
 	return api_respond(
 		200,

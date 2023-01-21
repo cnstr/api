@@ -1,6 +1,6 @@
 use crate::{
 	prisma::repository,
-	utility::{api_respond, error_respond, handle_async, merge_json, prisma},
+	utility::{api_respond, error_respond, handle_prisma, merge_json, prisma},
 };
 use serde_json::json;
 use tide::{Request, Result};
@@ -13,18 +13,23 @@ pub async fn repository_lookup(req: Request<()>) -> Result {
 		}
 	};
 
-	let repository = handle_async(async move {
-		return prisma()
+	let repository = match handle_prisma(
+		prisma()
 			.repository()
 			.find_first(vec![
 				repository::slug::equals(query.to_string()),
 				repository::is_pruned::equals(false),
 			])
 			.with(repository::origin::fetch())
-			.exec()
-			.await
-			.unwrap();
-	});
+			.exec(),
+	) {
+		Ok(repository) => repository,
+		Err(err) => {
+			// TODO: Sentry Error
+			println!("Failed to query database: {}", err);
+			return error_respond(500, "Failed to query database");
+		}
+	};
 
 	match repository {
 		Some(repository) => {

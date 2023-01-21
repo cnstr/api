@@ -1,6 +1,6 @@
 use crate::{
 	prisma::package,
-	utility::{api_respond, error_respond, handle_async, merge_json, prisma},
+	utility::{api_respond, error_respond, handle_prisma, merge_json, prisma},
 };
 use prisma_client_rust::Direction;
 use serde_json::{json, Value};
@@ -14,8 +14,8 @@ pub async fn package_lookup(req: Request<()>) -> Result {
 		}
 	};
 
-	let packages = handle_async(async move {
-		return prisma()
+	let packages = match handle_prisma(
+		prisma()
 			.package()
 			.find_many(vec![
 				package::package::equals(query.to_string()),
@@ -24,10 +24,15 @@ pub async fn package_lookup(req: Request<()>) -> Result {
 			.order_by(package::is_current::order(Direction::Desc))
 			.order_by(package::repository_tier::order(Direction::Asc))
 			.with(package::repository::fetch())
-			.exec()
-			.await
-			.unwrap();
-	});
+			.exec(),
+	) {
+		Ok(packages) => packages,
+		Err(err) => {
+			// TODO: Sentry Error
+			println!("Failed to query database: {}", err);
+			return error_respond(500, "Failed to query database");
+		}
+	};
 
 	if packages.len() == 0 {
 		return error_respond(404, "Package not found");
