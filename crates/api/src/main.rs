@@ -22,7 +22,7 @@ mod utility;
 #[warn(clippy::perf)]
 #[tokio::main]
 async fn main() -> Result<()> {
-	create_prisma_client();
+	create_prisma_client().await;
 	create_typesense_client();
 
 	let mut app = tide::new();

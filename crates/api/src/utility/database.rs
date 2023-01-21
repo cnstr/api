@@ -1,5 +1,4 @@
 use self::prisma::PrismaClient;
-use super::handle_async;
 use crate::prisma;
 use once_cell::sync::OnceCell;
 use surf::{Client, Config, Url};
@@ -8,22 +7,20 @@ static PRISMA: OnceCell<PrismaClient> = OnceCell::new();
 static TYPESENSE: OnceCell<Client> = OnceCell::new();
 
 /// Connects to the Prisma client and globalizes it
-pub fn create_prisma_client() {
-	handle_async(async {
-		let client = match PrismaClient::_builder()
-			.with_url(env!("CANISTER_POSTGRES_URL").to_string())
-			.build()
-			.await
-		{
-			Ok(client) => client,
-			Err(err) => panic!("Failed to connect to database: {}", err),
-		};
+pub async fn create_prisma_client() {
+	let client = match PrismaClient::_builder()
+		.with_url(env!("CANISTER_POSTGRES_URL").to_string())
+		.build()
+		.await
+	{
+		Ok(client) => client,
+		Err(err) => panic!("Failed to connect to database: {}", err),
+	};
 
-		match PRISMA.set(client) {
-			Ok(_) => (),
-			Err(_) => panic!("Failed to globalize Prisma Client"),
-		}
-	})
+	match PRISMA.set(client) {
+		Ok(_) => (),
+		Err(_) => panic!("Failed to globalize Prisma Client"),
+	}
 }
 
 /// Connects to the Typesense client and globalizes it
