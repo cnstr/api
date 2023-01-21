@@ -36,8 +36,6 @@ pub async fn package_lookup(req: Request<()>) -> Result {
 	api_respond(
 		200,
 		json!({
-			"message": "200 Successful",
-			"date": chrono::Utc::now().to_rfc3339(),
 			"count": packages.len(),
 			"data": packages.iter().map(|package| {
 				let slug = package.repository_slug.clone();
