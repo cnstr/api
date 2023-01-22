@@ -147,7 +147,7 @@ pub async fn repository_search(req: Request<()>) -> Result {
 		Err(response) => return response,
 	};
 
-	let next = repositories.len().to_u8().unwrap() == limit;
+	let next = repositories.len().to_u8().unwrap_or(0) == limit;
 	let (prev_page, next_page) = page_links("/jailbreak/repository/search", page, next);
 
 	return api_respond(
