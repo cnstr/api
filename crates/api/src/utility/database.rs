@@ -1,5 +1,4 @@
-use self::prisma::PrismaClient;
-use crate::prisma;
+use crate::prisma::PrismaClient;
 use once_cell::sync::OnceCell;
 use surf::{Client, Config, Url};
 
