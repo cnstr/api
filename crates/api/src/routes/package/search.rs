@@ -1,10 +1,11 @@
 use crate::{
 	prisma::package,
-	utility::{api_respond, error_respond, handle_async, merge_json, page_links, typesense},
+	utility::{api_respond, error_respond, handle_typesense, merge_json, page_links},
 };
 use prisma_client_rust::bigdecimal::ToPrimitive;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
+use surf::http::Method;
 use tide::{Request, Result};
 
 #[derive(Serialize, Deserialize)]
@@ -90,39 +91,26 @@ pub async fn package_search(req: Request<()>) -> Result {
 		}
 	};
 
-	let request = handle_async(async move {
-		let query = TypesenseQuery {
-			q: query,
-			query_by: "name,description,author,maintainer,section".to_string(),
-			sort_by: "repositoryTier:asc".to_string(),
-			page: page.to_string(),
-			per_page: limit.to_string(),
-		};
+	let query = TypesenseQuery {
+		q: query,
+		query_by: "name,description,author,maintainer,section".to_string(),
+		sort_by: "repositoryTier:asc".to_string(),
+		page: page.to_string(),
+		per_page: limit.to_string(),
+	};
 
-		let request = typesense()
-			.get("/collections/packages/documents/search")
-			.query(&query);
+	let response = match handle_typesense::<TypesenseQuery, TypesenseResponse>(
+		query,
+		"/collections/packages/documents/search",
+		Method::Get,
+	)
+	.await
+	{
+		Ok(data) => data,
+		Err(err) => return err,
+	};
 
-		let request = match request {
-			Ok(request) => request,
-			Err(err) => {
-				println!("Error: {}", err);
-				return Err(error_respond(500, "Failed to build Typesense query"));
-			}
-		};
-
-		let response = match typesense().recv_json(request).await {
-			Ok(response) => {
-				let response: TypesenseResponse = response;
-				response
-			}
-			Err(err) => {
-				println!("Error: {}", err);
-				return Err(error_respond(500, "Failed to send Typesense query"));
-			}
-		};
-
-		let packages = response
+	let packages = response
 			.hits
 			.iter()
 			.map(|package| {
@@ -138,14 +126,6 @@ pub async fn package_search(req: Request<()>) -> Result {
 				);
 			})
 			.collect::<Vec<Value>>();
-
-		return Ok(packages);
-	});
-
-	let packages = match request {
-		Ok(packages) => packages,
-		Err(response) => return response,
-	};
 
 	let next = packages.len().to_u8().unwrap_or(0) == limit;
 	let (prev_page, next_page) = page_links("/jailbreak/package/search", page, next);
