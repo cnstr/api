@@ -63,7 +63,10 @@ pub async fn repository_ranking(req: Request<()>) -> Result {
 				prisma()
 					.repository()
 					.find_many(vec![
-						repository::tier::equals(query.parse::<i32>().unwrap()),
+						repository::tier::equals(query.parse::<i32>().unwrap_or_else(|err| {
+							println!("Error: {}", err);
+							return 1;
+						})),
 						repository::is_pruned::equals(false),
 					])
 					.order_by(repository::tier::order(Direction::Asc))

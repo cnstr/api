@@ -1,7 +1,7 @@
 use crate::utility::{api_respond, error_respond};
 use once_cell::sync::OnceCell;
 use serde::{Deserialize, Serialize};
-use serde_json::{from_str, json, Value};
+use serde_json::{from_str, json};
 use tide::{Request, Result};
 
 #[derive(Serialize, Deserialize)]
@@ -9,31 +9,46 @@ struct Query {
 	uris: Option<String>,
 }
 
+#[derive(Serialize, Deserialize)]
+#[serde(transparent)]
+struct Repositories {
+	repositories: Vec<String>,
+}
+
 static REPOSITORIES: OnceCell<Vec<String>> = OnceCell::new();
 
 pub async fn repository_safety(req: Request<()>) -> Result {
 	if REPOSITORIES.get().is_none() {
 		let raw_repositories = env!("CANISTER_PIRACY_URLS");
-		let repositories = from_str::<Value>(&raw_repositories)
-			.unwrap()
-			.as_array()
-			.unwrap()
-			.iter()
-			.map(|repo| repo.as_str().unwrap().to_string())
-			.collect();
+		let repositories = match from_str(&raw_repositories) {
+			Ok(repositories) => {
+				let data: Repositories = repositories;
+				data.repositories
+			}
+			Err(err) => {
+				println!("Error: {}", err);
+				println!("Failed to parse environment variable: \'CANISTER_PIRACY_URLS\'");
+				return error_respond(500, "Unable to fetch repository list");
+			}
+		};
 
-		REPOSITORIES.set(repositories).unwrap();
+		match REPOSITORIES.set(repositories) {
+			Ok(_) => {}
+			Err(_) => {
+				println!("Repository list already set");
+			}
+		};
 	}
 
 	let uris = match req.query::<Query>() {
 		Ok(query) => {
 			let query = match query.uris {
 				Some(uris) => {
-					let uris: Vec<String> = uris
+					let uris = uris
 						.to_ascii_lowercase()
 						.split(',')
 						.map(|uri| uri.to_string())
-						.collect();
+						.collect::<Vec<String>>();
 					uris
 				}
 				None => {
@@ -51,7 +66,13 @@ pub async fn repository_safety(req: Request<()>) -> Result {
 	};
 
 	let mut repositories = Vec::new();
-	let unsafe_repositories = REPOSITORIES.get().unwrap();
+	let unsafe_repositories = match REPOSITORIES.get() {
+		Some(repositories) => repositories,
+		None => {
+			println!("Failed to get repository list (REPOSITORIES.get() returned None)");
+			return error_respond(500, "Unable to fetch repository list");
+		}
+	};
 
 	for uri in uris {
 		let mut is_safe = true;
