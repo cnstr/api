@@ -2,9 +2,26 @@ use serde::Serialize;
 use serde_json::{to_value, Value};
 use url::Url;
 
+/// Merges two JSON objects together in the order of left, right
+/// If the object is a strictly-typed struct, it is serialized into a Value
 pub fn merge_json<L: Serialize, R: Serialize>(left: L, right: R) -> Value {
-	let mut left = to_value(left).unwrap();
-	let right = to_value(right).unwrap();
+	let mut left = match to_value(left) {
+		Ok(value) => value,
+		Err(err) => {
+			println!("Error: {}", err);
+			println!("Failed to serialize left JSON object");
+			return Value::Null;
+		}
+	};
+
+	let right = match to_value(right) {
+		Ok(value) => value,
+		Err(err) => {
+			println!("Error: {}", err);
+			println!("Failed to serialize right JSON object");
+			return Value::Null;
+		}
+	};
 
 	merge_json_value(&mut left, right);
 	left
