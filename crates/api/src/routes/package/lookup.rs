@@ -27,11 +27,7 @@ pub async fn package_lookup(req: Request<()>) -> Result {
 			.exec(),
 	) {
 		Ok(packages) => packages,
-		Err(err) => {
-			// TODO: Sentry Error
-			println!("Failed to query database: {}", err);
-			return error_respond(500, "Failed to query database");
-		}
+		Err(err) => return err,
 	};
 
 	if packages.len() == 0 {

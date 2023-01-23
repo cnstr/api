@@ -24,11 +24,7 @@ pub async fn repository_lookup(req: Request<()>) -> Result {
 			.exec(),
 	) {
 		Ok(repository) => repository,
-		Err(err) => {
-			// TODO: Sentry Error
-			println!("Failed to query database: {}", err);
-			return error_respond(500, "Failed to query database");
-		}
+		Err(err) => return err,
 	};
 
 	match repository {

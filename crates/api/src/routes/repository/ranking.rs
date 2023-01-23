@@ -78,10 +78,7 @@ pub async fn repository_ranking(req: Request<()>) -> Result {
 
 	let repositories = match repositories {
 		Ok(repositories) => repositories,
-		Err(err) => {
-			println!("Error: {}", err);
-			return error_respond(500, "Internal server error");
-		}
+		Err(err) => return err,
 	};
 
 	return api_respond(

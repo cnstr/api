@@ -1,6 +1,6 @@
 use lazy_static::lazy_static;
 use prisma_client_rust::QueryError;
-use serde::{de::DeserializeOwned, Deserialize, Serialize};
+use serde::{de::DeserializeOwned, Serialize};
 use std::future::Future;
 use surf::http::Method;
 use tide::Result as HttpResult;
@@ -22,12 +22,16 @@ pub fn handle_async<F: Future>(future: F) -> F::Output {
 
 /// Takes a Prisma query and executes it on the Tokio runtime thread
 /// Returns a Result with the query's output or an HTTP result
-pub fn handle_prisma<'a, T: Deserialize<'a>, F: Future<Output = Result<T, QueryError>>>(
+pub fn handle_prisma<T: DeserializeOwned, F: Future<Output = Result<T, QueryError>>>(
 	query: F,
-) -> Result<T, QueryError> {
+) -> Result<T, HttpResult> {
 	match handle_async(query) {
 		Ok(result) => Ok(result),
-		Err(err) => Err(err),
+		Err(err) => {
+			// TODO: Sentry Handler
+			println!("Failed to execute Prisma query: {}", err);
+			return Err(error_respond(500, "Failed to execute database query"));
+		}
 	}
 }
 

@@ -34,20 +34,12 @@ pub async fn repository_packages(req: Request<()>) -> Result {
 							.exec(),
 					) {
 						Ok(packages) => Ok(packages),
-						Err(err) => {
-							// TODO: Sentry Error
-							println!("Failed to query database: {}", err);
-							return Err(error_respond(500, "Failed to query database"));
-						}
+						Err(err) => return Err(err),
 					}
 				}
 				None => Err(error_respond(404, "Repository not found")),
 			},
-			Err(err) => {
-				// TODO: Sentry Error
-				println!("Failed to query database: {}", err);
-				return Err(error_respond(500, "Failed to query database"));
-			}
+			Err(err) => return Err(err),
 		};
 	});
 
