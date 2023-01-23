@@ -31,6 +31,8 @@ pub fn handle_prisma<'a, T: Deserialize<'a>, F: Future<Output = Result<T, QueryE
 	}
 }
 
+/// Takes a Typesense query and URL, and fetches it via HTTP
+/// Returns a Result with the query's output or an HTTP result
 pub async fn handle_typesense<Q: Serialize, R: DeserializeOwned>(
 	query: Q,
 	url: &str,
