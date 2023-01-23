@@ -35,14 +35,15 @@ pub struct Meta {
 #[derive(Deserialize)]
 pub struct Build {
 	pub bump: Bump,
-	pub postgres_url: Database,
 	pub piracy_endpoint: String,
-	pub typesense_host: Database,
+	pub sentry_dsn: Conditional,
 	pub k8s_control_plane: String,
+	pub postgres_url: Conditional,
+	pub typesense_host: Conditional,
 }
 
 #[derive(Deserialize)]
-pub struct Database {
+pub struct Conditional {
 	pub debug: String,
 	pub release: String,
 }

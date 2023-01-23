@@ -1,4 +1,4 @@
-use manifest::{load_manifest, Database};
+use manifest::{load_manifest, Conditional};
 use openapi::{generate_openapi, Metadata};
 use reqwest::ClientBuilder;
 use serde::Deserialize;
@@ -46,6 +46,7 @@ fn main() {
 		cwd: "../openapi".to_string(),
 	});
 
+	load_sentry_dsn(manifest.build.sentry_dsn);
 	load_k8s_info(manifest.build.k8s_control_plane);
 	load_piracy_urls(&manifest.build.piracy_endpoint);
 	load_database_urls(manifest.build.postgres_url, manifest.build.typesense_host);
@@ -99,6 +100,15 @@ fn load_openapi(metadata: Metadata) {
 	};
 
 	set_env("CANISTER_OPENAPI_JSON", &json);
+}
+
+fn load_sentry_dsn(dsn: Conditional) {
+	let sentry_dsn = match cfg!(debug_assertions) {
+		true => &dsn.debug,
+		false => &dsn.release,
+	};
+
+	set_env("CANISTER_SENTRY_DSN", sentry_dsn);
 }
 
 /// Fetches the Kubernetes version from the control plane
@@ -155,7 +165,7 @@ async fn load_piracy_urls(json_endpoint: &str) {
 
 /// Loads the databse connection strings from the build details
 /// Sets the CANISTER_POSTGRES_URL, CANISTER_TYPESENSE_HOST, and CANISTER_TYPESENSE_KEY environment variables
-fn load_database_urls(postgres: Database, typesense: Database) {
+fn load_database_urls(postgres: Conditional, typesense: Conditional) {
 	let postgres_url = match cfg!(debug_assertions) {
 		true => &postgres.debug,
 		false => &postgres.release,
