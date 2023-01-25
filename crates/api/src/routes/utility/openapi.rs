@@ -8,7 +8,7 @@ pub async fn openapi_yaml(_req: Request<()>) -> Result {
 		.body(body)
 		.build();
 
-	return Ok(res);
+	Ok(res)
 }
 
 pub async fn openapi_json(_req: Request<()>) -> Result {
@@ -19,5 +19,5 @@ pub async fn openapi_json(_req: Request<()>) -> Result {
 		.body(body)
 		.build();
 
-	return Ok(res);
+	Ok(res)
 }

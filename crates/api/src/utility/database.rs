@@ -1,4 +1,6 @@
+use super::handle_error;
 use crate::prisma::PrismaClient;
+use anyhow::Error;
 use once_cell::sync::OnceCell;
 use surf::{Client, Config, Url};
 
@@ -13,7 +15,11 @@ pub async fn create_prisma_client() {
 		.await
 	{
 		Ok(client) => client,
-		Err(err) => panic!("Failed to connect to database: {}", err),
+		Err(err) => {
+			let anyhow: Error = err.into();
+			handle_error(&anyhow);
+			panic!("Failed to create Prisma Client: {}", anyhow)
+		}
 	};
 
 	match PRISMA.set(client) {
@@ -27,7 +33,11 @@ pub fn create_typesense_client() {
 	let url = format!("http://{}:8108", env!("CANISTER_TYPESENSE_HOST"));
 	let base_url = match Url::parse(&url) {
 		Ok(url) => url,
-		Err(err) => panic!("Failed to parse Typesense Host: {}", err),
+		Err(err) => {
+			let anyhow: Error = err.into();
+			handle_error(&anyhow);
+			panic!("Failed to parse Typesense Host: {}", anyhow)
+		}
 	};
 
 	let client = match Config::new()
@@ -37,12 +47,20 @@ pub fn create_typesense_client() {
 		Ok(client) => {
 			let client: Client = match client.try_into() {
 				Ok(client) => client,
-				Err(err) => panic!("Failed to create Typesense Client: {}", err),
+				Err(err) => {
+					let anyhow: Error = err.into();
+					handle_error(&anyhow);
+					panic!("Failed to create Typesense Client: {}", anyhow)
+				}
 			};
 
 			client
 		}
-		Err(err) => panic!("Failed to create Typesense Client: {}", err),
+		Err(err) => {
+			let anyhow: Error = err.into_inner();
+			handle_error(&anyhow);
+			panic!("Failed to create Typesense Client: {}", anyhow)
+		}
 	};
 
 	match TYPESENSE.set(client) {

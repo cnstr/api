@@ -49,9 +49,7 @@ pub async fn repository_search(req: Request<()>) -> Result {
 
 					q
 				}
-				None => {
-					return error_respond(400, "Missing query parameter: \'q\'");
-				}
+				None => return error_respond(400, "Missing query parameter: \'q\'"),
 			};
 
 			let page = match query.page {
@@ -70,7 +68,7 @@ pub async fn repository_search(req: Request<()>) -> Result {
 
 			let limit = match query.limit {
 				Some(limit) => {
-					if limit < 1 || limit > 250 {
+					if !(1..=250).contains(&limit) {
 						return error_respond(
 							400,
 							"Query parameter \'limit\' must be between 1 and 250",
@@ -85,10 +83,7 @@ pub async fn repository_search(req: Request<()>) -> Result {
 			(q, page, limit)
 		}
 
-		Err(err) => {
-			println!("Error: {}", err);
-			return error_respond(422, "Malformed query parameters");
-		}
+		Err(_) => return error_respond(422, "Malformed query parameters"),
 	};
 
 	let query = TypesenseQuery {
@@ -116,7 +111,7 @@ pub async fn repository_search(req: Request<()>) -> Result {
 			.map(|repository| {
 				let repository = &repository.document;
 				return merge_json(
-					&repository,
+					repository,
 					json!({
 						"refs": {
 							"meta": format!("{}/jailbreak/repository/{}", env!("CANISTER_API_ENDPOINT"), repository.slug),
@@ -130,7 +125,7 @@ pub async fn repository_search(req: Request<()>) -> Result {
 	let next = repositories.len().to_u8().unwrap_or(0) == limit;
 	let (prev_page, next_page) = page_links("/jailbreak/repository/search", page, next);
 
-	return api_respond(
+	api_respond(
 		200,
 		json!({
 			"refs": {
@@ -140,5 +135,5 @@ pub async fn repository_search(req: Request<()>) -> Result {
 			"count": repositories.len(),
 			"data": repositories
 		}),
-	);
+	)
 }

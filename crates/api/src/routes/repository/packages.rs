@@ -8,9 +8,7 @@ use tide::{Request, Result};
 pub async fn repository_packages(req: Request<()>) -> Result {
 	let query = match req.param("repository") {
 		Ok(query) => query.to_string(),
-		Err(_) => {
-			return error_respond(400, "Missing URL parameter: \':repository\'");
-		}
+		Err(_) => return error_respond(400, "Missing URL parameter: \':repository\'"),
 	};
 
 	let request = handle_async(async move {
@@ -44,35 +42,31 @@ pub async fn repository_packages(req: Request<()>) -> Result {
 	});
 
 	let packages = match request {
-		Ok(packages) => {
-			let packages = packages
-				.into_iter()
-				.map(|package| {
-					let id = package.package.clone();
-					let slug = package.repository_slug.clone();
+		Ok(packages) => packages
+			.into_iter()
+			.map(|package| {
+				let id = package.package.clone();
+				let slug = package.repository_slug.clone();
 
-					merge_json(
-						package,
-						json!({
-							"refs": {
-								"meta": format!("{}/jailbreak/package/{}", env!("CANISTER_API_ENDPOINT"), id),
-								"repo": format!("{}/jailbreak/repository/{}", env!("CANISTER_API_ENDPOINT"), slug),
-							}
-						}),
-					)
-				})
-				.collect::<Vec<Value>>();
-
-			packages
-		}
+				merge_json(
+					package,
+					json!({
+						"refs": {
+							"meta": format!("{}/jailbreak/package/{}", env!("CANISTER_API_ENDPOINT"), id),
+							"repo": format!("{}/jailbreak/repository/{}", env!("CANISTER_API_ENDPOINT"), slug),
+						}
+					}),
+				)
+			})
+			.collect::<Vec<Value>>(),
 		Err(response) => return response,
 	};
 
-	return api_respond(
+	api_respond(
 		200,
 		json!({
 			"count": packages.len(),
 				"data": packages,
 		}),
-	);
+	)
 }

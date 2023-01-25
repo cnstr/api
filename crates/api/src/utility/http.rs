@@ -1,4 +1,5 @@
-use super::merge_json;
+use super::{handle_error, merge_json};
+use anyhow::Error;
 use chrono::Utc;
 use http::StatusCode;
 use serde_json::{json, to_string_pretty, Value};
@@ -24,9 +25,9 @@ fn respond(status_code: u16, mut body: Value, should_merge: bool) -> Result {
 	let body = match to_string_pretty(&body) {
 		Ok(body) => body,
 		Err(err) => {
-			// TODO: Sentry Error
-			println!("Failed to stringify JSON response body");
-			return Err(err.into());
+			let anyhow: Error = err.into();
+			handle_error(&anyhow);
+			return Err(anyhow.into());
 		}
 	};
 

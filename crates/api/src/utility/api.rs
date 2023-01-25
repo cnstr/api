@@ -1,3 +1,4 @@
+use super::handle_error;
 use serde::Serialize;
 use serde_json::{to_value, Value};
 use url::Url;
@@ -8,8 +9,7 @@ pub fn merge_json<L: Serialize, R: Serialize>(left: L, right: R) -> Value {
 	let mut left = match to_value(left) {
 		Ok(value) => value,
 		Err(err) => {
-			println!("Error: {}", err);
-			println!("Failed to serialize left JSON object");
+			handle_error(&err.into());
 			return Value::Null;
 		}
 	};
@@ -17,8 +17,7 @@ pub fn merge_json<L: Serialize, R: Serialize>(left: L, right: R) -> Value {
 	let right = match to_value(right) {
 		Ok(value) => value,
 		Err(err) => {
-			println!("Error: {}", err);
-			println!("Failed to serialize right JSON object");
+			handle_error(&err.into());
 			return Value::Null;
 		}
 	};
@@ -46,10 +45,10 @@ fn merge_json_value(left: &mut Value, right: Value) {
 pub fn page_links(path: &str, page: u8, next: bool) -> (Option<String>, Option<String>) {
 	let url = format!("{}{}", env!("CANISTER_API_ENDPOINT"), path);
 
-	let url = match Url::parse(&url) {
+	let mut url = match Url::parse(&url) {
 		Ok(url) => url,
-		Err(_) => {
-			// TODO: Sentry Error
+		Err(err) => {
+			handle_error(&err.into());
 			return (None, None);
 		}
 	};
@@ -68,8 +67,7 @@ pub fn page_links(path: &str, page: u8, next: bool) -> (Option<String>, Option<S
 
 	let next_page = match next {
 		true => Some(
-			url.clone()
-				.query_pairs_mut()
+			url.query_pairs_mut()
 				.append_pair("page", (page + 1).to_string().as_str())
 				.finish()
 				.as_str()

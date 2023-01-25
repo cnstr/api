@@ -29,11 +29,7 @@ pub async fn index(req: Request<()>) -> Result {
 	let current_date = Utc::now().date_naive().to_string();
 	let current_epoch = Utc::now().timestamp();
 
-	let remote_address = match req.remote() {
-		Some(remote) => remote,
-		None => "Unknown",
-	};
-
+	let remote_address = req.remote().unwrap_or("Unknown");
 	let user_agent = match req.header("User-Agent") {
 		Some(user_agent) => user_agent.as_str(),
 		None => "Unknown",

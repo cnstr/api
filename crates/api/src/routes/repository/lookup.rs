@@ -8,16 +8,14 @@ use tide::{Request, Result};
 pub async fn repository_lookup(req: Request<()>) -> Result {
 	let query = match req.param("repository") {
 		Ok(query) => query.to_string(),
-		Err(_) => {
-			return error_respond(400, "Missing URL parameter: \':repository\'");
-		}
+		Err(_) => return error_respond(400, "Missing URL parameter: \':repository\'"),
 	};
 
 	let repository = match handle_prisma(
 		prisma()
 			.repository()
 			.find_first(vec![
-				repository::slug::equals(query.to_string()),
+				repository::slug::equals(query),
 				repository::is_pruned::equals(false),
 			])
 			.with(repository::origin::fetch())
@@ -39,15 +37,13 @@ pub async fn repository_lookup(req: Request<()>) -> Result {
 				}),
 			);
 
-			return api_respond(
+			api_respond(
 				200,
 				json!({
 					"data": repository,
 				}),
-			);
+			)
 		}
-		None => {
-			return error_respond(404, "Repository not found");
-		}
+		None => error_respond(404, "Repository not found"),
 	}
 }

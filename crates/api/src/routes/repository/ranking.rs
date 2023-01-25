@@ -1,6 +1,8 @@
 use crate::{
 	prisma::repository,
-	utility::{api_respond, error_respond, handle_async, handle_prisma, merge_json, prisma},
+	utility::{
+		api_respond, error_respond, handle_async, handle_error, handle_prisma, merge_json, prisma,
+	},
 };
 use prisma_client_rust::Direction;
 use serde::{Deserialize, Serialize};
@@ -34,18 +36,13 @@ pub async fn repository_ranking(req: Request<()>) -> Result {
 
 					match_q
 				}
-				None => {
-					return error_respond(400, "Missing query parameter: \'rank\'");
-				}
+				None => return error_respond(400, "Missing query parameter: \'rank\'"),
 			};
 
 			rank
 		}
 
-		Err(err) => {
-			println!("Error: {}", err);
-			return error_respond(422, "Malformed query parameters");
-		}
+		Err(_) => return error_respond(422, "Malformed query parameters"),
 	};
 
 	let repositories = handle_async(async move {
@@ -64,8 +61,8 @@ pub async fn repository_ranking(req: Request<()>) -> Result {
 					.repository()
 					.find_many(vec![
 						repository::tier::equals(query.parse::<i32>().unwrap_or_else(|err| {
-							println!("Error: {}", err);
-							return 1;
+							handle_error(&err.into());
+							1
 						})),
 						repository::is_pruned::equals(false),
 					])

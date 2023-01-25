@@ -1,4 +1,4 @@
-use crate::utility::{api_respond, error_respond};
+use crate::utility::{api_respond, error_respond, handle_error};
 use once_cell::sync::OnceCell;
 use serde::{Deserialize, Serialize};
 use serde_json::{from_str, json};
@@ -20,23 +20,20 @@ static REPOSITORIES: OnceCell<Vec<String>> = OnceCell::new();
 pub async fn repository_safety(req: Request<()>) -> Result {
 	if REPOSITORIES.get().is_none() {
 		let raw_repositories = env!("CANISTER_PIRACY_URLS");
-		let repositories = match from_str(&raw_repositories) {
+		let repositories = match from_str(raw_repositories) {
 			Ok(repositories) => {
 				let data: Repositories = repositories;
 				data.repositories
 			}
 			Err(err) => {
-				println!("Error: {}", err);
-				println!("Failed to parse environment variable: \'CANISTER_PIRACY_URLS\'");
+				handle_error(&err.into());
 				return error_respond(500, "Unable to fetch repository list");
 			}
 		};
 
 		match REPOSITORIES.set(repositories) {
 			Ok(_) => {}
-			Err(_) => {
-				println!("Repository list already set");
-			}
+			Err(_) => println!("Repository list already set"),
 		};
 	}
 
@@ -51,9 +48,7 @@ pub async fn repository_safety(req: Request<()>) -> Result {
 						.collect::<Vec<String>>();
 					uris
 				}
-				None => {
-					return error_respond(400, "Missing query parameter: \'uris\'");
-				}
+				None => return error_respond(400, "Missing query parameter: \'uris\'"),
 			};
 
 			query
@@ -89,11 +84,11 @@ pub async fn repository_safety(req: Request<()>) -> Result {
 		}));
 	}
 
-	return api_respond(
+	api_respond(
 		200,
 		json!({
 			"count": repositories.len(),
 			"data": repositories,
 		}),
-	);
+	)
 }

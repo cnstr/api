@@ -28,10 +28,7 @@ pub async fn package_multi_lookup(req: Request<()>) -> Result {
 			ids
 		}
 
-		Err(err) => {
-			println!("Error: {}", err);
-			return error_respond(422, "Malformed query parameters");
-		}
+		Err(_) => return error_respond(422, "Malformed query parameters"),
 	};
 
 	let packages = match handle_prisma(
@@ -50,7 +47,7 @@ pub async fn package_multi_lookup(req: Request<()>) -> Result {
 		Err(err) => return err,
 	};
 
-	if packages.len() == 0 {
+	if packages.is_empty() {
 		return error_respond(400, "Packages not found");
 	}
 

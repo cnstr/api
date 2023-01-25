@@ -9,16 +9,14 @@ use tide::{Request, Result};
 pub async fn package_lookup(req: Request<()>) -> Result {
 	let query = match req.param("package") {
 		Ok(query) => query.to_string(),
-		Err(_) => {
-			return error_respond(400, "Missing URL parameter: \':package\'");
-		}
+		Err(_) => return error_respond(400, "Missing URL parameter: \':package\'"),
 	};
 
 	let packages = match handle_prisma(
 		prisma()
 			.package()
 			.find_many(vec![
-				package::package::equals(query.to_string()),
+				package::package::equals(query),
 				package::is_pruned::equals(false),
 			])
 			.order_by(package::is_current::order(Direction::Desc))
@@ -30,7 +28,7 @@ pub async fn package_lookup(req: Request<()>) -> Result {
 		Err(err) => return err,
 	};
 
-	if packages.len() == 0 {
+	if packages.is_empty() {
 		return error_respond(404, "Package not found");
 	}
 

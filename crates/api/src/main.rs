@@ -1,4 +1,6 @@
 use crate::utility::api_respond;
+use anyhow::Error;
+use sentry::{init, ClientOptions};
 use serde_json::json;
 use std::{future::Future, pin::Pin};
 use tide::{
@@ -6,8 +8,7 @@ use tide::{
 	utils::After,
 	Next, Request, Response, Result,
 };
-use tokio::io::Error;
-use utility::{create_prisma_client, create_typesense_client};
+use utility::{create_prisma_client, create_typesense_client, handle_error};
 
 mod prisma;
 mod routes;
@@ -22,6 +23,14 @@ mod utility;
 #[warn(clippy::perf)]
 #[tokio::main]
 async fn main() -> Result<()> {
+	let _guard = init((
+		env!("CANISTER_SENTRY_DSN"),
+		ClientOptions {
+			release: Some(env!("VERGEN_BUILD_SEMVER").into()),
+			..Default::default()
+		},
+	));
+
 	create_prisma_client().await;
 	create_typesense_client();
 
@@ -32,7 +41,7 @@ async fn main() -> Result<()> {
 	app.with(response_time);
 	app.with(After(|res: Response| async {
 		if let Some(err) = res.downcast_error::<Error>() {
-			println!("Error: {}", err);
+			handle_error(err);
 			return api_respond(500, json!({}));
 		}
 
@@ -65,7 +74,7 @@ async fn main() -> Result<()> {
 
 	app.at("*").all(routes::not_found);
 	app.listen("0.0.0.0:3000").await?;
-	return Ok(());
+	Ok(())
 }
 
 fn response_time<'a>(
@@ -78,6 +87,6 @@ fn response_time<'a>(
 		let elapsed = start.elapsed().as_millis();
 
 		res.insert_header("X-Response-Time", elapsed.to_string());
-		return Ok(res);
+		Ok(res)
 	})
 }

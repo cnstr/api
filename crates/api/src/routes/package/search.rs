@@ -70,7 +70,7 @@ pub async fn package_search(req: Request<()>) -> Result {
 
 			let limit = match query.limit {
 				Some(limit) => {
-					if limit < 1 || limit > 250 {
+					if !(1..=250).contains(&limit) {
 						return error_respond(
 							400,
 							"Query parameter \'limit\' must be between 1 and 250",
@@ -85,10 +85,7 @@ pub async fn package_search(req: Request<()>) -> Result {
 			(q, page, limit)
 		}
 
-		Err(err) => {
-			println!("Error: {}", err);
-			return error_respond(422, "Malformed query parameters");
-		}
+		Err(_) => return error_respond(422, "Malformed query parameters"),
 	};
 
 	let query = TypesenseQuery {
@@ -116,7 +113,7 @@ pub async fn package_search(req: Request<()>) -> Result {
 			.map(|package| {
 				let package = &package.document;
 				return merge_json(
-					&package,
+					package,
 					json!({
 						"refs": {
 							"meta": format!("{}/jailbreak/package/{}", env!("CANISTER_API_ENDPOINT"), package.package),
@@ -130,7 +127,7 @@ pub async fn package_search(req: Request<()>) -> Result {
 	let next = packages.len().to_u8().unwrap_or(0) == limit;
 	let (prev_page, next_page) = page_links("/jailbreak/package/search", page, next);
 
-	return api_respond(
+	api_respond(
 		200,
 		json!({
 			"refs": {
@@ -140,5 +137,5 @@ pub async fn package_search(req: Request<()>) -> Result {
 			"count": packages.len(),
 			"data": packages,
 		}),
-	);
+	)
 }
