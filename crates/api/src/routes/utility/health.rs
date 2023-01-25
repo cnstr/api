@@ -19,6 +19,7 @@ struct PostgresHealth {
 
 /// Returns the health of the API
 /// Calculated by checking the health of Typesense and Postgres
+/// TODO: Cleanup
 pub async fn health(_req: Request<()>) -> Result {
 	let (typesense_healthy, postgres_healthy) = handle_async(async move {
 		let typesense_healthy = match typesense().get("/health").await {

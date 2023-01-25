@@ -1,8 +1,6 @@
 use crate::{
 	prisma::repository,
-	utility::{
-		api_respond, error_respond, handle_async, handle_error, handle_prisma, merge_json, prisma,
-	},
+	utility::{api_respond, error_respond, handle_error, handle_prisma, merge_json, prisma},
 };
 use prisma_client_rust::Direction;
 use serde::{Deserialize, Serialize};
@@ -45,33 +43,31 @@ pub async fn repository_ranking(req: Request<()>) -> Result {
 		Err(_) => return error_respond(422, "Malformed query parameters"),
 	};
 
-	let repositories = handle_async(async move {
-		return match query.as_str() {
-			"*" => handle_prisma(
-				prisma()
-					.repository()
-					.find_many(vec![repository::is_pruned::equals(false)])
-					.order_by(repository::tier::order(Direction::Asc))
-					.with(repository::origin::fetch())
-					.exec(),
-			),
+	let repositories = match query.as_str() {
+		"*" => handle_prisma(
+			prisma()
+				.repository()
+				.find_many(vec![repository::is_pruned::equals(false)])
+				.order_by(repository::tier::order(Direction::Asc))
+				.with(repository::origin::fetch())
+				.exec(),
+		),
 
-			_ => handle_prisma(
-				prisma()
-					.repository()
-					.find_many(vec![
-						repository::tier::equals(query.parse::<i32>().unwrap_or_else(|err| {
-							handle_error(&err.into());
-							1
-						})),
-						repository::is_pruned::equals(false),
-					])
-					.order_by(repository::tier::order(Direction::Asc))
-					.with(repository::origin::fetch())
-					.exec(),
-			),
-		};
-	});
+		_ => handle_prisma(
+			prisma()
+				.repository()
+				.find_many(vec![
+					repository::tier::equals(query.parse::<i32>().unwrap_or_else(|err| {
+						handle_error(&err.into());
+						1
+					})),
+					repository::is_pruned::equals(false),
+				])
+				.order_by(repository::tier::order(Direction::Asc))
+				.with(repository::origin::fetch())
+				.exec(),
+		),
+	};
 
 	let repositories = match repositories {
 		Ok(repositories) => repositories,
