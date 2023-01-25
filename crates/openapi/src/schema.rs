@@ -21,7 +21,7 @@ pub fn generate_schema(mut options: Schema) -> Value {
 	};
 
 	let schema = translate_schema(&mut options.schema, &mut options.descriptions, &nullables);
-	return json!({ options.schema_name: schema });
+	json!({ options.schema_name: schema })
 }
 
 /// Translates the provided schema into an OpenAPI compliant schema
@@ -84,7 +84,7 @@ fn translate_schema(
 			json!({
 				"type": get_type(value),
 				"example": value,
-				"nullable": nullables.contains(&key),
+				"nullable": nullables.contains(key),
 				"description": match descriptions.get(key) {
 					Some(description) => description,
 					None => panic!("Missing description for {}", key),
@@ -93,10 +93,10 @@ fn translate_schema(
 		);
 	}
 
-	return json!({
+	json!({
 		"type": "object",
 		"properties": openapi_properties,
-	});
+	})
 }
 
 /// Returns the OpenAPI type for the provided value
@@ -125,5 +125,5 @@ fn get_type(value: &mut Value) -> &'static str {
 		return "boolean";
 	}
 
-	return "unknown";
+	"unknown"
 }

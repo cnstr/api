@@ -88,7 +88,7 @@ fn load_openapi(metadata: Metadata) {
 	let api = generate_openapi(&metadata);
 
 	let yaml = match to_string_yaml(&api) {
-		Ok(yaml) => yaml.replace("\n", "\\n"),
+		Ok(yaml) => yaml.replace('\n', "\\n"),
 		Err(e) => panic!("Failed to serialize OpenAPI YAML ({e})"),
 	};
 
@@ -175,16 +175,16 @@ fn load_database_urls(postgres: Conditional, typesense: Conditional) {
 
 	let typesense_host = match cfg!(debug_assertions) {
 		true => {
-			let binding = typesense.debug.split("@").collect::<Vec<&str>>();
+			let binding = typesense.debug.split('@').collect::<Vec<&str>>();
 			binding
 		}
 		false => {
-			let binding = typesense.release.split("@").collect::<Vec<&str>>();
+			let binding = typesense.release.split('@').collect::<Vec<&str>>();
 			binding
 		}
 	};
 
-	let key = match typesense_host.get(0) {
+	let key = match typesense_host.first() {
 		Some(key) => key,
 		None => panic!("Failed to parse Typesense key"),
 	};

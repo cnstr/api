@@ -18,7 +18,7 @@ mod schema;
 #[warn(clippy::complexity)]
 #[warn(clippy::perf)]
 
-/// Metadatata needed to generate OpenAPI
+/// Metadatata needed to generate `OpenAPI`
 pub struct Metadata {
 	pub name: String,
 	pub version: String,
@@ -143,8 +143,7 @@ fn generate_schemas(cwd: &str) -> Value {
 
 			let contents = file;
 			let value: Schema = from_str(&contents).unwrap();
-			let schema = generate_schema(value);
-			return schema;
+			generate_schema(value)
 		})
 		.collect::<Vec<Value>>();
 
@@ -202,19 +201,20 @@ fn generate_routes(cwd: &str) -> Value {
 				}
 			};
 
-			let contents = file;
-			return contents;
+			file
 		})
 		.collect::<Vec<String>>()
 		.join("\n");
 
-	match from_str(&routes) {
+	let value = match from_str(&routes) {
 		Ok(combined) => {
 			let value: Value = combined;
-			return value;
+			value
 		}
 		Err(err) => {
 			panic!("Failed to parse routes ({})", err)
 		}
 	};
+
+	value
 }
