@@ -102,6 +102,7 @@ fn load_openapi(metadata: Metadata) {
 	set_env("CANISTER_OPENAPI_JSON", &json);
 }
 
+/// Loads the Sentry DSN from the manifest
 fn load_sentry_dsn(dsn: Conditional) {
 	let sentry_dsn = match cfg!(debug_assertions) {
 		true => &dsn.debug,

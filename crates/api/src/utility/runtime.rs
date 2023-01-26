@@ -61,6 +61,7 @@ pub async fn handle_typesense<Q: Serialize, R: DeserializeOwned>(
 	Ok(response)
 }
 
+/// Takes an error and reports it to Sentry
 pub fn handle_error(err: &Error) {
 	let uuid = capture_anyhow(err);
 	println!("--------------------------");
