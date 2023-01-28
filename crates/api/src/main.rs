@@ -27,6 +27,7 @@ async fn main() -> Result<()> {
 		env!("CANISTER_SENTRY_DSN"),
 		ClientOptions {
 			release: Some(env!("VERGEN_BUILD_SEMVER").into()),
+			trace_sample_rate: 0.5,
 			..Default::default()
 		},
 	));
