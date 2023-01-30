@@ -30,7 +30,7 @@ spec:
       - name: harbor-bot
       containers:
       - name: api
-        image: tale.me/canister/api:2.4.6
+        image: tale.me/canister/api:2.4.7
         ports:
         - name: api
           containerPort: 3000
