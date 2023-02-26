@@ -91,7 +91,7 @@ pub async fn package_search(req: Request<()>) -> Result {
 	let query = TypesenseQuery {
 		q: query,
 		query_by: "name,description,author,maintainer,section".to_string(),
-		sort_by: "repositoryTier:asc".to_string(),
+		sort_by: "_text_match:desc".to_string(),
 		page: page.to_string(),
 		per_page: limit.to_string(),
 	};
@@ -107,9 +107,9 @@ pub async fn package_search(req: Request<()>) -> Result {
 		Err(err) => return err,
 	};
 
-	let packages = response
+	let mut packages = response
 			.hits
-			.iter()
+            .iter()
 			.map(|package| {
 				let package = &package.document;
 				return merge_json(
@@ -123,6 +123,21 @@ pub async fn package_search(req: Request<()>) -> Result {
 				);
 			})
 			.collect::<Vec<Value>>();
+
+    if packages.len() > 25 {
+        packages.sort_by(|a, b| {
+            let a = a["repositoryTier"].as_u64().unwrap_or(0);
+            let b = b["repositoryTier"].as_u64().unwrap_or(0);
+
+            if a < 4 && b >= 4 {
+                return std::cmp::Ordering::Less;
+            } else if a >= 4 && b < 4 {
+                return std::cmp::Ordering::Greater;
+            }
+
+            return std::cmp::Ordering::Equal;
+        });
+    }
 
 	let next = packages.len().to_u8().unwrap_or(0) == limit;
 	let (prev_page, next_page) = page_links("/jailbreak/package/search", page, next);
