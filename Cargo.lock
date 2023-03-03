@@ -111,7 +111,7 @@ dependencies = [
 
 [[package]]
 name = "api"
-version = "2.4.8"
+version = "2.4.9"
 dependencies = [
  "anyhow",
  "chrono",
@@ -944,7 +944,7 @@ dependencies = [
 
 [[package]]
 name = "deploy"
-version = "2.4.8"
+version = "2.4.9"
 dependencies = [
  "manifest",
  "openapi",
