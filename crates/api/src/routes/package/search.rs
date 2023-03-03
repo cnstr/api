@@ -124,20 +124,20 @@ pub async fn package_search(req: Request<()>) -> Result {
 			})
 			.collect::<Vec<Value>>();
 
-    if packages.len() > 25 {
-        packages.sort_by(|a, b| {
-            let a = a["repositoryTier"].as_u64().unwrap_or(0);
-            let b = b["repositoryTier"].as_u64().unwrap_or(0);
+	if packages.len() > 25 {
+		packages.sort_by(|a, b| {
+			let a = a["repositoryTier"].as_u64().unwrap_or(0);
+			let b = b["repositoryTier"].as_u64().unwrap_or(0);
 
-            if a < 4 && b >= 4 {
-                return std::cmp::Ordering::Less;
-            } else if a >= 4 && b < 4 {
-                return std::cmp::Ordering::Greater;
-            }
+			if a < 4 && b >= 4 {
+				return std::cmp::Ordering::Less;
+			} else if a >= 4 && b < 4 {
+				return std::cmp::Ordering::Greater;
+			}
 
-            return std::cmp::Ordering::Equal;
-        });
-    }
+			return std::cmp::Ordering::Equal;
+		});
+	}
 
 	let next = packages.len().to_u8().unwrap_or(0) == limit;
 	let (prev_page, next_page) = page_links("/jailbreak/package/search", page, next);
@@ -153,4 +153,23 @@ pub async fn package_search(req: Request<()>) -> Result {
 			"data": packages,
 		}),
 	)
+}
+
+pub async fn package_search_healthy() -> bool {
+	match handle_typesense::<TypesenseQuery, TypesenseResponse>(
+		TypesenseQuery {
+			q: "newterm".to_string(),
+			query_by: "name,description,author,maintainer,section".to_string(),
+			sort_by: "_text_match:desc".to_string(),
+			page: "1".to_string(),
+			per_page: "100".to_string(),
+		},
+		"/collections/packages/documents/search",
+		Method::Get,
+	)
+	.await
+	{
+		Ok(_) => true,
+		Err(_) => false,
+	}
 }

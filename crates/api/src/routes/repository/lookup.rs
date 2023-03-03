@@ -47,3 +47,18 @@ pub async fn repository_lookup(req: Request<()>) -> Result {
 		None => error_respond(404, "Repository not found"),
 	}
 }
+
+pub async fn repository_lookup_healthy() -> bool {
+	match handle_prisma(
+		prisma()
+			.repository()
+			.find_first(vec![
+				repository::slug::equals("chariz".to_string()),
+				repository::is_pruned::equals(false),
+			])
+			.exec(),
+	) {
+		Ok(_) => true,
+		Err(_) => false,
+	}
+}

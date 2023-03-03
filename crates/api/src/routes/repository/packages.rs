@@ -63,3 +63,33 @@ pub async fn repository_packages(req: Request<()>) -> Result {
 		}),
 	)
 }
+
+pub async fn repository_packages_healthy() -> bool {
+	match handle_prisma(
+		prisma()
+			.repository()
+			.find_first(vec![
+				repository::slug::equals("chariz".to_string()),
+				repository::is_pruned::equals(false),
+			])
+			.exec(),
+	) {
+		Ok(repository) => match repository {
+			Some(repository) => {
+				match handle_prisma(
+					prisma()
+						.package()
+						.find_many(vec![package::repository_slug::equals(repository.slug)])
+						.exec(),
+				) {
+					Ok(_) => true,
+					Err(_) => false,
+				}
+			}
+
+			None => false,
+		},
+
+		Err(_) => false,
+	}
+}

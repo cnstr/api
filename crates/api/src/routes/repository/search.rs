@@ -137,3 +137,22 @@ pub async fn repository_search(req: Request<()>) -> Result {
 		}),
 	)
 }
+
+pub async fn repository_search_healthy() -> bool {
+	match handle_typesense::<TypesenseQuery, TypesenseResponse>(
+		TypesenseQuery {
+			q: "chariz".to_string(),
+			query_by: "slug,name,description,aliases".to_string(),
+			sort_by: "tier:asc".to_string(),
+			page: "1".to_string(),
+			per_page: "100".to_string(),
+		},
+		"/collections/repositories/documents/search",
+		Method::Get,
+	)
+	.await
+	{
+		Ok(_) => true,
+		Err(_) => false,
+	}
+}

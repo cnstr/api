@@ -18,23 +18,11 @@ struct Repositories {
 static REPOSITORIES: OnceCell<Vec<String>> = OnceCell::new();
 
 pub async fn repository_safety(req: Request<()>) -> Result {
-	if REPOSITORIES.get().is_none() {
-		let raw_repositories = env!("CANISTER_PIRACY_URLS");
-		let repositories = match from_str(raw_repositories) {
-			Ok(repositories) => {
-				let data: Repositories = repositories;
-				data.repositories
-			}
-			Err(err) => {
-				handle_error(&err.into());
-				return error_respond(500, "Unable to fetch repository list");
-			}
-		};
-
-		match REPOSITORIES.set(repositories) {
-			Ok(_) => {}
-			Err(_) => println!("Repository list already set"),
-		};
+	match set_repositories() {
+		true => {}
+		false => {
+			return error_respond(500, "Unable to fetch repository list");
+		}
 	}
 
 	let uris = match req.query::<Query>() {
@@ -91,4 +79,60 @@ pub async fn repository_safety(req: Request<()>) -> Result {
 			"data": repositories,
 		}),
 	)
+}
+
+fn set_repositories() -> bool {
+	if REPOSITORIES.get().is_none() {
+		let raw_repositories = env!("CANISTER_PIRACY_URLS");
+		let repositories = match from_str(raw_repositories) {
+			Ok(repositories) => {
+				let data: Repositories = repositories;
+				data.repositories
+			}
+			Err(err) => {
+				handle_error(&err.into());
+				return false;
+			}
+		};
+
+		match REPOSITORIES.set(repositories) {
+			Ok(_) => {}
+			Err(_) => println!("Repository list already set"),
+		};
+	}
+
+	true
+}
+
+pub async fn repository_safety_healthy() -> bool {
+    let result = set_repositories();
+    if result == false {
+        return false;
+    }
+
+	let test_safe = "https://repo.chariz.com";
+	let test_unsafe = "https://repo.hackyouriphone.org";
+
+	let repositories = match REPOSITORIES.get() {
+		Some(repositories) => repositories,
+		None => {
+			println!("Failed to get repository list (REPOSITORIES.get() returned None)");
+			return false;
+		}
+	};
+
+	let mut safe_pass = true;
+	let mut unsafe_pass = false;
+
+	for unsafe_repository in repositories.iter() {
+		if test_safe.contains(unsafe_repository) {
+			safe_pass = false;
+		}
+
+		if test_unsafe.contains(unsafe_repository) {
+			unsafe_pass = true;
+		}
+	}
+
+	safe_pass && unsafe_pass
 }

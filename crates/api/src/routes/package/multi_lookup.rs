@@ -66,3 +66,24 @@ pub async fn package_multi_lookup(req: Request<()>) -> Result {
 		}),
 	);
 }
+
+pub async fn package_multi_lookup_healthy() -> bool {
+	match handle_prisma(
+		prisma()
+			.package()
+			.find_many(vec![
+				package::package::in_vec(vec![
+					"ws.hbang.common".to_string(),
+					"me.renai.lyricify".to_string(),
+				]),
+				package::is_current::equals(true),
+				package::is_pruned::equals(false),
+			])
+			.order_by(package::repository_tier::order(Direction::Asc))
+			.with(package::repository::fetch())
+			.exec(),
+	) {
+		Ok(_) => true,
+		Err(_) => false,
+	}
+}
