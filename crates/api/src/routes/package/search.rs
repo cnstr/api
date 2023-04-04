@@ -40,10 +40,10 @@ pub async fn package_search(req: Request<()>) -> Result {
 		Ok(query) => {
 			let q = match query.q {
 				Some(q) => {
-					if q.len() < 3 {
+					if q.len() < 2 {
 						return error_respond(
 							400,
-							"Query parameter \'q\' must be at least 3 characters",
+							"Query parameter \'q\' must be at least 2 characters",
 						);
 					}
 

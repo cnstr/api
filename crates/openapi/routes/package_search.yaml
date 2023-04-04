@@ -14,7 +14,7 @@
         schema:
           type: string
           format: query
-          minLength: 3
+          minLength: 2
       - name: limit
         in: query
         description: Search response limit
