@@ -14,6 +14,7 @@ datasource db {
 model Repository {
   slug           String    @id @unique
   aliases        String[]  @default([])
+  isBootstrap    Boolean   @default(false)
   tier           Int
   packageCount   Int
   sections       String[]  @default([])
