@@ -1,3 +1,5 @@
+use std::env;
+
 use crate::utility::http_respond;
 use chrono::{Datelike, Utc};
 use serde_json::json;
@@ -35,6 +37,11 @@ pub async fn index(req: Request<()>) -> Result {
 		None => "Unknown",
 	};
 
+	let pod_name = match env::var("POD_NAME") {
+		Ok(pod_name) => pod_name,
+		Err(_) => "unknown".to_string(),
+	};
+
 	http_respond(
 		200,
 		json!({
@@ -43,7 +50,8 @@ pub async fn index(req: Request<()>) -> Result {
 				"version": env!("VERGEN_BUILD_SEMVER"),
 				"build": build,
 				"platform": platform,
-				"runtime": env!("CANISTER_K8S_VERSION")
+				"runtime": env!("CANISTER_K8S_VERSION"),
+				"server_origin": pod_name,
 			},
 
 			"reference": {

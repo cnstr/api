@@ -35,3 +35,9 @@ spec:
         ports:
         - name: api
           containerPort: 3000
+        env:
+          name: POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+

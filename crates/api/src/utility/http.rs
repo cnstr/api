@@ -1,3 +1,5 @@
+use std::env;
+
 use super::{handle_error, merge_json};
 use anyhow::Error;
 use chrono::Utc;
@@ -31,8 +33,14 @@ fn respond(status_code: u16, mut body: Value, should_merge: bool) -> Result {
 		}
 	};
 
+	let pod_name = match env::var("POD_NAME") {
+		Ok(pod_name) => pod_name,
+		Err(_) => "unknown".to_string(),
+	};
+
 	Ok(Response::builder(status_code)
 		.header("Content-Type", "application/json")
+		.header("X-Server-Origin", pod_name)
 		.body(body)
 		.build())
 }
