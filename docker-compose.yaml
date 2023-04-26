@@ -1,7 +1,7 @@
 version: '3'
 services:
   database:
-    image: postgres:14-alpine
+    image: postgres:15-alpine
     container_name: canister-db
     ports:
       - 5432:5432
@@ -12,7 +12,7 @@ services:
       - db:/var/lib/postgresql/data
 
   search:
-    image: typesense/typesense:0.23.0
+    image: typesense/typesense:0.25.0.rc25
     container_name: canister-search
     ports:
       - 8108:8108
@@ -21,8 +21,8 @@ services:
       TYPESENSE_DATA_DIR: /data
       TYPESENSE_ENABLE_CORS: "true"
     volumes:
-      - search:/data
+      - typesense:/data
 
 volumes:
   db:
-  search:
+  typesense:
