@@ -4,6 +4,7 @@ use lazy_static::lazy_static;
 use prisma_client_rust::QueryError;
 use sentry::integrations::anyhow::capture_anyhow;
 use serde::{de::DeserializeOwned, Serialize};
+use serde_json::{to_string_pretty, Value};
 use std::future::Future;
 use surf::http::Method;
 use tide::Result as HttpResult;
@@ -50,7 +51,7 @@ pub async fn handle_typesense<Q: Serialize, R: DeserializeOwned>(
 		}
 	};
 
-	let response = match typesense().recv_json::<R>(request).await {
+	let mut response = match request.send().await {
 		Ok(response) => response,
 		Err(err) => {
 			handle_error(&err.into_inner());
@@ -58,7 +59,35 @@ pub async fn handle_typesense<Q: Serialize, R: DeserializeOwned>(
 		}
 	};
 
-	Ok(response)
+	match response.status().is_success() {
+		true => (),
+		false => {
+			let status = response.status();
+			let body = response
+				.body_string()
+				.await
+				.unwrap_or_else(|_| "".to_string());
+			return Err(error_respond(status.into(), &body));
+		}
+	}
+
+	let response = match response.body_json::<Value>().await {
+		Ok(response) => response,
+		Err(err) => {
+			handle_error(&err.into_inner());
+			return Err(error_respond(500, "Failed to execute Typesense query"));
+		}
+	};
+
+	let typed: R = match serde_json::from_value(response) {
+		Ok(typed) => typed,
+		Err(err) => {
+			handle_error(&err.into());
+			return Err(error_respond(500, "Failed to parse Typesense response"));
+		}
+	};
+
+	Ok(typed)
 }
 
 /// Takes an error and reports it to Sentry
