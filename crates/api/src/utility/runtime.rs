@@ -67,5 +67,8 @@ pub fn handle_error(err: &Error) {
 	println!("--------------------------");
 	println!("Reporting an error (Sentry UUID: {})", uuid);
 	println!("Error: {}", err);
+	if cfg!(debug_assertions) {
+		println!("{:?}", err);
+	}
 	println!("--------------------------");
 }
