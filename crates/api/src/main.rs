@@ -73,6 +73,12 @@ async fn main() -> Result<()> {
 		nest
 	});
 
+	app.at("/jailbreak/download").nest({
+		let mut nest = tide::new();
+		nest.at("/ingest").post(routes::download_ingest);
+		nest
+	});
+
 	app.at("*").all(routes::not_found);
 	app.listen("0.0.0.0:3000").await?;
 	Ok(())

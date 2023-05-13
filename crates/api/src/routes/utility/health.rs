@@ -26,8 +26,9 @@ pub async fn health(_req: Request<()>) -> Result {
 	let (service_healthy, service_data) = service_healthy().await;
 	let (package_healthy, package_data) = package_healthy().await;
 	let (repository_healthy, repository_data) = repository_healthy().await;
+	let (download_healthy, download_data) = download_healthy().await;
 
-	let healthy = service_healthy && package_healthy && repository_healthy;
+	let healthy = service_healthy && package_healthy && repository_healthy && download_healthy;
 
 	let data = json!({
 		"healthy": healthy,
@@ -35,6 +36,7 @@ pub async fn health(_req: Request<()>) -> Result {
 		"route_data": {
 			"package": package_data,
 			"repository": repository_data,
+			"download": download_data,
 		},
 	});
 
@@ -124,6 +126,18 @@ async fn repository_healthy() -> (bool, Value) {
 		"packages_healthy": packages_healthy,
 		"safety_healthy": safety_healthy,
 		"search_healthy": search_healthy,
+	});
+
+	(healthy, value)
+}
+
+async fn download_healthy() -> (bool, Value) {
+	let ingest_healthy = routes::download_ingest_healthy().await;
+
+	let healthy = ingest_healthy;
+	let value = json!({
+		"healthy": healthy,
+		"ingest_healthy": ingest_healthy,
 	});
 
 	(healthy, value)
