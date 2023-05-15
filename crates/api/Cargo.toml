@@ -6,16 +6,16 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-anyhow = "1.0.68"
+anyhow = "1.0.71"
 axum = "0.6.18"
 chrono = "0.4.24"
-once_cell = "1.17.0"
+once_cell = "1.17.1"
 prisma-client-rust = { git = "https://github.com/Brendonovich/prisma-client-rust", tag = "0.6.3", default-features = false, features = ["postgresql"] }
 reqwest = { version = "0.11.13", features = ["json"] }
-sentry = { version = "0.29.1", features = ["anyhow"] }
-serde = { version = "1.0.152", features = ["derive", "std"] }
+sentry = { version = "0.31.0", features = ["anyhow"] }
+serde = { version = "1.0.152", features = ["derive"] }
 serde_json = { version = "1.0.91", features = ["preserve_order"] }
-surf = { version = "2.3.2", default-features = false, features = ["h1-client-rustls"] }
+surf = { version = "2.3.2", features = ["h1-client-rustls"] }
 tokio = "1.23.0"
 tower-http = { version = "0.4.0", features = ["cors"] }
 url = "2.3.1"
