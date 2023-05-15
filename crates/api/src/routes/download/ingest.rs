@@ -1,14 +1,18 @@
 use crate::{
+	helpers::responses,
 	prisma::package,
-	utility::{api_respond, error_respond, handle_async, handle_prisma, parse_user_agent, prisma},
+	utility::{parse_user_agent, prisma},
+};
+use axum::{
+	http::{HeaderMap, HeaderValue, StatusCode},
+	response::IntoResponse,
+	Json,
 };
 use chrono::Utc;
 use once_cell::sync::OnceCell;
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
-use serde_json::{json, to_value};
-use surf::http::headers::HeaderValues;
-use tide::{Request, Result};
+use serde_json::to_value;
 
 #[derive(Debug, Serialize, Deserialize)]
 struct BadRequest {
@@ -57,29 +61,35 @@ struct DownloadEvent {
 
 static HTTP: OnceCell<Client> = OnceCell::new();
 
-fn try_get_header(header: Option<&HeaderValues>) -> String {
+fn try_get_header(header: Option<&HeaderValue>) -> String {
 	match header {
-		Some(header) => header.as_str().to_string(),
+		Some(header) => match header.to_str() {
+			Ok(header) => header.to_string(),
+			Err(_) => "unknown".to_string(),
+		},
 		None => "unknown".to_string(),
 	}
 }
 
-pub async fn download_ingest(mut req: Request<()>) -> Result {
-	let body = match req.body_json::<Payload>().await {
-		Ok(body) => body,
-		Err(_) => return error_respond(400, "Invalid request body"),
+pub async fn ingest(headers: HeaderMap, body: Option<Json<Payload>>) -> impl IntoResponse {
+	let body = match body {
+		Some(body) => body,
+		None => return responses::error(StatusCode::BAD_REQUEST, "Invalid request body"),
 	};
 
-	let user_agent = match req.header("Sec-CH-UA") {
-		Some(user_agent) => parse_user_agent(user_agent.as_str()),
-		None => return error_respond(400, "Missing user agent"),
+	let user_agent = match headers.get("Sec-CH-UA") {
+		Some(user_agent) => match user_agent.to_str() {
+			Ok(user_agent) => parse_user_agent(user_agent),
+			Err(_) => return responses::error(StatusCode::BAD_REQUEST, "Invalid user agent"),
+		},
+		None => return responses::error(StatusCode::BAD_REQUEST, "Missing user agent"),
 	};
 
-	let architecture = try_get_header(req.header("Sec-CH-UA-Arch"));
-	let bitness = try_get_header(req.header("Sec-CH-UA-Bitness"));
-	let model = try_get_header(req.header("Sec-CH-UA-Model"));
-	let platform = try_get_header(req.header("Sec-CH-UA-Platform"));
-	let platform_version = try_get_header(req.header("Sec-CH-UA-Platform-Version"));
+	let architecture = try_get_header(headers.get("Sec-CH-UA-Arch"));
+	let bitness = try_get_header(headers.get("Sec-CH-UA-Bitness"));
+	let model = try_get_header(headers.get("Sec-CH-UA-Model"));
+	let platform = try_get_header(headers.get("Sec-CH-UA-Platform"));
+	let platform_version = try_get_header(headers.get("Sec-CH-UA-Platform-Version"));
 
 	let (client, client_version) = match user_agent.iter().find(|brand| brand.r#type == "client") {
 		Some(brand) => (brand.name.clone(), brand.version.clone()),
@@ -124,17 +134,17 @@ pub async fn download_ingest(mut req: Request<()>) -> Result {
 		None => "none".to_string(),
 	};
 
-	let database_uuid = match handle_prisma(
-		prisma()
-			.package()
-			.find_first(vec![
-				package::package::equals(package_id.to_string()),
-				package::version::equals(package_version.to_string()),
-				package::is_pruned::equals(false),
-			])
-			.with(package::repository::fetch())
-			.exec(),
-	) {
+	let database_uuid = match prisma()
+		.package()
+		.find_first(vec![
+			package::package::equals(package_id.to_string()),
+			package::version::equals(package_version.to_string()),
+			package::is_pruned::equals(false),
+		])
+		.with(package::repository::fetch())
+		.exec()
+		.await
+	{
 		Ok(package_search) => package_search.map(|package_search| package_search.uuid),
 		Err(_) => None,
 	};
@@ -167,7 +177,10 @@ pub async fn download_ingest(mut req: Request<()>) -> Result {
 	let return_value = match to_value(event) {
 		Ok(return_value) => return_value,
 		Err(_) => {
-			return error_respond(500, "Failed to serialize event");
+			return responses::error(
+				StatusCode::INTERNAL_SERVER_ERROR,
+				"Failed to serialize event",
+			);
 		}
 	};
 
@@ -178,35 +191,34 @@ pub async fn download_ingest(mut req: Request<()>) -> Result {
 	}) {
 		Ok(http_client) => http_client,
 		Err(_) => {
-			return error_respond(500, "Failed to initialize HTTP client");
+			return responses::error(
+				StatusCode::INTERNAL_SERVER_ERROR,
+				"Failed to initialize HTTP client",
+			);
 		}
 	};
 
 	let cloned_payload = return_value.clone();
-	let response = handle_async(async move {
-		http_client
-			.post("http://localhost:8687/")
-			.json(&cloned_payload)
-			.send()
-			.await
-	});
+	let response = http_client
+		.post("http://localhost:8687/")
+		.json(&cloned_payload)
+		.send()
+		.await;
 
 	match response {
 		Ok(_) => (),
 		Err(_) => {
-			return error_respond(500, "Failed to send event to ingest");
+			return responses::error(
+				StatusCode::INTERNAL_SERVER_ERROR,
+				"Failed to send event to ingest",
+			);
 		}
 	}
 
-	api_respond(
-		200,
-		json!({
-			"event": return_value,
-		}),
-	)
+	responses::data(StatusCode::OK, return_value)
 }
 
 // TODO: Implement
-pub async fn download_ingest_healthy() -> bool {
+pub async fn ingest_healthy() -> bool {
 	true
 }
