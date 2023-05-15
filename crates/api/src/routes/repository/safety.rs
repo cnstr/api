@@ -1,11 +1,11 @@
-use crate::utility::{api_respond, error_respond, handle_error};
+use crate::{helpers::responses, utility::handle_error};
+use axum::{extract::Query, http::StatusCode, response::IntoResponse};
 use once_cell::sync::OnceCell;
 use serde::{Deserialize, Serialize};
 use serde_json::{from_str, json};
-use tide::{Request, Result};
 
-#[derive(Serialize, Deserialize)]
-struct Query {
+#[derive(Deserialize)]
+pub struct SafetyParams {
 	uris: Option<String>,
 }
 
@@ -15,36 +15,29 @@ struct Repositories {
 	repositories: Vec<String>,
 }
 
+// TODO: Move into method body and implement new system like in goblar
 static REPOSITORIES: OnceCell<Vec<String>> = OnceCell::new();
 
-pub async fn repository_safety(req: Request<()>) -> Result {
-	match set_repositories() {
-		true => {}
-		false => {
-			return error_respond(500, "Unable to fetch repository list");
-		}
+pub async fn safety(query: Query<SafetyParams>) -> impl IntoResponse {
+	if !set_repositories() {
+		return responses::error(
+			StatusCode::INTERNAL_SERVER_ERROR,
+			"Unable to fetch repository list",
+		);
 	}
 
-	let uris = match req.query::<Query>() {
-		Ok(query) => {
-			let query = match query.uris {
-				Some(uris) => {
-					let uris = uris
-						.to_ascii_lowercase()
-						.split(',')
-						.map(|uri| uri.to_string())
-						.collect::<Vec<String>>();
-					uris
-				}
-				None => return error_respond(400, "Missing query parameter: \'uris\'"),
-			};
-
-			query
+	let uris = match &query.uris {
+		Some(uris) => {
+			let uris = uris
+				.to_ascii_lowercase()
+				.split(',')
+				.map(|uri| uri.to_string())
+				.collect::<Vec<String>>();
+			uris
 		}
 
-		Err(err) => {
-			println!("Error: {}", err);
-			return error_respond(422, "Malformed query parameters");
+		None => {
+			return responses::error(StatusCode::BAD_REQUEST, "Missing query parameter: \'uris\'")
 		}
 	};
 
@@ -52,8 +45,12 @@ pub async fn repository_safety(req: Request<()>) -> Result {
 	let unsafe_repositories = match REPOSITORIES.get() {
 		Some(repositories) => repositories,
 		None => {
+			// TODO: Report Error
 			println!("Failed to get repository list (REPOSITORIES.get() returned None)");
-			return error_respond(500, "Unable to fetch repository list");
+			return responses::error(
+				StatusCode::INTERNAL_SERVER_ERROR,
+				"Failed to get repository list",
+			);
 		}
 	};
 
@@ -72,13 +69,7 @@ pub async fn repository_safety(req: Request<()>) -> Result {
 		}));
 	}
 
-	api_respond(
-		200,
-		json!({
-			"count": repositories.len(),
-			"data": repositories,
-		}),
-	)
+	responses::data_with_count(StatusCode::OK, &repositories, repositories.len())
 }
 
 fn set_repositories() -> bool {
@@ -104,11 +95,11 @@ fn set_repositories() -> bool {
 	true
 }
 
-pub async fn repository_safety_healthy() -> bool {
-    let result = set_repositories();
-    if result == false {
-        return false;
-    }
+pub async fn safety_healthy() -> bool {
+	let result = set_repositories();
+	if result == false {
+		return false;
+	}
 
 	let test_safe = "https://repo.chariz.com";
 	let test_unsafe = "https://repo.hackyouriphone.org";

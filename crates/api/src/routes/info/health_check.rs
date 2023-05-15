@@ -89,9 +89,9 @@ async fn service_healthy() -> (bool, Value) {
 }
 
 async fn package_healthy() -> (bool, Value) {
-	let lookup_healthy = routes::package_lookup_healthy().await;
-	let multi_lookup_healthy = routes::package_multi_lookup_healthy().await;
-	let search_healthy = routes::package_search_healthy().await;
+	let lookup_healthy = routes::package::lookup_healthy().await;
+	let multi_lookup_healthy = routes::package::multi_lookup_healthy().await;
+	let search_healthy = routes::package::search_healthy().await;
 
 	let healthy = lookup_healthy && multi_lookup_healthy && search_healthy;
 	let value = json!({
@@ -105,10 +105,10 @@ async fn package_healthy() -> (bool, Value) {
 }
 
 async fn repository_healthy() -> (bool, Value) {
-	let lookup_healthy = routes::repository_lookup_healthy().await;
-	let packages_healthy = routes::repository_packages_healthy().await;
-	let safety_healthy = routes::repository_safety_healthy().await;
-	let search_healthy = routes::repository_search_healthy().await;
+	let lookup_healthy = routes::repository::lookup_healthy().await;
+	let packages_healthy = routes::repository::packages_healthy().await;
+	let safety_healthy = routes::repository::safety_healthy().await;
+	let search_healthy = routes::repository::search_healthy().await;
 
 	let healthy = lookup_healthy && packages_healthy && safety_healthy && search_healthy;
 	let value = json!({

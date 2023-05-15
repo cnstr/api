@@ -1,15 +1,16 @@
 use crate::{
+	helpers::responses,
 	prisma::package,
-	utility::{api_respond, error_respond, handle_typesense, merge_json, page_links},
+	utility::{handle_typesense, merge_json, page_links},
 };
+use axum::{extract::Query, http::StatusCode, response::IntoResponse};
 use prisma_client_rust::bigdecimal::ToPrimitive;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use surf::http::Method;
-use tide::{Request, Result};
 
-#[derive(Serialize, Deserialize)]
-struct Query {
+#[derive(Deserialize)]
+pub struct SearchParams {
 	q: Option<String>,
 	limit: Option<u8>,
 	page: Option<u8>,
@@ -35,61 +36,56 @@ struct Document {
 	document: package::Data,
 }
 
-pub async fn package_search(req: Request<()>) -> Result {
-	let (query, page, limit) = match req.query::<Query>() {
-		Ok(query) => {
-			let q = match query.q {
-				Some(q) => {
-					if q.len() < 2 {
-						return error_respond(
-							400,
-							"Query parameter \'q\' must be at least 2 characters",
-						);
-					}
+pub async fn search(query: Query<SearchParams>) -> impl IntoResponse {
+	let q = match &query.q {
+		Some(q) => {
+			if q.len() < 2 {
+				return responses::error(
+					StatusCode::BAD_REQUEST,
+					"Query parameter \'q\' must be at least 2 characters",
+				);
+			}
 
-					q
-				}
-				None => {
-					return error_respond(400, "Missing query parameter: \'q\'");
-				}
-			};
-
-			let page = match query.page {
-				Some(page) => {
-					if page < 1 {
-						return error_respond(
-							400,
-							"Query parameter \'page\' must be greater than 0",
-						);
-					}
-
-					page
-				}
-				None => 1,
-			};
-
-			let limit = match query.limit {
-				Some(limit) => {
-					if !(1..=250).contains(&limit) {
-						return error_respond(
-							400,
-							"Query parameter \'limit\' must be between 1 and 250",
-						);
-					}
-
-					limit
-				}
-				None => 100,
-			};
-
-			(q, page, limit)
+			q
 		}
 
-		Err(_) => return error_respond(422, "Malformed query parameters"),
+		None => {
+			return responses::error(StatusCode::BAD_REQUEST, "Missing query parameter: \'q\'");
+		}
+	};
+
+	let page = match query.page {
+		Some(page) => {
+			if page < 1 {
+				return responses::error(
+					StatusCode::BAD_REQUEST,
+					"Query parameter \'page\' must be greater than 0",
+				);
+			}
+
+			page
+		}
+
+		None => 1,
+	};
+
+	let limit = match query.limit {
+		Some(limit) => {
+			if !(1..=250).contains(&limit) {
+				return responses::error(
+					StatusCode::BAD_REQUEST,
+					"Query parameter \'limit\' must be between 1 and 250",
+				);
+			}
+
+			limit
+		}
+
+		None => 100,
 	};
 
 	let query = TypesenseQuery {
-		q: query,
+		q: q.to_string(),
 		query_by: "name,description,author,maintainer,section".to_string(),
 		sort_by: "_text_match:desc".to_string(),
 		page: page.to_string(),
@@ -104,7 +100,13 @@ pub async fn package_search(req: Request<()>) -> Result {
 	.await
 	{
 		Ok(data) => data,
-		Err(err) => return err,
+		Err(err) => {
+			// TODO: Report Error
+			return responses::error(
+				StatusCode::INTERNAL_SERVER_ERROR,
+				"Failed to query internal search engine",
+			);
+		}
 	};
 
 	let mut packages = response
@@ -142,20 +144,18 @@ pub async fn package_search(req: Request<()>) -> Result {
 	let next = packages.len().to_u8().unwrap_or(0) == limit;
 	let (prev_page, next_page) = page_links("/jailbreak/package/search", page, next);
 
-	api_respond(
-		200,
+	responses::data_with_count_and_refs(
+		StatusCode::OK,
+		&packages,
+		packages.len(),
 		json!({
-			"refs": {
-				"nextPage": next_page,
-				"previousPage": prev_page,
-			},
-			"count": packages.len(),
-			"data": packages,
+			"nextPage": next_page,
+			"previousPage": prev_page,
 		}),
 	)
 }
 
-pub async fn package_search_healthy() -> bool {
+pub async fn search_healthy() -> bool {
 	match handle_typesense::<TypesenseQuery, TypesenseResponse>(
 		TypesenseQuery {
 			q: "newterm".to_string(),

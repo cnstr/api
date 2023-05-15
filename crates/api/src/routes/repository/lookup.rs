@@ -1,28 +1,30 @@
 use crate::{
+	helpers::responses,
 	prisma::repository,
-	utility::{api_respond, error_respond, handle_prisma, merge_json, prisma},
+	utility::{merge_json, prisma},
 };
+use axum::{extract::Path, http::StatusCode, response::IntoResponse};
 use serde_json::json;
-use tide::{Request, Result};
 
-pub async fn repository_lookup(req: Request<()>) -> Result {
-	let query = match req.param("repository") {
-		Ok(query) => query.to_string(),
-		Err(_) => return error_respond(400, "Missing URL parameter: \':repository\'"),
-	};
-
-	let repository = match handle_prisma(
-		prisma()
-			.repository()
-			.find_first(vec![
-				repository::slug::equals(query),
-				repository::is_pruned::equals(false),
-			])
-			.with(repository::origin::fetch())
-			.exec(),
-	) {
+pub async fn lookup(respository: Path<String>) -> impl IntoResponse {
+	let repository = match prisma()
+		.repository()
+		.find_first(vec![
+			repository::slug::equals(respository.to_string()),
+			repository::is_pruned::equals(false),
+		])
+		.with(repository::origin::fetch())
+		.exec()
+		.await
+	{
 		Ok(repository) => repository,
-		Err(err) => return err,
+		Err(err) => {
+			// TODO: Report Error
+			return responses::error(
+				StatusCode::INTERNAL_SERVER_ERROR,
+				"Failed to query database",
+			);
+		}
 	};
 
 	match repository {
@@ -37,27 +39,23 @@ pub async fn repository_lookup(req: Request<()>) -> Result {
 				}),
 			);
 
-			api_respond(
-				200,
-				json!({
-					"data": repository,
-				}),
-			)
+			responses::data(StatusCode::OK, repository)
 		}
-		None => error_respond(404, "Repository not found"),
+
+		None => responses::error(StatusCode::NOT_FOUND, "Repository not found"),
 	}
 }
 
-pub async fn repository_lookup_healthy() -> bool {
-	match handle_prisma(
-		prisma()
-			.repository()
-			.find_first(vec![
-				repository::slug::equals("chariz".to_string()),
-				repository::is_pruned::equals(false),
-			])
-			.exec(),
-	) {
+pub async fn lookup_healthy() -> bool {
+	match prisma()
+		.repository()
+		.find_first(vec![
+			repository::slug::equals("chariz".to_string()),
+			repository::is_pruned::equals(false),
+		])
+		.exec()
+		.await
+	{
 		Ok(_) => true,
 		Err(_) => false,
 	}

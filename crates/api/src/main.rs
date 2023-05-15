@@ -40,7 +40,6 @@ async fn main() {
 	create_typesense_client();
 
 	let cors = CorsLayer::new().allow_origin(Any);
-
 	let app = Router::new()
 		.layer(cors)
 		.route("/", get(routes::info::landing_page))
@@ -48,6 +47,32 @@ async fn main() {
 		.route("/openapi.json", get(routes::info::openapi_json))
 		.route("/openapi.yaml", get(routes::info::openapi_yaml))
 		.route("/jailbreak/download/ingest", post(routes::download::ingest))
+		.route("/jailbreak/package/search", get(routes::package::search))
+		.route("/jailbreak/package/:package", get(routes::package::lookup))
+		.route(
+			"/jailbreak/package/multi",
+			get(routes::package::multi_lookup),
+		)
+		.route(
+			"/jailbreak/repository/ranking",
+			get(routes::repository::ranking),
+		)
+		.route(
+			"/jailbreak/repository/safety",
+			get(routes::repository::safety),
+		)
+		.route(
+			"/jailbreak/repository/search",
+			get(routes::repository::search),
+		)
+		.route(
+			"/jailbreak/repository/:repository",
+			get(routes::repository::lookup),
+		)
+		.route(
+			"/jailbreak/repository/:repository/packages",
+			get(routes::repository::packages),
+		)
 		.fallback(|| async {
 			(
 				StatusCode::NOT_FOUND,
@@ -69,33 +94,4 @@ async fn main() {
 			println!("http: failed to bind - {err}");
 			exit(1);
 		});
-
-	// app.at("/jailbreak/package").nest({
-	// 	let mut nest = tide::new();
-	// 	nest.at("/search").get(routes::package_search);
-	// 	nest.at("/multi").get(routes::package_multi_lookup);
-	// 	nest.at("/:package").get(routes::package_lookup);
-	// 	nest
-	// });
-	//
-	// app.at("/jailbreak/repository").nest({
-	// 	let mut nest = tide::new();
-	// 	nest.at("/search").get(routes::repository_search);
-	// 	nest.at("/ranking").get(routes::repository_ranking);
-	// 	nest.at("/safety").get(routes::repository_safety);
-	// 	nest.at("/:repository").get(routes::repository_lookup);
-	// 	nest.at("/:repository/packages")
-	// 		.get(routes::repository_packages);
-	// 	nest
-	// });
-	//
-	// app.at("/jailbreak/download").nest({
-	// 	let mut nest = tide::new();
-	// 	nest.at("/ingest").post(routes::download_ingest);
-	// 	nest
-	// });
-	//
-	// app.at("*").all(routes::not_found);
-	// app.listen("0.0.0.0:3000").await?;
-	// Ok(())
 }

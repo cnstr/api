@@ -1,93 +1,96 @@
 use crate::{
+	helpers::responses,
 	prisma::repository,
-	utility::{api_respond, error_respond, handle_error, handle_prisma, merge_json, prisma},
+	utility::{handle_error, merge_json, prisma},
 };
+use axum::{extract::Query, http::StatusCode, response::IntoResponse};
 use prisma_client_rust::Direction;
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use serde_json::{json, Value};
-use tide::{Request, Result};
 
-#[derive(Serialize, Deserialize)]
-struct Query {
+#[derive(Deserialize)]
+pub struct RankingParams {
 	rank: Option<String>,
 }
 
-pub async fn repository_ranking(req: Request<()>) -> Result {
-	let query = match req.query::<Query>() {
-		Ok(query) => {
-			let rank = match query.rank {
-				Some(q) => {
-					let match_q = match q.as_str() {
-						"1" => q,
-						"2" => q,
-						"3" => q,
-						"4" => q,
-						"5" => q,
-						"*" => q,
-						_ => {
-							return error_respond(
-								400,
-								"Query parameter \'rank\' must be 1, 2, 3, 4, 5, or *",
-							)
-						}
-					};
-
-					match_q
+pub async fn ranking(query: Query<RankingParams>) -> impl IntoResponse {
+	let rank = match &query.rank {
+		Some(q) => {
+			let match_q = match q.as_str() {
+				"1" => q,
+				"2" => q,
+				"3" => q,
+				"4" => q,
+				"5" => q,
+				"*" => q,
+				_ => {
+					return responses::error(
+						StatusCode::BAD_REQUEST,
+						"Query parameter \'rank\' must be 1, 2, 3, 4, 5, or *",
+					)
 				}
-				None => return error_respond(400, "Missing query parameter: \'rank\'"),
 			};
 
-			rank
+			match_q
 		}
 
-		Err(_) => return error_respond(422, "Malformed query parameters"),
+		None => {
+			return responses::error(StatusCode::BAD_REQUEST, "Missing query parameter: \'rank\'")
+		}
 	};
 
-	let repositories = match query.as_str() {
-		"*" => handle_prisma(
-			prisma()
-				.repository()
-				.find_many(vec![repository::is_pruned::equals(false)])
-				.order_by(repository::tier::order(Direction::Asc))
-				.with(repository::origin::fetch())
-				.exec(),
-		),
+	let repositories = match rank.as_str() {
+		"*" => prisma()
+			.repository()
+			.find_many(vec![repository::is_pruned::equals(false)])
+			.order_by(repository::tier::order(Direction::Asc))
+			.with(repository::origin::fetch())
+			.exec(),
 
-		_ => handle_prisma(
-			prisma()
-				.repository()
-				.find_many(vec![
-					repository::tier::equals(query.parse::<i32>().unwrap_or_else(|err| {
-						handle_error(&err.into());
-						1
-					})),
-					repository::is_pruned::equals(false),
-				])
-				.order_by(repository::tier::order(Direction::Asc))
-				.with(repository::origin::fetch())
-				.exec(),
-		),
+		_ => prisma()
+			.repository()
+			.find_many(vec![
+				repository::tier::equals(rank.parse::<i32>().unwrap_or_else(|err| {
+					// TODO: Report Error Correctly
+					handle_error(&err.into());
+					1
+				})),
+				repository::is_pruned::equals(false),
+			])
+			.order_by(repository::tier::order(Direction::Asc))
+			.with(repository::origin::fetch())
+			.exec(),
 	};
 
-	let repositories = match repositories {
+	let repositories = match repositories.await {
 		Ok(repositories) => repositories,
-		Err(err) => return err,
+		Err(err) => {
+			// TODO: Report Error
+			return responses::error(
+				StatusCode::INTERNAL_SERVER_ERROR,
+				"Failed to query database",
+			);
+		}
 	};
 
-	return api_respond(
-		200,
-		json!({
-			"count": repositories.len(),
-				"data": repositories.iter().map(|repository|{
-					let slug = repository.slug.clone();
+	responses::data_with_count(
+		StatusCode::OK,
+		repositories
+			.iter()
+			.map(|repository| {
+				let slug = repository.slug.clone();
 
-					return merge_json(repository, json!({
+				return merge_json(
+					repository,
+					json!({
 						"refs": {
 							"meta": format!("{}/jailbreak/repository/{}", env!("CANISTER_API_ENDPOINT"), slug),
 							"packages": format!("{}/jailbreak/repository/{}/packages", env!("CANISTER_API_ENDPOINT"), slug),
 						}
-					}))
-				}).collect::<Vec<Value>>(),
-		}),
-	);
+					}),
+				);
+			})
+			.collect::<Vec<Value>>(),
+		repositories.len(),
+	)
 }

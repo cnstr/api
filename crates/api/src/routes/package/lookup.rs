@@ -1,66 +1,72 @@
 use crate::{
+	helpers::responses,
 	prisma::package,
-	utility::{api_respond, error_respond, handle_prisma, merge_json, prisma},
+	utility::{merge_json, prisma},
 };
+use axum::{extract::Path, http::StatusCode, response::IntoResponse};
 use prisma_client_rust::Direction;
 use serde_json::{json, Value};
-use tide::{Request, Result};
 
-pub async fn package_lookup(req: Request<()>) -> Result {
-	let query = match req.param("package") {
-		Ok(query) => query.to_string(),
-		Err(_) => return error_respond(400, "Missing URL parameter: \':package\'"),
-	};
-
-	let packages = match handle_prisma(
-		prisma()
-			.package()
-			.find_many(vec![
-				package::package::equals(query),
-				package::is_pruned::equals(false),
-			])
-			.order_by(package::is_current::order(Direction::Desc))
-			.order_by(package::repository_tier::order(Direction::Asc))
-			.with(package::repository::fetch())
-			.exec(),
-	) {
+pub async fn lookup(package: Path<String>) -> impl IntoResponse {
+	let packages = match prisma()
+		.package()
+		.find_many(vec![
+			package::package::equals(package.to_string()),
+			package::is_pruned::equals(false),
+		])
+		.order_by(package::is_current::order(Direction::Desc))
+		.order_by(package::repository_tier::order(Direction::Asc))
+		.with(package::repository::fetch())
+		.exec()
+		.await
+	{
 		Ok(packages) => packages,
-		Err(err) => return err,
+		Err(err) => {
+			// TODO: Report Error
+			return responses::error(
+				StatusCode::INTERNAL_SERVER_ERROR,
+				"Failed to query database",
+			);
+		}
 	};
 
 	if packages.is_empty() {
-		return error_respond(404, "Package not found");
+		return responses::error(StatusCode::NOT_FOUND, "Package not found");
 	}
 
-	api_respond(
-		200,
-		json!({
-			"count": packages.len(),
-			"data": packages.iter().map(|package| {
+	responses::data_with_count(
+		StatusCode::OK,
+		packages
+			.iter()
+			.map(|package| {
 				let slug = package.repository_slug.clone();
-				return merge_json(package, json!({
-					"refs": {
-						"repo": format!("{}/jailbreak/repository/{}", env!("CANISTER_API_ENDPOINT"), slug)
-					}
-				}))
-			}).collect::<Vec<Value>>(),
-		}),
+				return merge_json(
+					package,
+					json!({
+						"refs": {
+							"repo": format!("{}/jailbreak/repository/{}", env!("CANISTER_API_ENDPOINT"), slug)
+						}
+					}),
+				);
+			})
+			.collect::<Vec<Value>>(),
+		packages.len(),
 	)
 }
 
-pub async fn package_lookup_healthy() -> bool {
-	match handle_prisma(
-		prisma()
-			.package()
-			.find_many(vec![
-				package::package::equals("ws.hbang.common".to_string()),
-				package::is_pruned::equals(false),
-			])
-			.order_by(package::is_current::order(Direction::Desc))
-			.order_by(package::repository_tier::order(Direction::Asc))
-			.with(package::repository::fetch())
-			.exec(),
-	) {
+pub async fn lookup_healthy() -> bool {
+	match prisma()
+		.package()
+		.find_many(vec![
+			package::package::equals("ws.hbang.common".to_string()),
+			package::is_pruned::equals(false),
+		])
+		.order_by(package::is_current::order(Direction::Desc))
+		.order_by(package::repository_tier::order(Direction::Asc))
+		.with(package::repository::fetch())
+		.exec()
+		.await
+	{
 		Ok(_) => true,
 		Err(_) => false,
 	}

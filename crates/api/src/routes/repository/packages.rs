@@ -1,25 +1,20 @@
 use crate::{
+	helpers::responses,
 	prisma::{package, repository},
-	utility::{api_respond, error_respond, handle_prisma, merge_json, prisma},
+	utility::{handle_prisma, merge_json, prisma},
 };
+use axum::{extract::Path, http::StatusCode, response::IntoResponse};
 use serde_json::{json, Value};
-use tide::{Request, Result};
 
-pub async fn repository_packages(req: Request<()>) -> Result {
-	let query = match req.param("repository") {
-		Ok(query) => query.to_string(),
-		Err(_) => return error_respond(400, "Missing URL parameter: \':repository\'"),
-	};
-
-	let repository = handle_prisma(
-		prisma()
-			.repository()
-			.find_first(vec![
-				repository::slug::equals(query),
-				repository::is_pruned::equals(false),
-			])
-			.exec(),
-	);
+pub async fn packages(repository: Path<String>) -> impl IntoResponse {
+	let repository = prisma()
+		.repository()
+		.find_first(vec![
+			repository::slug::equals(repository.to_string()),
+			repository::is_pruned::equals(false),
+		])
+		.exec()
+		.await;
 
 	let packages = match repository {
 		Ok(repository) => match repository {
@@ -47,41 +42,49 @@ pub async fn repository_packages(req: Request<()>) -> Result {
 							)
 						})
 						.collect::<Vec<Value>>(),
-					Err(err) => return err,
+
+					Err(err) => {
+						// TODO: Report Error
+						return responses::error(
+							StatusCode::INTERNAL_SERVER_ERROR,
+							"Failed to query database",
+						);
+					}
 				}
 			}
-			None => return error_respond(404, "Repository not found"),
+
+			None => return responses::error(StatusCode::NOT_FOUND, "Repository not found"),
 		},
-		Err(err) => return err,
+		Err(err) => {
+			// TODO: Report Error
+			return responses::error(
+				StatusCode::INTERNAL_SERVER_ERROR,
+				"Failed to query database",
+			);
+		}
 	};
 
-	api_respond(
-		200,
-		json!({
-			"count": packages.len(),
-				"data": packages,
-		}),
-	)
+	responses::data_with_count(StatusCode::OK, &packages, packages.len())
 }
 
-pub async fn repository_packages_healthy() -> bool {
-	match handle_prisma(
-		prisma()
-			.repository()
-			.find_first(vec![
-				repository::slug::equals("chariz".to_string()),
-				repository::is_pruned::equals(false),
-			])
-			.exec(),
-	) {
+pub async fn packages_healthy() -> bool {
+	match prisma()
+		.repository()
+		.find_first(vec![
+			repository::slug::equals("chariz".to_string()),
+			repository::is_pruned::equals(false),
+		])
+		.exec()
+		.await
+	{
 		Ok(repository) => match repository {
 			Some(repository) => {
-				match handle_prisma(
-					prisma()
-						.package()
-						.find_many(vec![package::repository_slug::equals(repository.slug)])
-						.exec(),
-				) {
+				match prisma()
+					.package()
+					.find_many(vec![package::repository_slug::equals(repository.slug)])
+					.exec()
+					.await
+				{
 					Ok(_) => true,
 					Err(_) => false,
 				}
