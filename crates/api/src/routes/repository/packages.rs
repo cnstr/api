@@ -1,7 +1,7 @@
 use crate::{
 	helpers::responses,
 	prisma::{package, repository},
-	utility::{handle_prisma, merge_json, prisma},
+	utility::{merge_json, prisma},
 };
 use axum::{extract::Path, http::StatusCode, response::IntoResponse};
 use serde_json::{json, Value};
@@ -19,12 +19,12 @@ pub async fn packages(repository: Path<String>) -> impl IntoResponse {
 	let packages = match repository {
 		Ok(repository) => match repository {
 			Some(repository) => {
-				match handle_prisma(
-					prisma()
-						.package()
-						.find_many(vec![package::repository_slug::equals(repository.slug)])
-						.exec(),
-				) {
+				match prisma()
+					.package()
+					.find_many(vec![package::repository_slug::equals(repository.slug)])
+					.exec()
+					.await
+				{
 					Ok(packages) => packages
 						.into_iter()
 						.map(|package| {

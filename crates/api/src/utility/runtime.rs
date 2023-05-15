@@ -1,40 +1,9 @@
-use super::{error_respond, typesense};
+use super::typesense;
 use anyhow::{Error, Result};
-use lazy_static::lazy_static;
-use prisma_client_rust::QueryError;
 use sentry::integrations::anyhow::capture_anyhow;
 use serde::{de::DeserializeOwned, Serialize};
-use serde_json::{to_string_pretty, Value};
-use std::future::Future;
+use serde_json::Value;
 use surf::http::Method;
-use tide::Result as HttpResult;
-use tokio::runtime::{Builder, Runtime};
-
-lazy_static! {
-	static ref RUNTIME: Runtime = match Builder::new_multi_thread().enable_all().build() {
-		Ok(runtime) => runtime,
-		Err(e) => panic!("Failed to create Tokio thread for async runtime {e}"),
-	};
-}
-
-/// Runs a future on the Tokio runtime thread
-pub fn handle_async<F: Future>(future: F) -> F::Output {
-	RUNTIME.block_on(future)
-}
-
-/// Takes a Prisma query and executes it on the Tokio runtime thread
-/// Returns a Result with the query's output or an HTTP result
-pub fn handle_prisma<T: DeserializeOwned, F: Future<Output = Result<T, QueryError>>>(
-	query: F,
-) -> Result<T, HttpResult> {
-	match handle_async(query) {
-		Ok(result) => Ok(result),
-		Err(err) => {
-			handle_error(&err.into());
-			Err(error_respond(500, "Failed to execute database query"))
-		}
-	}
-}
 
 /// Takes a Typesense query and URL, and fetches it via HTTP
 /// Returns a Result with the query's output or an HTTP result
@@ -42,20 +11,22 @@ pub async fn handle_typesense<Q: Serialize, R: DeserializeOwned>(
 	query: Q,
 	url: &str,
 	method: Method,
-) -> Result<R, HttpResult> {
+) -> Result<R, Error> {
 	let request = match typesense().request(method, url).query(&query) {
 		Ok(request) => request,
 		Err(err) => {
-			handle_error(&err.into_inner());
-			return Err(error_respond(500, "Failed to create Typesense query"));
+			let error: Error = err.into_inner();
+			handle_error(&error);
+			return Err(error);
 		}
 	};
 
 	let mut response = match request.send().await {
 		Ok(response) => response,
 		Err(err) => {
-			handle_error(&err.into_inner());
-			return Err(error_respond(500, "Failed to execute Typesense query"));
+			let error: Error = err.into_inner();
+			handle_error(&error);
+			return Err(error);
 		}
 	};
 
@@ -67,23 +38,25 @@ pub async fn handle_typesense<Q: Serialize, R: DeserializeOwned>(
 				.body_string()
 				.await
 				.unwrap_or_else(|_| "".to_string());
-			return Err(error_respond(status.into(), &body));
+			return Err(anyhow::anyhow!("{}: {}", status, body));
 		}
 	}
 
 	let response = match response.body_json::<Value>().await {
 		Ok(response) => response,
 		Err(err) => {
-			handle_error(&err.into_inner());
-			return Err(error_respond(500, "Failed to execute Typesense query"));
+			let error: Error = err.into_inner();
+			handle_error(&error);
+			return Err(error);
 		}
 	};
 
 	let typed: R = match serde_json::from_value(response) {
 		Ok(typed) => typed,
 		Err(err) => {
-			handle_error(&err.into());
-			return Err(error_respond(500, "Failed to parse Typesense response"));
+			let error: Error = err.into();
+			handle_error(&error);
+			return Err(error);
 		}
 	};
 
