@@ -1,13 +1,12 @@
 use crate::{
-	helpers::responses,
+	helpers::{clients, responses},
 	prisma::package,
-	utility::{handle_typesense, merge_json, page_links},
+	utility::{merge_json, page_links},
 };
 use axum::{extract::Query, http::StatusCode, response::IntoResponse};
 use prisma_client_rust::bigdecimal::ToPrimitive;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
-use surf::http::Method;
 
 #[derive(Deserialize)]
 pub struct SearchParams {
@@ -17,7 +16,7 @@ pub struct SearchParams {
 }
 
 #[derive(Deserialize, Serialize)]
-struct TypesenseQuery {
+struct TSQuery {
 	q: String,
 	query_by: String,
 	sort_by: String,
@@ -26,7 +25,7 @@ struct TypesenseQuery {
 }
 
 #[derive(Deserialize, Serialize)]
-struct TypesenseResponse {
+struct TSResponse {
 	found: u32,
 	hits: Vec<Document>,
 }
@@ -84,7 +83,7 @@ pub async fn search(query: Query<SearchParams>) -> impl IntoResponse {
 		None => 100,
 	};
 
-	let query = TypesenseQuery {
+	let query = TSQuery {
 		q: q.to_string(),
 		query_by: "name,description,author,maintainer,section".to_string(),
 		sort_by: "_text_match:desc".to_string(),
@@ -92,16 +91,14 @@ pub async fn search(query: Query<SearchParams>) -> impl IntoResponse {
 		per_page: limit.to_string(),
 	};
 
-	let response = match handle_typesense::<TypesenseQuery, TypesenseResponse>(
-		query,
-		"/collections/packages/documents/search",
-		Method::Get,
+	let data = match clients::typesense::<TSResponse>(
+		Some(query),
+		"collections/packages/documents/search",
 	)
 	.await
 	{
 		Ok(data) => data,
-		Err(err) => {
-			// TODO: Report Error
+		Err(_) => {
 			return responses::error(
 				StatusCode::INTERNAL_SERVER_ERROR,
 				"Failed to query internal search engine",
@@ -109,7 +106,7 @@ pub async fn search(query: Query<SearchParams>) -> impl IntoResponse {
 		}
 	};
 
-	let mut packages = response
+	let mut packages = data
 			.hits
             .iter()
 			.map(|package| {
@@ -156,18 +153,16 @@ pub async fn search(query: Query<SearchParams>) -> impl IntoResponse {
 }
 
 pub async fn search_healthy() -> bool {
-	match handle_typesense::<TypesenseQuery, TypesenseResponse>(
-		TypesenseQuery {
-			q: "newterm".to_string(),
-			query_by: "name,description,author,maintainer,section".to_string(),
-			sort_by: "_text_match:desc".to_string(),
-			page: "1".to_string(),
-			per_page: "100".to_string(),
-		},
-		"/collections/packages/documents/search",
-		Method::Get,
-	)
-	.await
+	let query = TSQuery {
+		q: "newterm".to_string(),
+		query_by: "name,description,author,maintainer,section".to_string(),
+		sort_by: "_text_match:desc".to_string(),
+		page: "1".to_string(),
+		per_page: "100".to_string(),
+	};
+
+	match clients::typesense::<TSResponse>(Some(query), "collections/packages/documents/search")
+		.await
 	{
 		Ok(_) => true,
 		Err(_) => false,

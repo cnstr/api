@@ -1,7 +1,7 @@
 use crate::{
-	helpers::responses,
+	helpers::{clients, responses},
 	routes,
-	utility::{prisma, typesense},
+	utility::prisma,
 };
 use axum::{http::StatusCode, response::IntoResponse};
 use prisma_client_rust::Raw;
@@ -48,18 +48,8 @@ pub async fn health_check() -> impl IntoResponse {
 }
 
 async fn service_healthy() -> (bool, Value) {
-	let typesense_healthy = match typesense().get("/health").await {
-		Ok(mut response) => {
-			let health: TypesenseHealth = match response.body_json().await {
-				Ok(health) => health,
-				Err(err) => {
-					println!("Failed to serialize Typesense health response: {}", err);
-					TypesenseHealth { ok: false }
-				}
-			};
-
-			health.ok
-		}
+	let typesense_healthy = match clients::typesense::<TypesenseHealth>({}, "health").await {
+		Ok(data) => data.ok,
 		Err(err) => {
 			println!("Typesense health check failed: {}", err);
 			false
