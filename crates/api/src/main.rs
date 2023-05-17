@@ -45,7 +45,7 @@ async fn main() {
 		.route("/healthz", get(routes::info::health_check))
 		.route("/openapi.json", get(routes::info::openapi_json))
 		.route("/openapi.yaml", get(routes::info::openapi_yaml))
-		.route("/jailbreak/download/ingest", post(routes::download::ingest))
+		// .route("/jailbreak/download/ingest", post(routes::download::ingest))
 		.route("/jailbreak/package/search", get(routes::package::search))
 		.route("/jailbreak/package/:package", get(routes::package::lookup))
 		.route(
