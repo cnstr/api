@@ -43,7 +43,10 @@ fn typesense_client() -> &'static Client {
 			HeaderValue::from_static(env!("CANISTER_TYPESENSE_KEY")),
 		);
 
-		Client::builder().timeout(Duration::from_secs(10)).build()
+		Client::builder()
+			.timeout(Duration::from_secs(10))
+			.default_headers(headers)
+			.build()
 	}) {
 		Ok(client) => client,
 		Err(err) => {
