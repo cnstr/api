@@ -82,6 +82,7 @@ dependencies = [
  "serde_yaml",
  "tokio",
  "tower-http",
+ "url",
  "vergen",
 ]
 
