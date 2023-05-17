@@ -1,8 +1,10 @@
+use crate::helpers::report_error;
 use once_cell::sync::OnceCell;
 use reqwest::{
 	header::{HeaderMap, HeaderValue},
 	Client, Error as ReqwestError,
 };
+use sentry::{capture_message, Level};
 use serde::{de::DeserializeOwned, Serialize};
 use std::{fmt::Display, process::exit, time::Duration};
 
@@ -50,7 +52,7 @@ fn typesense_client() -> &'static Client {
 	}) {
 		Ok(client) => client,
 		Err(err) => {
-			// TODO: Report Error
+			capture_message("failed to create typesense client", Level::Fatal);
 			println!("panic: failed to create typesense client: {}", err);
 			exit(1);
 		}
@@ -67,7 +69,7 @@ pub async fn typesense<R: DeserializeOwned>(
 	let response = match request.send().await {
 		Ok(responses) => responses,
 		Err(err) => {
-			// TODO: Report Error
+			report_error(&err).await;
 			return Err(TypesenseQueryError::from_reqwest(
 				"failed to send request",
 				err,
@@ -76,17 +78,17 @@ pub async fn typesense<R: DeserializeOwned>(
 	};
 
 	if !response.status().is_success() {
-		// TODO: Report Error
+		let internal_error = response.error_for_status().unwrap_err();
 		return Err(TypesenseQueryError::from_reqwest(
 			"failed to send request",
-			ReqwestError::from(response.error_for_status().unwrap_err()),
+			ReqwestError::from(internal_error),
 		));
 	}
 
 	let response = match response.json::<R>().await {
 		Ok(response) => response,
 		Err(err) => {
-			// TODO: Report Error
+			report_error(&err).await;
 			return Err(TypesenseQueryError::from_str("failed to parse response"));
 		}
 	};

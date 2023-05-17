@@ -4,7 +4,7 @@ use axum::{
 	Json, Router,
 };
 use chrono::Utc;
-use sentry::{init, ClientOptions};
+use sentry::{capture_message, init, ClientOptions, Level};
 use serde_json::json;
 use std::{net::SocketAddr, process::exit};
 use tower_http::cors::{Any, CorsLayer};
@@ -90,7 +90,8 @@ async fn main() {
 		.serve(app.into_make_service())
 		.await
 		.unwrap_or_else(|err| {
-			println!("http: failed to bind - {err}");
+			capture_message("failed to bind http port", Level::Fatal);
+			println!("panic: failed to bind http port - {err}");
 			exit(1);
 		});
 }

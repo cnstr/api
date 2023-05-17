@@ -1,3 +1,6 @@
 pub mod clients;
+mod error_handler;
 pub mod responses;
-pub(crate) mod typesense_client;
+pub mod typesense_client;
+
+pub use self::error_handler::*;
