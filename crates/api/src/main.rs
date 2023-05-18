@@ -8,7 +8,6 @@ use sentry::{capture_message, init, ClientOptions, Level};
 use serde_json::json;
 use std::{net::SocketAddr, process::exit};
 use tower_http::cors::{Any, CorsLayer};
-use utility::create_prisma_client;
 
 mod helpers;
 mod prisma;
@@ -35,8 +34,6 @@ async fn main() {
 			..Default::default()
 		},
 	));
-
-	create_prisma_client().await;
 
 	let cors = CorsLayer::new().allow_origin(Any);
 	let app = Router::new()

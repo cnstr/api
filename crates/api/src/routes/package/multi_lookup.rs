@@ -1,7 +1,7 @@
 use crate::{
-	helpers::responses,
+	helpers::{clients, responses},
 	prisma::package,
-	utility::{merge_json, prisma},
+	utility::merge_json,
 };
 use axum::{extract::Query, http::StatusCode, response::IntoResponse};
 use prisma_client_rust::Direction;
@@ -24,22 +24,22 @@ pub async fn multi_lookup(query: Query<MultiLookupParams>) -> impl IntoResponse 
 		}
 	};
 
-	let packages = match prisma()
-		.package()
-		.find_many(vec![
-			package::package::in_vec(ids),
-			package::is_current::equals(true),
-			package::is_pruned::equals(false),
-		])
-		.order_by(package::repository_tier::order(Direction::Asc))
-		.with(package::repository::fetch())
-		.exec()
-		.await
+	let packages = match clients::prisma(|prisma| {
+		prisma
+			.package()
+			.find_many(vec![
+				package::package::in_vec(ids),
+				package::is_current::equals(true),
+				package::is_pruned::equals(false),
+			])
+			.order_by(package::repository_tier::order(Direction::Asc))
+			.with(package::repository::fetch())
+			.exec()
+	})
+	.await
 	{
 		Ok(packages) => packages,
-
-		Err(err) => {
-			// TODO: Report Error
+		Err(_) => {
 			return responses::error(
 				StatusCode::INTERNAL_SERVER_ERROR,
 				"Failed to query database",
@@ -72,20 +72,22 @@ pub async fn multi_lookup(query: Query<MultiLookupParams>) -> impl IntoResponse 
 }
 
 pub async fn multi_lookup_healthy() -> bool {
-	match prisma()
-		.package()
-		.find_many(vec![
-			package::package::in_vec(vec![
-				"ws.hbang.common".to_string(),
-				"me.renai.lyricify".to_string(),
-			]),
-			package::is_current::equals(true),
-			package::is_pruned::equals(false),
-		])
-		.order_by(package::repository_tier::order(Direction::Asc))
-		.with(package::repository::fetch())
-		.exec()
-		.await
+	match clients::prisma(|prisma| {
+		prisma
+			.package()
+			.find_many(vec![
+				package::package::in_vec(vec![
+					"ws.hbang.common".to_string(),
+					"me.renai.lyricify".to_string(),
+				]),
+				package::is_current::equals(true),
+				package::is_pruned::equals(false),
+			])
+			.order_by(package::repository_tier::order(Direction::Asc))
+			.with(package::repository::fetch())
+			.exec()
+	})
+	.await
 	{
 		Ok(_) => true,
 		Err(_) => false,

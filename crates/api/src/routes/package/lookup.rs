@@ -1,28 +1,29 @@
 use crate::{
-	helpers::responses,
+	helpers::{clients, responses},
 	prisma::package,
-	utility::{merge_json, prisma},
+	utility::merge_json,
 };
 use axum::{extract::Path, http::StatusCode, response::IntoResponse};
 use prisma_client_rust::Direction;
 use serde_json::{json, Value};
 
 pub async fn lookup(package: Path<String>) -> impl IntoResponse {
-	let packages = match prisma()
-		.package()
-		.find_many(vec![
-			package::package::equals(package.to_string()),
-			package::is_pruned::equals(false),
-		])
-		.order_by(package::is_current::order(Direction::Desc))
-		.order_by(package::repository_tier::order(Direction::Asc))
-		.with(package::repository::fetch())
-		.exec()
-		.await
+	let packages = match clients::prisma(|prisma| {
+		prisma
+			.package()
+			.find_many(vec![
+				package::package::equals(package.to_string()),
+				package::is_pruned::equals(false),
+			])
+			.order_by(package::is_current::order(Direction::Desc))
+			.order_by(package::repository_tier::order(Direction::Asc))
+			.with(package::repository::fetch())
+			.exec()
+	})
+	.await
 	{
 		Ok(packages) => packages,
-		Err(err) => {
-			// TODO: Report Error
+		Err(_) => {
 			return responses::error(
 				StatusCode::INTERNAL_SERVER_ERROR,
 				"Failed to query database",
@@ -55,17 +56,19 @@ pub async fn lookup(package: Path<String>) -> impl IntoResponse {
 }
 
 pub async fn lookup_healthy() -> bool {
-	match prisma()
-		.package()
-		.find_many(vec![
-			package::package::equals("ws.hbang.common".to_string()),
-			package::is_pruned::equals(false),
-		])
-		.order_by(package::is_current::order(Direction::Desc))
-		.order_by(package::repository_tier::order(Direction::Asc))
-		.with(package::repository::fetch())
-		.exec()
-		.await
+	match clients::prisma(|prisma| {
+		prisma
+			.package()
+			.find_many(vec![
+				package::package::equals("ws.hbang.common".to_string()),
+				package::is_pruned::equals(false),
+			])
+			.order_by(package::is_current::order(Direction::Desc))
+			.order_by(package::repository_tier::order(Direction::Asc))
+			.with(package::repository::fetch())
+			.exec()
+	})
+	.await
 	{
 		Ok(_) => true,
 		Err(_) => false,

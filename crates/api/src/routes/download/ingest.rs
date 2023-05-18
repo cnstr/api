@@ -1,7 +1,7 @@
 use crate::{
-	helpers::responses,
+	helpers::{clients, responses},
 	prisma::package,
-	utility::{parse_user_agent, prisma},
+	utility::parse_user_agent,
 };
 use axum::{
 	http::{HeaderMap, HeaderValue, StatusCode},
@@ -134,16 +134,18 @@ pub async fn ingest(headers: HeaderMap, body: Option<Json<Payload>>) -> impl Int
 		None => "none".to_string(),
 	};
 
-	let database_uuid = match prisma()
-		.package()
-		.find_first(vec![
-			package::package::equals(package_id.to_string()),
-			package::version::equals(package_version.to_string()),
-			package::is_pruned::equals(false),
-		])
-		.with(package::repository::fetch())
-		.exec()
-		.await
+	let database_uuid = match clients::prisma(|prisma| {
+		prisma
+			.package()
+			.find_first(vec![
+				package::package::equals(package_id.to_string()),
+				package::version::equals(package_version.to_string()),
+				package::is_pruned::equals(false),
+			])
+			.with(package::repository::fetch())
+			.exec()
+	})
+	.await
 	{
 		Ok(package_search) => package_search.map(|package_search| package_search.uuid),
 		Err(_) => None,

@@ -1,7 +1,7 @@
 use crate::{
-	helpers::responses,
+	helpers::{clients, responses},
 	prisma::repository,
-	utility::{handle_error, merge_json, prisma},
+	utility::{handle_error, merge_json},
 };
 use axum::{extract::Query, http::StatusCode, response::IntoResponse};
 use prisma_client_rust::Direction;
@@ -39,33 +39,42 @@ pub async fn ranking(query: Query<RankingParams>) -> impl IntoResponse {
 		}
 	};
 
-	let repositories = match rank.as_str() {
-		"*" => prisma()
-			.repository()
-			.find_many(vec![repository::is_pruned::equals(false)])
-			.order_by(repository::tier::order(Direction::Asc))
-			.with(repository::origin::fetch())
-			.exec(),
+	let lookup = match rank.as_str() {
+		"*" => {
+			clients::prisma(|prisma| {
+				prisma
+					.repository()
+					.find_many(vec![repository::is_pruned::equals(false)])
+					.order_by(repository::tier::order(Direction::Asc))
+					.with(repository::origin::fetch())
+					.exec()
+			})
+			.await
+		}
 
-		_ => prisma()
-			.repository()
-			.find_many(vec![
-				repository::tier::equals(rank.parse::<i32>().unwrap_or_else(|err| {
-					// TODO: Report Error Correctly
-					handle_error(&err.into());
-					1
-				})),
-				repository::is_pruned::equals(false),
-			])
-			.order_by(repository::tier::order(Direction::Asc))
-			.with(repository::origin::fetch())
-			.exec(),
+		_ => {
+			clients::prisma(|prisma| {
+				prisma
+					.repository()
+					.find_many(vec![
+						repository::tier::equals(rank.parse::<i32>().unwrap_or_else(|err| {
+							// TODO: Report Error Correctly
+							handle_error(&err.into());
+							1
+						})),
+						repository::is_pruned::equals(false),
+					])
+					.order_by(repository::tier::order(Direction::Asc))
+					.with(repository::origin::fetch())
+					.exec()
+			})
+			.await
+		}
 	};
 
-	let repositories = match repositories.await {
+	let repositories = match lookup {
 		Ok(repositories) => repositories,
-		Err(err) => {
-			// TODO: Report Error
+		Err(_) => {
 			return responses::error(
 				StatusCode::INTERNAL_SERVER_ERROR,
 				"Failed to query database",

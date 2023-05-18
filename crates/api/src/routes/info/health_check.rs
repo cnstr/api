@@ -1,7 +1,6 @@
 use crate::{
 	helpers::{clients, responses},
 	routes,
-	utility::prisma,
 };
 use axum::{http::StatusCode, response::IntoResponse};
 use prisma_client_rust::Raw;
@@ -56,10 +55,12 @@ async fn service_healthy() -> (bool, Value) {
 		}
 	};
 
-	let postgres_healthy = match prisma()
-		._query_raw::<PostgresHealth>(Raw::new("SELECT version();", vec![]))
-		.exec()
-		.await
+	let postgres_healthy = match clients::prisma(|prisma| {
+		prisma
+			._query_raw::<PostgresHealth>(Raw::new("SELECT version();", vec![]))
+			.exec()
+	})
+	.await
 	{
 		Ok(health) => health.len() > 0,
 		Err(err) => {
