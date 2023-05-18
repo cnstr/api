@@ -1,5 +1,7 @@
 use axum::{
-	http::StatusCode,
+	http::{HeaderValue, Request, StatusCode},
+	middleware::{self, Next},
+	response::Response,
 	routing::{get, post},
 	Json, Router,
 };
@@ -7,7 +9,6 @@ use chrono::Utc;
 use sentry::{capture_message, init, ClientOptions, Level};
 use serde_json::json;
 use std::{net::SocketAddr, process::exit};
-use tower_http::cors::{Any, CorsLayer};
 
 mod helpers;
 mod prisma;
@@ -35,9 +36,7 @@ async fn main() {
 		},
 	));
 
-	let cors = CorsLayer::new().allow_origin(Any);
 	let app = Router::new()
-		.layer(cors)
 		.route("/", get(routes::info::landing_page))
 		.route("/healthz", get(routes::info::health_check))
 		.route("/openapi.json", get(routes::info::openapi_json))
@@ -69,6 +68,7 @@ async fn main() {
 			"/jailbreak/repository/:repository/packages",
 			get(routes::repository::packages),
 		)
+		.layer(middleware::from_fn(cors_middleware))
 		.fallback(|| async {
 			(
 				StatusCode::NOT_FOUND,
@@ -91,4 +91,22 @@ async fn main() {
 			println!("panic: failed to bind http port - {err}");
 			exit(1);
 		});
+}
+
+async fn cors_middleware<B>(request: Request<B>, next: Next<B>) -> Response {
+	let mut response = next.run(request).await;
+
+	let headers = response.headers_mut();
+
+	headers.insert("Access-Control-Allow-Origin", HeaderValue::from_static("*"));
+	headers.insert(
+		"Access-Control-Allow-Methods",
+		HeaderValue::from_static("GET, POST, OPTIONS"),
+	);
+	headers.insert(
+		"Access-Control-Allow-Headers",
+		HeaderValue::from_static("Content-Type, *"),
+	);
+
+	response
 }
