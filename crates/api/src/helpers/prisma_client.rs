@@ -32,6 +32,8 @@ async fn prisma_client() -> &'static PrismaClient {
 				exit(1);
 			}
 		};
+
+		return PRISMA_CLIENT.get().unwrap();
 	}
 
 	global_client.unwrap()
