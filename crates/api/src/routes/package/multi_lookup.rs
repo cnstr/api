@@ -51,10 +51,23 @@ pub async fn multi_lookup(query: Query<MultiLookupParams>) -> impl IntoResponse 
 		return responses::error(StatusCode::NOT_FOUND, "Packages not found");
 	}
 
+	let mut ids: Vec<String> = packages
+		.iter()
+		.map(|package| package.package.clone())
+		.collect();
+
 	responses::data_with_count(
 		StatusCode::OK,
 		packages
 			.iter()
+			.filter(|package| {
+				let package = package.package.clone();
+				if ids.contains(&package) {
+					ids.retain(|id| id != &package);
+					return true;
+				}
+				return false;
+			})
 			.map(|package| {
 				let slug = package.repository_slug.clone();
 				return merge_json(
