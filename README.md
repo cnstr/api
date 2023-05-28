@@ -33,7 +33,7 @@ Once you have setup everything, running `task dev` will start the API with hot-r
 The `task deploy` command will trigger the [CI/CD at `cnstr/ci`](https://github.com/cnstr/ci/actions/workflows/api.yaml).<br>
 The deployment will run the following steps:
 
-- Build and publish the Docker image to the [tale.me](https://tale.me/docker) registry
+- Build and publish the Docker image to Google Artifact Registry (gcr.io)
 - Distribute and upload the OpenAPI reference to [bump.sh](https://bump.sh)
 - Rewrite the `kubernetes/api.yaml` file with the new image tag
 - Apply the new deployment to the cluster

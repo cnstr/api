@@ -101,7 +101,10 @@ async fn publish_openapi() {
 /// Modifies the Kubernetes manifest to use the latest image tag
 /// This is done by parsing the manifest as YAML and modifying the image tag
 fn update_kubernetes_manifest() {
-	let image = format!("tale.me/canister/api:{}", env!("CARGO_PKG_VERSION"));
+	let image = format!(
+		"us-east4-docker.pkg.dev/aarnavtale/canister/api:{}",
+		env!("CARGO_PKG_VERSION")
+	);
 
 	let path = Path::new("./kubernetes/api.yaml");
 	let raw_manifest = match read_to_string(path) {
