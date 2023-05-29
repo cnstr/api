@@ -11,6 +11,7 @@ use serde_json::{json, Value};
 #[derive(Deserialize)]
 pub struct MultiLookupParams {
 	ids: Option<String>,
+	priority: Option<String>,
 }
 
 pub async fn multi_lookup(query: Query<MultiLookupParams>) -> impl IntoResponse {
@@ -24,7 +25,12 @@ pub async fn multi_lookup(query: Query<MultiLookupParams>) -> impl IntoResponse 
 		}
 	};
 
-	let packages = match clients::prisma(|prisma| {
+	let priority = match &query.priority {
+		Some(priority) => priority,
+		None => "default",
+	};
+
+	let mut packages = match clients::prisma(|prisma| {
 		prisma
 			.package()
 			.find_many(vec![
@@ -55,6 +61,37 @@ pub async fn multi_lookup(query: Query<MultiLookupParams>) -> impl IntoResponse 
 		.iter()
 		.map(|package| package.package.clone())
 		.collect();
+
+	packages.sort_by(|a, b| {
+		// If the priority is bootstrap, prioritize package.repository.is_bootstrap
+		if priority == "bootstrap" {
+			let a_bootstrap = a
+				.repository
+				.clone()
+				.map(|repository| repository.is_bootstrap)
+				.unwrap_or(false);
+			let b_bootstrap = b
+				.repository
+				.clone()
+				.map(|repository| repository.is_bootstrap)
+				.unwrap_or(false);
+
+			if a_bootstrap && !b_bootstrap {
+				return std::cmp::Ordering::Less;
+			} else if !a_bootstrap && b_bootstrap {
+				return std::cmp::Ordering::Greater;
+			}
+		}
+
+		// If the priority is default, prioritize package.repository_tier
+		if a.repository_tier < b.repository_tier {
+			return std::cmp::Ordering::Less;
+		} else if a.repository_tier > b.repository_tier {
+			return std::cmp::Ordering::Greater;
+		}
+
+		return std::cmp::Ordering::Equal;
+	});
 
 	responses::data_with_count(
 		StatusCode::OK,
