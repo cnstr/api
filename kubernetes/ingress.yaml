@@ -15,7 +15,7 @@ spec:
       http:
         paths:
           - pathType: Prefix
-            path: /v2(/|$)(.*)
+            path: /v2/
             backend:
               service:
                 name: api
