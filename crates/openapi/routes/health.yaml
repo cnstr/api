@@ -1,7 +1,7 @@
 /healthz:
   get:
     summary: Health Check
-    description: Reliable endpoint to check API health
+    description: View the health of the Canister API
     operationId: healthz
     tags:
       - endpoint
@@ -13,12 +13,74 @@
             schema:
               type: object
               properties:
-                healthy:
-                  type: boolean
-                  example: true
-                typesense_healthy:
-                  type: boolean
-                  example: true
-                postgres_healthy:
-                  type: boolean
-                  example: true
+                status:
+                  type: string
+                  enum:
+                    - 200 OK
+                    - 500 Internal Server Error
+                date:
+                  type: string
+                  format: date-time
+                data:
+                  type: object
+                  properties:
+                    healthy:
+                      type: boolean
+                      example: true
+                    service_data:
+                      type: object
+                      properties:
+                        healthy:
+                          type: boolean
+                          example: true
+                        typesense_healthy:
+                          type: boolean
+                          example: true
+                        postgres_healthy:
+                          type: boolean
+                          example: true
+                    route_data:
+                      type: object
+                      properties:
+                        package:
+                          type: object
+                          properties:
+                            healthy:
+                              type: boolean
+                              example: true
+                            lookup_healthy:
+                              type: boolean
+                              example: true
+                            multi_lookup_healthy:
+                              type: boolean
+                              example: true
+                            search_healthy:
+                              type: boolean
+                              example: true
+                        repository:
+                          type: object
+                          properties:
+                            healthy:
+                              type: boolean
+                              example: true
+                            lookup_healthy:
+                              type: boolean
+                              example: true
+                            packages_healthy:
+                              type: boolean
+                              example: true
+                            safety_healthy:
+                              type: boolean
+                              example: true
+                            search_healthy:
+                              type: boolean
+                              example: true
+                        download:
+                          type: object
+                          properties:
+                            healthy:
+                              type: boolean
+                              example: true
+                            ingest_healthy:
+                              type: boolean
+                              example: true

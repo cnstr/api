@@ -11,4 +11,14 @@
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/Landing'
+              type: object
+              properties:
+                status: 
+                  type: string
+                  enum:
+                    - 200 OK
+                date:
+                  type: string
+                  format: date-time
+                data:
+                  $ref: '#/components/schemas/Landing'
