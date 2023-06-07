@@ -14,6 +14,14 @@
         schema:
           type: string
           format: query
+      - name: priority
+        required: false
+        description: Which type of package to prioritize
+        schema:
+          type: string
+          enum:
+            - bootstrap
+            - default
     responses:
       '200':
         description: 'OK'
