@@ -71,7 +71,7 @@ fn try_get_header(header: Option<&HeaderValue>) -> String {
 	}
 }
 
-pub async fn ingest(headers: HeaderMap, body: Option<Json<Payload>>) -> impl IntoResponse {
+pub async fn ingest(headers: HeaderMap, body: Option<Json<Vec<Payload>>>) -> impl IntoResponse {
 	let body = match body {
 		Some(body) => body,
 		None => return responses::error(StatusCode::BAD_REQUEST, "Invalid request body"),
@@ -110,78 +110,84 @@ pub async fn ingest(headers: HeaderMap, body: Option<Json<Payload>>) -> impl Int
 		None => ("unknown".to_string(), "unknown".to_string()),
 	};
 
-	let package_id = &body.package_id.to_string();
-	let package_version = &body.package_version.to_string();
+	let mut events: Vec<DownloadEvent> = vec![];
 
-	let package_author = match &body.package_author {
-		Some(package_author) => package_author.to_string(),
-		None => "none".to_string(),
-	};
+	for entry in body.iter() {
+		let package_id = &entry.package_id.to_string();
+		let package_version = &entry.package_version.to_string();
 
-	let package_maintainer = match &body.package_maintainer {
-		Some(package_maintainer) => package_maintainer.to_string(),
-		None => "none".to_string(),
-	};
+		let package_author = match &entry.package_author {
+			Some(package_author) => package_author.to_string(),
+			None => "none".to_string(),
+		};
 
-	let repository_uri = &body.repository_uri.to_string();
-	let repository_suite = match &body.repository_suite {
-		Some(repository_suite) => repository_suite.to_string(),
-		None => "./".to_string(),
-	};
+		let package_maintainer = match &entry.package_maintainer {
+			Some(package_maintainer) => package_maintainer.to_string(),
+			None => "none".to_string(),
+		};
 
-	let repository_component = match &body.repository_component {
-		Some(repository_component) => repository_component.to_string(),
-		None => "none".to_string(),
-	};
+		let repository_uri = &entry.repository_uri.to_string();
+		let repository_suite = match &entry.repository_suite {
+			Some(repository_suite) => repository_suite.to_string(),
+			None => "./".to_string(),
+		};
 
-	let database_uuid = match clients::prisma(|prisma| {
-		prisma
-			.package()
-			.find_first(vec![
-				package::package::equals(package_id.to_string()),
-				package::version::equals(package_version.to_string()),
-				package::is_pruned::equals(false),
-			])
-			.with(package::repository::fetch())
-			.exec()
-	})
-	.await
-	{
-		Ok(package_search) => package_search.map(|package_search| package_search.uuid),
-		Err(_) => None,
-	};
+		let repository_component = match &entry.repository_component {
+			Some(repository_component) => repository_component.to_string(),
+			None => "none".to_string(),
+		};
 
-	let event = DownloadEvent {
-		package_id: package_id.to_string(),
-		package_version: package_version.to_string(),
-		package_author,
-		package_maintainer,
-		repository_uri: repository_uri.to_string(),
-		repository_suite,
-		repository_component,
+		let database_uuid = match clients::prisma(|prisma| {
+			prisma
+				.package()
+				.find_first(vec![
+					package::package::equals(package_id.to_string()),
+					package::version::equals(package_version.to_string()),
+					package::is_pruned::equals(false),
+				])
+				.with(package::repository::fetch())
+				.exec()
+		})
+		.await
+		{
+			Ok(package_search) => package_search.map(|package_search| package_search.uuid),
+			Err(_) => None,
+		};
 
-		client,
-		client_version,
-		jailbreak,
-		jailbreak_version,
-		distribution,
-		distribution_version,
-		client_architecture: architecture,
-		client_bitness: bitness,
-		device: model,
-		device_platform: platform,
-		device_version: platform_version,
+		let event = DownloadEvent {
+			package_id: package_id.to_string(),
+			package_version: package_version.to_string(),
+			package_author,
+			package_maintainer,
+			repository_uri: repository_uri.to_string(),
+			repository_suite,
+			repository_component,
 
-		database_uuid,
-		time: Utc::now().timestamp(),
-	};
+			client: client.clone(),
+			client_version: client_version.clone(),
+			jailbreak: jailbreak.clone(),
+			jailbreak_version: jailbreak_version.clone(),
+			distribution: distribution.clone(),
+			distribution_version: distribution_version.clone(),
+			client_architecture: architecture.clone(),
+			client_bitness: bitness.clone(),
+			device: model.clone(),
+			device_platform: platform.clone(),
+			device_version: platform_version.clone(),
 
-	let return_value = match to_value(event) {
+			database_uuid,
+			time: Utc::now().timestamp(),
+		};
+
+		events.push(event);
+	}
+
+	let return_value = match to_value(events) {
 		Ok(return_value) => return_value,
 		Err(_) => {
 			return responses::error(
 				StatusCode::INTERNAL_SERVER_ERROR,
-				"Failed to serialize event",
+				"Failed to serialize events",
 			);
 		}
 	};
