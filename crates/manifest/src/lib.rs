@@ -40,6 +40,7 @@ pub struct Build {
 	pub k8s_control_plane: String,
 	pub postgres_url: Conditional,
 	pub typesense_host: Conditional,
+	pub vector_host: Conditional,
 }
 
 #[derive(Deserialize)]

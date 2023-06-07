@@ -49,7 +49,11 @@ fn main() {
 	load_sentry_dsn(manifest.build.sentry_dsn);
 	load_k8s_info(manifest.build.k8s_control_plane);
 	load_piracy_urls(&manifest.build.piracy_endpoint);
-	load_database_urls(manifest.build.postgres_url, manifest.build.typesense_host);
+	load_database_urls(
+		manifest.build.postgres_url,
+		manifest.build.typesense_host,
+		manifest.build.vector_host,
+	);
 }
 
 /// Registers environment variables from the 'vergen' crate
@@ -165,14 +169,21 @@ async fn load_piracy_urls(json_endpoint: &str) {
 }
 
 /// Loads the databse connection strings from the build details
-/// Sets the CANISTER_POSTGRES_URL, CANISTER_TYPESENSE_HOST, and CANISTER_TYPESENSE_KEY environment variables
-fn load_database_urls(postgres: Conditional, typesense: Conditional) {
+/// Sets variables for PostgreSQL, Typesense, and Vector
+fn load_database_urls(postgres: Conditional, typesense: Conditional, vector: Conditional) {
 	let postgres_url = match cfg!(debug_assertions) {
 		true => &postgres.debug,
 		false => &postgres.release,
 	};
 
 	set_env("CANISTER_POSTGRES_URL", postgres_url);
+
+	let vector_url = match cfg!(debug_assertions) {
+		true => &vector.debug,
+		false => &vector.release,
+	};
+
+	set_env("CANISTER_VECTOR_URL", vector_url);
 
 	let typesense_host = match cfg!(debug_assertions) {
 		true => {

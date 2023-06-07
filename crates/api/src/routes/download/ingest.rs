@@ -202,7 +202,7 @@ pub async fn ingest(headers: HeaderMap, body: Option<Json<Payload>>) -> impl Int
 
 	let cloned_payload = return_value.clone();
 	let response = http_client
-		.post("http://localhost:8687/")
+		.post(env!("CANISTER_VECTOR_URL"))
 		.json(&cloned_payload)
 		.send()
 		.await;
