@@ -36,6 +36,11 @@ fn main() {
 	set_env("CANISTER_API_ENDPOINT", &manifest.endpoints.api);
 	set_env("CANISTER_CODE_NAME", &manifest.meta.code_name);
 
+	set_env(
+		"CANISTER_PRIVACY_UPDATED",
+		&manifest.endpoints.privacy_updated,
+	);
+
 	load_openapi(Metadata {
 		name: manifest.meta.production_name,
 		version: env!("CARGO_PKG_VERSION").to_string(),

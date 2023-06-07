@@ -62,6 +62,7 @@ pub struct Endpoints {
 	pub docs: String,
 	pub site: String,
 	pub privacy: String,
+	pub privacy_updated: String,
 }
 
 /// Loads the manifest.yaml file and deserializes it

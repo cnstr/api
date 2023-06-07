@@ -10,6 +10,7 @@ schema:
   reference:
     docs: https://docs.canister.me
     privacy_policy: https://canister.me/privacy
+    privacy_updated: 2022-03-25
     contact_email: support@canister.me
     copyright: Aarnav Tale (c) 2023
 descriptions:
@@ -22,5 +23,6 @@ descriptions:
   reference:
     docs: Link to the API documentation
     privacy_policy: Link to the API privacy policy
+    privacy_updated: Date the privacy policy was last updated
     contact_email: Support email for questions or concerns
     copyright: Copyright notice

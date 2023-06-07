@@ -48,6 +48,7 @@ pub async fn landing_page() -> impl IntoResponse {
 			"reference": {
 				"docs": env!("CANISTER_DOCS_ENDPOINT"),
 				"privacy_policy": env!("CANISTER_PRIVACY_ENDPOINT"),
+				"privacy_updated": env!("CANISTER_PRIVACY_UPDATED"),
 				"contact_email": env!("CANISTER_CONTACT_EMAIL"),
 				"copyright": copyright,
 			},
