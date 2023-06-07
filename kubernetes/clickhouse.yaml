@@ -1,0 +1,119 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: clickhouse
+  namespace: canister
+data:
+  CLICKHOUSE_DB: canister
+  CLICKHOUSE_USER: canister
+  CLICKHOUSE_PASSWORD: XyNAg9tQ5Edk0ewmwkTX
+  CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: '1'
+  migration.sql: |
+    CREATE TABLE IF NOT EXISTS canister.download_events (
+      package_id String,
+      package_version String,
+      package_author String,
+      package_maintainer String,
+      repository_uri String,
+      repository_suite String,
+      repository_component String,
+      client String,
+      client_version String,
+      jailbreak String,
+      jailbreak_version String,
+      distribution String,
+      distribution_version String,
+      client_architecture String,
+      client_bitness UInt32,
+      device String,
+      device_platform String,
+      device_version String,
+      database_uuid String,
+      timestamp String,
+      time DateTime
+    )
+    ENGINE = MergeTree()
+    ORDER BY (timestamp)
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: clickhouse
+  namespace: canister
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 15Gi
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: clickhouse-logs
+  namespace: canister
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: clickhouse
+  namespace: canister
+spec:
+  ports:
+    - port: 8123
+      targetPort: 8123
+  selector:
+    app: com.tale.canister.clickhouse
+  clusterIP: None
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: clickhouse
+  namespace: canister
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: com.tale.canister.clickhouse
+  template:
+    metadata:
+      labels:
+        app: com.tale.canister.clickhouse
+    spec:
+      restartPolicy: Always
+      containers:
+      - name: clickhouse
+        image: clickhouse/clickhouse-server:latest
+        ports:
+        - name: clickhouse
+          containerPort: 8123
+        volumeMounts:
+        - name: clickhouse
+          mountPath: /docker-entrypoint-initdb.d/
+        - name: data
+          mountPath: /var/lib/clickhouse
+        - name: logs
+          mountPath: /var/log/clickhouse-server
+        envFrom:
+        - configMapRef:
+            name: clickhouse
+      volumes:
+      - name: clickhouse
+        configMap:
+          name: clickhouse
+          items:
+            - key: migration.sql
+              path: migration.sql
+      - name: data
+        persistentVolumeClaim:
+          claimName: clickhouse
+      - name: logs
+        persistentVolumeClaim:
+          claimName: clickhouse-logs
