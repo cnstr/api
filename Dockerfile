@@ -1,4 +1,4 @@
-FROM rust:1.66 as builder
+FROM --platform=$BUILDPLATFORM rust:1.66 as builder
 WORKDIR /app
 
 ADD . .
