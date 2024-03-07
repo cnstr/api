@@ -31,7 +31,7 @@ spec:
       - name: google-cloud
       containers:
       - name: api
-        image: us-east4-docker.pkg.dev/aarnavtale/canister/api:2.4.25
+        image: us-east4-docker.pkg.dev/aarnavtale/canister/api:2.4.26
         ports:
         - name: api
           containerPort: 3000
