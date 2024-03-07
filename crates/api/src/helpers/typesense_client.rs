@@ -63,7 +63,7 @@ pub async fn typesense<R: DeserializeOwned>(
 	query: impl Serialize,
 	path: &str,
 ) -> Result<R, TypesenseQueryError> {
-	let url = format!("http://{}:8108/{}", env!("CANISTER_TYPESENSE_HOST"), path);
+	let url = format!("{}/{}", env!("CANISTER_TYPESENSE_HOST"), path);
 	let request = typesense_client().get(&url).query(&query);
 
 	let response = match request.send().await {
