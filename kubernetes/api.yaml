@@ -28,10 +28,10 @@ spec:
     spec:
       restartPolicy: Always
       imagePullSecrets:
-      - name: google-cloud
+      - name: oracle-cloud
       containers:
       - name: api
-        image: us-east4-docker.pkg.dev/aarnavtale/canister/api:2.4.26
+        image: iad.ocir.io/idydjmpmhphx/tale/cnstr-api:2.4.25
         ports:
         - name: api
           containerPort: 3000
