@@ -5,7 +5,7 @@ ADD . .
 RUN cargo prisma generate
 RUN cargo build --release -p api
 
-FROM gcr.io/distroless/cc
+FROM gcr.io/distroless/cc-debian11
 COPY --from=builder /app/target/release/api /
 CMD ["./api"]
 
