@@ -28,7 +28,7 @@ spec:
     spec:
       restartPolicy: Always
       imagePullSecrets:
-      - name: oracle-cloud
+      - name: google-cloud
       containers:
       - name: api
         image: us-east4-docker.pkg.dev/aarnavtale/canister/api:2.4.27
