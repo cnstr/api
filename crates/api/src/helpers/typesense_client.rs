@@ -10,6 +10,7 @@ use std::{fmt::Display, process::exit, time::Duration};
 
 static TYPESENSE_CLIENT: OnceCell<Client> = OnceCell::new();
 
+#[derive(Debug)]
 pub struct TypesenseQueryError {
 	pub message: String,
 	pub http_error: Option<ReqwestError>,

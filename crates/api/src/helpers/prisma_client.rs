@@ -3,19 +3,21 @@ use once_cell::sync::OnceCell;
 use prisma_client_rust::QueryError;
 use sentry::{capture_message, Level};
 use serde::de::DeserializeOwned;
-use std::{future::Future, process::exit};
+use std::{env, future::Future, process::exit};
 
 static PRISMA_CLIENT: OnceCell<PrismaClient> = OnceCell::new();
 
 async fn prisma_client() -> &'static PrismaClient {
 	let global_client = PRISMA_CLIENT.get();
 
+	// Check for DATABASE_URL env first
+	let url = match env::var("DATABASE_URL") {
+		Ok(val) => val,
+		Err(_) => env!("CANISTER_POSTGRES_URL").to_string(),
+	};
+
 	if global_client.is_none() {
-		let client = match PrismaClient::_builder()
-			.with_url(env!("CANISTER_POSTGRES_URL").to_string())
-			.build()
-			.await
-		{
+		let client = match PrismaClient::_builder().with_url(url).build().await {
 			Ok(client) => client,
 			Err(err) => {
 				capture_message("failed to create prisma client", Level::Fatal);
