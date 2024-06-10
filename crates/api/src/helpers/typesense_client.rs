@@ -6,7 +6,7 @@ use reqwest::{
 };
 use sentry::{capture_message, Level};
 use serde::{de::DeserializeOwned, Serialize};
-use std::{fmt::Display, process::exit, time::Duration};
+use std::{env, fmt::Display, process::exit, time::Duration};
 
 static TYPESENSE_CLIENT: OnceCell<Client> = OnceCell::new();
 
@@ -64,7 +64,13 @@ pub async fn typesense<R: DeserializeOwned>(
 	query: impl Serialize,
 	path: &str,
 ) -> Result<R, TypesenseQueryError> {
-	let url = format!("{}/{}", env!("CANISTER_TYPESENSE_HOST"), path);
+	// Check for TYPESENSE_URL env first
+	let prefix = match env::var("TYPESENSE_URL") {
+		Ok(val) => val,
+		Err(_) => env!("CANISTER_TYPESENSE_HOST").to_string(),
+	};
+
+	let url = format!("{}/{}", prefix.trim_end_matches('/'), path);
 	let request = typesense_client().get(&url).query(&query);
 
 	let response = match request.send().await {
