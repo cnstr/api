@@ -31,7 +31,7 @@ spec:
       - name: oracle-cloud
       containers:
       - name: api
-        image: iad.ocir.io/idydjmpmhphx/tale/cnstr-api:2.4.25
+        image: us-east4-docker.pkg.dev/aarnavtale/canister/api:2.4.27
         ports:
         - name: api
           containerPort: 3000
