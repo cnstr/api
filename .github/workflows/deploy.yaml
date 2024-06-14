@@ -31,6 +31,11 @@ jobs:
         with:
           images: ghcr.io/${{ github.repository }}
 
+      - name: Load configuration manifest
+        run: echo "$MANIFEST_BASE64" | base64 -d > manifest.yaml
+        env:
+          MANIFEST_BASE64: ${{ secrets.API_MANIFEST }}
+
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
