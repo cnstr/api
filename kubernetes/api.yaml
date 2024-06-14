@@ -27,11 +27,9 @@ spec:
         app: api
     spec:
       restartPolicy: Always
-      imagePullSecrets:
-      - name: google-cloud
       containers:
       - name: api
-        image: us-east4-docker.pkg.dev/aarnavtale/canister/api:2.4.29
+        image: ghcr.io/cnstr/api:latest
         ports:
         - name: api
           containerPort: 3000
