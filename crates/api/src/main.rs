@@ -37,35 +37,41 @@ async fn main() {
 	));
 
 	let app = Router::new()
-		.route("/", get(routes::info::landing_page))
-		.route("/healthz", get(routes::info::health_check))
-		.route("/openapi.json", get(routes::info::openapi_json))
-		.route("/openapi.yaml", get(routes::info::openapi_yaml))
-		.route("/jailbreak/download/ingest", post(routes::download::ingest))
-		.route("/jailbreak/package/search", get(routes::package::search))
-		.route("/jailbreak/package/:package", get(routes::package::lookup))
+		.route("/v2/", get(routes::info::landing_page))
+		.route("/v2/healthz", get(routes::info::health_check))
+		.route("/v2/openapi.json", get(routes::info::openapi_json))
+		.route("/v2/openapi.yaml", get(routes::info::openapi_yaml))
 		.route(
-			"/jailbreak/package/multi",
+			"/v2/jailbreak/download/ingest",
+			post(routes::download::ingest),
+		)
+		.route("/v2/jailbreak/package/search", get(routes::package::search))
+		.route(
+			"/v2/jailbreak/package/:package",
+			get(routes::package::lookup),
+		)
+		.route(
+			"/v2/jailbreak/package/multi",
 			get(routes::package::multi_lookup),
 		)
 		.route(
-			"/jailbreak/repository/ranking",
+			"/v2/jailbreak/repository/ranking",
 			get(routes::repository::ranking),
 		)
 		.route(
-			"/jailbreak/repository/safety",
+			"/v2/jailbreak/repository/safety",
 			get(routes::repository::safety),
 		)
 		.route(
-			"/jailbreak/repository/search",
+			"/v2/jailbreak/repository/search",
 			get(routes::repository::search),
 		)
 		.route(
-			"/jailbreak/repository/:repository",
+			"/v2/jailbreak/repository/:repository",
 			get(routes::repository::lookup),
 		)
 		.route(
-			"/jailbreak/repository/:repository/packages",
+			"/v2/jailbreak/repository/:repository/packages",
 			get(routes::repository::packages),
 		)
 		.layer(middleware::from_fn(cors_middleware))
