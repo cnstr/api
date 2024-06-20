@@ -37,14 +37,16 @@ jobs:
           MANIFEST_BASE64: ${{ secrets.API_MANIFEST }}
 
       - name: Build and push Docker image
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: .
           file: ./Dockerfile
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          platforms: linux/amd64, linux/arm64
+          platforms: linux/arm64
+          cache-to: type=registry,ref=ghcr.io/cnstr/api-cache,compression=zstd
+          cache-from: type=registry,ref=ghcr.io/cnstr/api-cache
 
   deploy:
     name: Deploy
