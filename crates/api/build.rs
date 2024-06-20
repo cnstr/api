@@ -4,6 +4,7 @@ use serde::Deserialize;
 use serde_json::{from_str as from_json, to_string as to_string_json};
 use serde_yaml::{from_str as from_yaml, to_string as to_string_yaml};
 use std::{
+	collections::HashMap,
 	fs::{canonicalize, read_to_string},
 	path::Path,
 };
@@ -96,15 +97,18 @@ fn main() {
 		&manifest.endpoints.privacy_updated,
 	);
 
-	load_openapi(Metadata {
-		name: manifest.meta.production_name,
-		version: env!("CARGO_PKG_VERSION").to_string(),
-		description: manifest.meta.description,
-		contact: manifest.meta.contact_email,
-		license: manifest.meta.copyright_string,
-		endpoint: manifest.endpoints.api,
-		cwd: "../openapi".to_string(),
-	});
+	load_openapi(
+		manifest.build.bump,
+		Metadata {
+			name: manifest.meta.production_name,
+			version: env!("CARGO_PKG_VERSION").to_string(),
+			description: manifest.meta.description,
+			contact: manifest.meta.contact_email,
+			license: manifest.meta.copyright_string,
+			endpoint: manifest.endpoints.api,
+			cwd: "../openapi".to_string(),
+		},
+	);
 
 	load_sentry_dsn(manifest.build.sentry_dsn);
 	load_k8s_info(manifest.build.k8s_control_plane);
@@ -175,7 +179,8 @@ fn set_env(key: &str, value: &str) {
 
 /// Loads the OpenAPI schema via the 'openapi' crate
 /// Sets the CANISTER_OPENAPI_YAML and CANISTER_OPENAPI_JSON environment variables
-fn load_openapi(metadata: Metadata) {
+#[main]
+async fn load_openapi(manifest: Bump, metadata: Metadata) {
 	let api = generate_openapi(&metadata);
 
 	let yaml = match to_string_yaml(&api) {
@@ -191,6 +196,35 @@ fn load_openapi(metadata: Metadata) {
 	};
 
 	set_env("CANISTER_OPENAPI_JSON", &json);
+
+	// Check if we are running in the docker build environment
+	// If we are, make an upload to the documentation server
+	if let Ok(_) = std::env::var("UPLOAD_OPENAPI") {
+		let mut body = HashMap::new();
+		body.insert("documentation", &manifest.documentation_id);
+		body.insert("definition", &json);
+
+		let client = reqwest::Client::new();
+		let response = client
+			.post("https://bump.sh/api/v1/versions")
+			.header("Authorization", format!("Token {}", manifest.access_token))
+			.json(&body)
+			.send()
+			.await;
+
+		match response {
+			Ok(response) => {
+				if response.status().is_success() {
+					println!("Successfully uploaded OpenAPI schema to documentation server");
+				} else {
+					println!("Failed to upload OpenAPI schema to documentation server");
+				}
+			}
+			Err(e) => {
+				println!("Failed to upload OpenAPI schema to documentation server ({e})");
+			}
+		}
+	}
 }
 
 /// Loads the Sentry DSN from the manifest

@@ -20,7 +20,7 @@ url = "2.3.1"
 
 [build-dependencies]
 openapi = { version = "2.0.0", path = "../openapi" }
-reqwest = "0.11.13"
+reqwest = { version = "0.11.13", features = ["blocking", "json"] }
 serde = "1.0.152"
 serde_json = "1.0.91"
 tokio = { version = "1.23.0", features = ["macros", "rt-multi-thread"] }

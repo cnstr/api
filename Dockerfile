@@ -1,4 +1,5 @@
 FROM rust:1.66 as builder
+ENV UPLOAD_OPENAPI=true
 WORKDIR /app
 
 ADD . .
