@@ -1,3 +1,3 @@
 [alias]
 prisma = "run --release --bin prisma-cli --"
-deploy = "run --release --bin deploy"
+openapi = "run --release --bin openapi --"
