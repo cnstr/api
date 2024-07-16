@@ -1,0 +1,135 @@
+services:
+  database:
+    image: postgres:15-alpine
+    container_name: canister-db
+    ports:
+      - 5432:5432
+    networks:
+      - canister
+    environment:
+      POSTGRES_PASSWORD: pg
+      POSTGRES_USER: cnstr
+    volumes:
+      - db:/var/lib/postgresql/data
+  search:
+    image: typesense/typesense:26.0
+    container_name: canister-search
+    ports:
+      - 8108:8108
+    networks:
+      - canister
+    environment:
+      TYPESENSE_API_KEY: typesense
+      TYPESENSE_DATA_DIR: /data
+      TYPESENSE_ENABLE_CORS: "true"
+    volumes:
+      - typesense:/data
+  pipeline:
+    image: timberio/vector:0.39.0-distroless-libc
+    container_name: canister-pipeline
+    command: '/usr/bin/vector --config /etc/vector/vector.toml'
+    configs:
+      - source: vector_toml
+        target: /etc/vector/vector.toml
+    ports:
+      - 8687:8687
+    networks:
+      - canister
+    depends_on:
+      - sink
+  sink:
+    image: clickhouse/clickhouse-server:latest
+    container_name: canister-clickhouse
+    configs:
+      - source: clickhouse_sh
+        target: /docker-entrypoint-initdb.d/clickhouse.sh
+    ports:
+      - 8123:8123
+      - 9000:9000
+    volumes:
+      - clickhouse:/var/lib/clickhouse
+    networks:
+      - canister
+    environment:
+      CLICKHOUSE_DB: canister
+      CLICKHOUSE_USER: canister
+      CLICKHOUSE_PASSWORD: canister
+      CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: '1'
+  grafana:
+    image: grafana/grafana:latest
+    container_name: canister-grafana
+    ports:
+      - 4000:3000
+    volumes:
+      - dashboard:/var/lib/grafana
+    networks:
+      - canister
+    depends_on:
+      - pipeline
+      - sink
+      - database
+volumes:
+  clickhouse:
+  dashboard:
+  db:
+  typesense:
+
+networks:
+  canister:
+    driver: bridge
+
+configs:
+  vector_toml:
+    content: |
+      [sources.http_ingest]
+      type = "http_server"
+      address = "0.0.0.0:8687"
+      encoding = "json"
+
+      [sinks.console]
+      type = "console"
+      inputs = ["http_ingest"]
+      target = "stdout"
+      encoding.codec = "json"
+
+      [sinks.clickhouse]
+      type = "clickhouse"
+      inputs = ["http_ingest"]
+      endpoint = "http://sink:8123"
+      auth.strategy = "basic"
+      auth.user = "canister"
+      auth.password = "canister"
+      database = "canister"
+      table = "download_events"
+      skip_unknown_fields = true
+  clickhouse_sh:
+    content: |
+      #!/bin/bash
+      set -e
+      clickhouse client -n <<-EOSQL
+          CREATE TABLE IF NOT EXISTS canister.download_events (
+              package_id String,
+              package_version String,
+              package_author String,
+              package_maintainer String,
+              repository_uri String,
+              repository_suite String,
+              repository_component String,
+              client String,
+              client_version String,
+              jailbreak String,
+              jailbreak_version String,
+              distribution String,
+              distribution_version String,
+              client_architecture String,
+              client_bitness UInt32,
+              device String,
+              device_platform String,
+              device_version String,
+              database_uuid String,
+              timestamp String,
+              time DateTime
+          )
+          ENGINE = MergeTree()
+          ORDER BY (timestamp)
+      EOSQL
