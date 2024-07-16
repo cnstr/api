@@ -1,7 +1,7 @@
 use crate::{
 	helpers::{clients, responses},
 	prisma::repository,
-	utility::{handle_error, merge_json},
+	utility::{api_endpoint, handle_error, merge_json},
 };
 use axum::{extract::Query, http::StatusCode, response::IntoResponse};
 use prisma_client_rust::Direction;
@@ -93,8 +93,8 @@ pub async fn ranking(query: Query<RankingParams>) -> impl IntoResponse {
 					repository,
 					json!({
 						"refs": {
-							"meta": format!("{}/jailbreak/repository/{}", env!("CANISTER_API_ENDPOINT"), slug),
-							"packages": format!("{}/jailbreak/repository/{}/packages", env!("CANISTER_API_ENDPOINT"), slug),
+							"meta": format!("{}/jailbreak/repository/{}", api_endpoint(), slug),
+							"packages": format!("{}/jailbreak/repository/{}/packages", api_endpoint(), slug),
 						}
 					}),
 				);

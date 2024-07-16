@@ -1,7 +1,7 @@
 use crate::{
 	helpers::{clients, responses},
 	prisma::package,
-	utility::merge_json,
+	utility::{api_endpoint, merge_json},
 };
 use axum::{extract::Path, http::StatusCode, response::IntoResponse};
 use prisma_client_rust::Direction;
@@ -45,7 +45,7 @@ pub async fn lookup(package: Path<String>) -> impl IntoResponse {
 					package,
 					json!({
 						"refs": {
-							"repo": format!("{}/jailbreak/repository/{}", env!("CANISTER_API_ENDPOINT"), slug)
+							"repo": format!("{}/jailbreak/repository/{}", api_endpoint(), slug)
 						}
 					}),
 				);

@@ -1,4 +1,5 @@
 use crate::helpers::responses;
+use crate::utility::load_runtime_config;
 use axum::{http::StatusCode, response::IntoResponse};
 use chrono::Datelike;
 use chrono::Utc;
@@ -6,11 +7,9 @@ use serde_json::json;
 use std::env::var;
 
 pub async fn landing_page() -> impl IntoResponse {
-	let name = format!(
-		"{} ({})",
-		env!("CANISTER_PRODUCTION_NAME"),
-		env!("CANISTER_CODE_NAME")
-	);
+	let config = load_runtime_config();
+
+	let name = format!("{} ({})", config.meta_name, config.meta_code);
 
 	let build = format!(
 		"{}+git-{}-tree/{}",
@@ -26,13 +25,10 @@ pub async fn landing_page() -> impl IntoResponse {
 		env!("VERGEN_RUSTC_LLVM_VERSION")
 	);
 
-	let runtime = format!(
-		"{}-{}",
-		env!("CANISTER_K8S_VERSION"),
-		var("POD_NAME").unwrap_or("unknown".to_string())
-	);
-
-	let copyright = env!("CANISTER_COPYRIGHT").replace("{{year}}", &Utc::now().year().to_string());
+	let runtime = format!("k8s-{}", var("POD_NAME").unwrap_or("unknown".to_string()));
+	let copyright = config
+		.meta_copyright
+		.replace("{year}", &Utc::now().year().to_string());
 
 	responses::data(
 		StatusCode::OK,
@@ -46,10 +42,10 @@ pub async fn landing_page() -> impl IntoResponse {
 			},
 
 			"reference": {
-				"docs": env!("CANISTER_DOCS_ENDPOINT"),
-				"privacy_policy": env!("CANISTER_PRIVACY_ENDPOINT"),
-				"privacy_updated": env!("CANISTER_PRIVACY_UPDATED"),
-				"contact_email": env!("CANISTER_CONTACT_EMAIL"),
+				"docs": config.docs_endpoint,
+				"privacy_policy": config.privacy_endpoint,
+				"privacy_updated": config.privacy_updated,
+				"contact_email": config.meta_email,
 				"copyright": copyright,
 			},
 		}),

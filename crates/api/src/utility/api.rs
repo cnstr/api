@@ -1,7 +1,10 @@
-use super::handle_error;
+use super::{handle_error, load_runtime_config};
 use serde::Serialize;
 use serde_json::{to_value, Value};
+use std::sync::OnceLock;
 use url::Url;
+
+static API_ENDPOINT: OnceLock<String> = OnceLock::new();
 
 /// Merges two JSON objects together in the order of left, right
 /// If the object is a strictly-typed struct, it is serialized into a Value
@@ -43,8 +46,12 @@ fn merge_json_value(left: &mut Value, right: Value) {
 /// Generates pagination links with the given URL path and page number
 /// The next parameter determines if this is the last page or not
 pub fn page_links(path: &str, page: u8, next: bool) -> (Option<String>, Option<String>) {
-	let url = format!("{}{}", env!("CANISTER_API_ENDPOINT"), path);
+	let endpoint = API_ENDPOINT.get_or_init(|| {
+		let config = load_runtime_config();
+		config.api_endpoint
+	});
 
+	let url = format!("{}{}", endpoint, path);
 	let mut url = match Url::parse(&url) {
 		Ok(url) => url,
 		Err(err) => {
@@ -77,4 +84,13 @@ pub fn page_links(path: &str, page: u8, next: bool) -> (Option<String>, Option<S
 	};
 
 	(prev_page, next_page)
+}
+
+pub fn api_endpoint() -> String {
+	API_ENDPOINT
+		.get_or_init(|| {
+			let config = load_runtime_config();
+			config.api_endpoint
+		})
+		.clone()
 }

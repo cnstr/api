@@ -1,12 +1,9 @@
-use crate::helpers::report_error;
+use crate::{helpers::report_error, utility::load_runtime_config};
 use once_cell::sync::OnceCell;
-use reqwest::{
-	header::{HeaderMap, HeaderValue},
-	Client, Error as ReqwestError,
-};
+use reqwest::{header::HeaderMap, Client, Error as ReqwestError};
 use sentry::{capture_message, Level};
 use serde::{de::DeserializeOwned, Serialize};
-use std::{env, fmt::Display, process::exit, time::Duration};
+use std::{fmt::Display, process::exit, time::Duration};
 
 static TYPESENSE_CLIENT: OnceCell<Client> = OnceCell::new();
 
@@ -40,10 +37,12 @@ impl TypesenseQueryError {
 
 fn typesense_client() -> &'static Client {
 	match TYPESENSE_CLIENT.get_or_try_init(|| {
+		let config = load_runtime_config();
 		let mut headers = HeaderMap::new();
+
 		headers.insert(
 			"X-Typesense-API-Key",
-			HeaderValue::from_static(env!("CANISTER_TYPESENSE_KEY")),
+			config.typesense_api_key.parse().unwrap(),
 		);
 
 		Client::builder()
@@ -64,11 +63,8 @@ pub async fn typesense<R: DeserializeOwned>(
 	query: impl Serialize,
 	path: &str,
 ) -> Result<R, TypesenseQueryError> {
-	// Check for TYPESENSE_URL env first
-	let prefix = match env::var("TYPESENSE_URL") {
-		Ok(val) => val,
-		Err(_) => env!("CANISTER_TYPESENSE_HOST").to_string(),
-	};
+	let config = load_runtime_config();
+	let prefix = config.typesense_url;
 
 	let url = format!("{}/{}", prefix.trim_end_matches('/'), path);
 	let request = typesense_client().get(&url).query(&query);

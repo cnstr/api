@@ -8,7 +8,9 @@ use axum::{
 use chrono::Utc;
 use sentry::{capture_message, init, ClientOptions, Level};
 use serde_json::json;
-use std::{net::SocketAddr, process::exit};
+use std::{net::SocketAddr, process::exit, sync::OnceLock};
+
+use crate::utility::load_runtime_config;
 
 mod helpers;
 mod prisma;
@@ -23,12 +25,16 @@ mod utility;
 #[warn(clippy::complexity)]
 #[warn(clippy::perf)]
 
+static POD_NAME: OnceLock<String> = OnceLock::new();
+
 /// Main entry point for the HTTP server
 /// All route handlers run in a tokio context
 #[tokio::main]
 async fn main() {
+	let config = load_runtime_config();
+
 	let _guard = init((
-		env!("CANISTER_SENTRY_DSN"),
+		config.sentry_dsn.as_str(),
 		ClientOptions {
 			release: Some(env!("VERGEN_BUILD_SEMVER").into()),
 			traces_sample_rate: 0.5,
@@ -114,5 +120,15 @@ async fn cors_middleware<B>(request: Request<B>, next: Next<B>) -> Response {
 		HeaderValue::from_static("Content-Type, *"),
 	);
 
+	// Also add the X-Served-By header and X-Request-ID (TODO)
+	let pod_name = POD_NAME.get_or_init(|| {
+		let pod_name = std::env::var("POD_NAME").unwrap_or_else(|_| "unknown".to_string());
+		pod_name
+	});
+
+	headers.insert(
+		"X-Served-By",
+		HeaderValue::from_str(pod_name).unwrap_or(HeaderValue::from_static("unknown")),
+	);
 	response
 }

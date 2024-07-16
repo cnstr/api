@@ -1,13 +1,10 @@
+use chrono::Datelike;
+use chrono::Utc;
 use openapi::{generate_openapi, Metadata};
-use reqwest::ClientBuilder;
 use serde::Deserialize;
-use serde_json::{from_str as from_json, to_string as to_string_json};
-use serde_yaml::{from_str as from_yaml, to_string as to_string_yaml};
-use std::{
-	collections::HashMap,
-	fs::{canonicalize, read_to_string},
-	path::Path,
-};
+use serde_json::to_string as to_string_json;
+use serde_yaml::to_string as to_string_yaml;
+use std::collections::HashMap;
 use tokio::main;
 use vergen::{vergen, Config, ShaKind};
 
@@ -71,80 +68,20 @@ pub struct Endpoints {
 	pub privacy_updated: String,
 }
 
-/// Kubernetes HTTP Response
-#[derive(Deserialize)]
-struct K8sResponse {
-	#[serde(rename = "gitVersion")]
-	git_version: String,
-	platform: String,
-}
-
 fn main() {
 	register_vergen_envs();
-	let manifest = load_manifest("../../manifest.yaml");
+	let copyright =
+		env_or_die("CANISTER_META_COPYRIGHT").replace("{year}", &Utc::now().year().to_string());
 
-	set_env("CANISTER_PRODUCTION_NAME", &manifest.meta.production_name);
-	set_env("CANISTER_PRIVACY_ENDPOINT", &manifest.endpoints.privacy);
-	set_env("CANISTER_CONTACT_EMAIL", &manifest.meta.contact_email);
-	set_env("CANISTER_COPYRIGHT", &manifest.meta.copyright_string);
-	set_env("CANISTER_DOCS_ENDPOINT", &manifest.endpoints.docs);
-	set_env("CANISTER_SITE_ENDPOINT", &manifest.endpoints.site);
-	set_env("CANISTER_API_ENDPOINT", &manifest.endpoints.api);
-	set_env("CANISTER_CODE_NAME", &manifest.meta.code_name);
-
-	set_env(
-		"CANISTER_PRIVACY_UPDATED",
-		&manifest.endpoints.privacy_updated,
-	);
-
-	load_openapi(
-		manifest.build.bump,
-		Metadata {
-			name: manifest.meta.production_name,
-			version: env!("CARGO_PKG_VERSION").to_string(),
-			description: manifest.meta.description,
-			contact: manifest.meta.contact_email,
-			license: manifest.meta.copyright_string,
-			endpoint: manifest.endpoints.api,
-			cwd: "../openapi".to_string(),
-		},
-	);
-
-	load_sentry_dsn(manifest.build.sentry_dsn);
-	load_k8s_info(manifest.build.k8s_control_plane);
-	load_piracy_urls(&manifest.build.piracy_endpoint);
-	load_database_urls(
-		manifest.build.postgres_url,
-		manifest.build.typesense_host,
-		manifest.build.vector_host,
-	);
-}
-
-/// Loads the manifest.yaml file and deserializes it
-/// Panics if the file is not found or if it fails to deserialize
-pub fn load_manifest(path: &str) -> Manifest {
-	let manifest_path = Path::new(path);
-	let manifest = match read_to_string(manifest_path) {
-		Ok(manifest) => {
-			match canonicalize(manifest_path) {
-				Ok(path) => println!("cargo:rerun-if-changed={}", path.display()),
-				Err(e) => panic!("Failed to canonicalize manifest path ({e})"),
-			};
-
-			match from_yaml(&manifest) {
-				Ok(value) => {
-					let value: Manifest = value;
-					value
-				}
-				Err(e) => panic!("Failed to parse manifest.yaml ({e})"),
-			}
-		}
-		Err(e) => {
-			panic!("Failed to read manifest.yaml ({e})")
-		}
-	};
-
-	manifest
+	load_openapi(Metadata {
+		name: env_or_die("CANISTER_META_NAME"),
+		version: env!("CARGO_PKG_VERSION").to_string(),
+		description: env_or_die("CANISTER_META_DESC"),
+		contact: env_or_die("CANISTER_META_EMAIL"),
+		license: copyright,
+		endpoint: env_or_die("CANISTER_API_ENDPOINT"),
+		cwd: "../openapi".to_string(),
+	});
 }
 
 /// Registers environment variables from the 'vergen' crate
@@ -177,10 +114,22 @@ fn set_env(key: &str, value: &str) {
 	println!("cargo:rustc-env={key}={value}");
 }
 
+/// Safely retrieves an environment variable or panics
+/// Used for build-time variables
+fn env_or_die(key: &str) -> String {
+	match std::env::var(key) {
+		Ok(value) => value,
+		Err(_) => {
+			eprintln!("FATAL: Missing Environment Variable: {}", key);
+			std::process::exit(1);
+		}
+	}
+}
+
 /// Loads the OpenAPI schema via the 'openapi' crate
 /// Sets the CANISTER_OPENAPI_YAML and CANISTER_OPENAPI_JSON environment variables
 #[main]
-async fn load_openapi(manifest: Bump, metadata: Metadata) {
+async fn load_openapi(metadata: Metadata) {
 	let api = generate_openapi(&metadata);
 
 	let yaml = match to_string_yaml(&api) {
@@ -199,15 +148,18 @@ async fn load_openapi(manifest: Bump, metadata: Metadata) {
 
 	// Check if we are running in the docker build environment
 	// If we are, make an upload to the documentation server
-	if let Ok(_) = std::env::var("UPLOAD_OPENAPI") {
+	if std::env::var("CANISTER_UPLOAD_OPENAPI").is_ok() {
+		let id = env_or_die("CANISTER_OPENAPI_ID");
+		let token = env_or_die("CANISTER_OPENAPI_TOKEN");
+
 		let mut body = HashMap::new();
-		body.insert("documentation", &manifest.documentation_id);
+		body.insert("documentation", &id);
 		body.insert("definition", &json);
 
 		let client = reqwest::Client::new();
 		let response = client
 			.post("https://bump.sh/api/v1/versions")
-			.header("Authorization", format!("Token {}", manifest.access_token))
+			.header("Authorization", format!("Token {}", token))
 			.json(&body)
 			.send()
 			.await;
@@ -225,108 +177,4 @@ async fn load_openapi(manifest: Bump, metadata: Metadata) {
 			}
 		}
 	}
-}
-
-/// Loads the Sentry DSN from the manifest
-fn load_sentry_dsn(dsn: Conditional) {
-	let sentry_dsn = match cfg!(debug_assertions) {
-		true => &dsn.debug,
-		false => &dsn.release,
-	};
-
-	set_env("CANISTER_SENTRY_DSN", sentry_dsn);
-}
-
-/// Fetches the Kubernetes version from the control plane
-/// Sets the CANISTER_K8S_VERSION environment variable
-#[main]
-async fn load_k8s_info(k8s_host: String) {
-	let client = match ClientBuilder::new()
-		.danger_accept_invalid_certs(true)
-		.build()
-	{
-		Ok(client) => client,
-		Err(e) => panic!("Failed to build insecure HTTP client ({e})"),
-	};
-
-	let url = format!("https://{k8s_host}/version");
-	let json = match client.get(url).send().await {
-		Ok(response) => match response.text().await {
-			Ok(value) => {
-				let value: K8sResponse = match from_json(&value) {
-					Ok(value) => value,
-					Err(e) => panic!("Failed to deserialize Kubernetes HTTP response ({e})"),
-				};
-
-				value
-			}
-			Err(e) => panic!("Failed to parse Kubernetes HTTP response ({e})"),
-		},
-		Err(e) => panic!("Failed to fetch Kubernetes version ({e})"),
-	};
-
-	set_env(
-		"CANISTER_K8S_VERSION",
-		format!("k8s_{}-{}", &json.git_version, &json.platform).as_str(),
-	);
-}
-
-/// Fetches the piracy URLs from the piracy endpoint
-/// Sets the CANISTER_PIRACY_URLS environment variable
-/// Viewable at github.com/cnstr/manifests
-#[main]
-async fn load_piracy_urls(json_endpoint: &str) {
-	let response = match reqwest::get(json_endpoint).await {
-		Ok(response) => response,
-		Err(e) => panic!("Failed to fetch piracy URLs ({e})"),
-	};
-
-	let value = match response.text().await {
-		Ok(value) => value,
-		Err(e) => panic!("Failed to parse piracy URLs ({e})"),
-	};
-
-	set_env("CANISTER_PIRACY_URLS", &value);
-}
-
-/// Loads the databse connection strings from the build details
-/// Sets variables for PostgreSQL, Typesense, and Vector
-fn load_database_urls(postgres: Conditional, typesense: Conditional, vector: Conditional) {
-	let postgres_url = match cfg!(debug_assertions) {
-		true => &postgres.debug,
-		false => &postgres.release,
-	};
-
-	set_env("CANISTER_POSTGRES_URL", postgres_url);
-
-	let vector_url = match cfg!(debug_assertions) {
-		true => &vector.debug,
-		false => &vector.release,
-	};
-
-	set_env("CANISTER_VECTOR_URL", vector_url);
-
-	let typesense_host = match cfg!(debug_assertions) {
-		true => {
-			let binding = typesense.debug.split('@').collect::<Vec<&str>>();
-			binding
-		}
-		false => {
-			let binding = typesense.release.split('@').collect::<Vec<&str>>();
-			binding
-		}
-	};
-
-	let key = match typesense_host.first() {
-		Some(key) => key,
-		None => panic!("Failed to parse Typesense key"),
-	};
-
-	let host = match typesense_host.get(1) {
-		Some(host) => host,
-		None => panic!("Failed to parse Typesense host"),
-	};
-
-	set_env("CANISTER_TYPESENSE_KEY", key);
-	set_env("CANISTER_TYPESENSE_HOST", host);
 }

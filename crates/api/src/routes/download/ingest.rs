@@ -1,7 +1,7 @@
 use crate::{
 	helpers::{clients, responses},
 	prisma::package,
-	utility::parse_user_agent,
+	utility::{load_runtime_config, parse_user_agent},
 };
 use axum::{
 	http::{HeaderMap, HeaderValue, StatusCode},
@@ -13,6 +13,7 @@ use once_cell::sync::OnceCell;
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use serde_json::to_value;
+use std::sync::OnceLock;
 
 #[derive(Debug, Serialize, Deserialize)]
 struct BadRequest {
@@ -60,6 +61,7 @@ struct DownloadEvent {
 }
 
 static HTTP: OnceCell<Client> = OnceCell::new();
+static VECTOR_URL: OnceLock<String> = OnceLock::new();
 
 fn try_get_header(header: Option<&HeaderValue>) -> String {
 	match header {
@@ -206,9 +208,14 @@ pub async fn ingest(headers: HeaderMap, body: Option<Json<Vec<Payload>>>) -> imp
 		}
 	};
 
+	let vector_url = VECTOR_URL.get_or_init(|| {
+		let config = load_runtime_config();
+		config.vector_url
+	});
+
 	let cloned_payload = return_value.clone();
 	let response = http_client
-		.post(env!("CANISTER_VECTOR_URL"))
+		.post(vector_url)
 		.json(&cloned_payload)
 		.send()
 		.await;

@@ -8,21 +8,13 @@ tasks:
       - defer: docker compose -p canister down
       - cmd: cargo watch -- cargo run --bin api
         ignore_error: true
-  deploy:
-    desc: 'Deploys the latest build via Github Actions'
+  build:
+    desc: 'Build the project'
+    env:
+      CANISTER_META_NAME: 'Canister'
+      CANISTER_META_DESC: 'A high-speed search engine for APT software packages.'
+      CANISTER_META_EMAIL: 'support@canister.me'
+      CANISTER_META_COPYRIGHT: 'Aarnav Tale (c) {year}'
+      CANISTER_API_ENDPOINT: 'https://api.canister.me/v2'
     cmds:
-      - cmd: 'command -v yq >/dev/null 2>&1 || { echo -e >&2 "[\e[31mx\e[0m] \e[1myq\e[0m is not installed."; exit 1; }'
-        silent: true
-      - cmd: 'yq -er .build.github_pat manifest.yaml >/dev/null 2>&1 || { echo -e >&2 "[\e[31mx\e[0m] \e[1mbuild.github_pat\e[0m is missing from manifest.yaml."; exit 1; }'
-        silent: true
-      - cmd: 'if [ -z "{{.CLI_ARGS}}" ]; then echo -e >&2 "[\e[31mx\e[0m] Usage: task deploy -- <major|minor|patch|release|rc|beta|alpha>"; exit 1; fi'
-        silent: true
-      - cmd: echo "major minor patch release rc beta alpha" | grep -w -q "{{.CLI_ARGS}}" || exit 1
-        silent: true
-      - cmd: |
-          curl -X POST \
-            -H "Accept: application/vnd.github+json" \
-            -H "Authorization: Bearer $(yq -r .build.github_pat manifest.yaml)"\
-            -H "X-GitHub-Api-Version: 2022-11-28" \
-            'https://api.github.com/repos/cnstr/ci/actions/workflows/api.yaml/dispatches' \
-            -d '{"ref":"main","inputs":{"bump_type":"{{.CLI_ARGS}}"}}'
+      - cmd: cargo build {{.cli_args}}

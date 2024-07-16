@@ -1,7 +1,7 @@
 use crate::{
 	helpers::{clients, responses},
 	prisma::repository,
-	utility::merge_json,
+	utility::{api_endpoint, merge_json},
 };
 use axum::{extract::Path, http::StatusCode, response::IntoResponse};
 use serde_json::json;
@@ -35,7 +35,7 @@ pub async fn lookup(respository: Path<String>) -> impl IntoResponse {
 				repository,
 				json!({
 					"refs": {
-						"packages": format!("{}/jailbreak/repository/{}/packages", env!("CANISTER_API_ENDPOINT"), slug),
+						"packages": format!("{}/jailbreak/repository/{}/packages", api_endpoint(), slug),
 					}
 				}),
 			);

@@ -1,7 +1,7 @@
 use crate::{
 	helpers::{clients, responses},
 	prisma::repository,
-	utility::{merge_json, page_links},
+	utility::{api_endpoint, merge_json, page_links},
 };
 use axum::{extract::Query, http::StatusCode, response::IntoResponse};
 use prisma_client_rust::bigdecimal::ToPrimitive;
@@ -106,22 +106,22 @@ pub async fn search(query: Query<SearchParams>) -> impl IntoResponse {
 		}
 	};
 
-	let repositories = data 
-			.hits
-			.iter()
-			.map(|repository| {
-				let repository = &repository.document;
-				return merge_json(
-					repository,
-					json!({
-						"refs": {
-							"meta": format!("{}/jailbreak/repository/{}", env!("CANISTER_API_ENDPOINT"), repository.slug),
-							"packages": format!("{}/jailbreak/repository/{}/packages", env!("CANISTER_API_ENDPOINT"), repository.slug),
-						}
-					}),
-				);
-			})
-			.collect::<Vec<Value>>();
+	let repositories = data
+		.hits
+		.iter()
+		.map(|repository| {
+			let repository = &repository.document;
+			return merge_json(
+				repository,
+				json!({
+					"refs": {
+						"meta": format!("{}/jailbreak/repository/{}", api_endpoint(), repository.slug),
+						"packages": format!("{}/jailbreak/repository/{}/packages", api_endpoint(), repository.slug),
+					}
+				}),
+			);
+		})
+		.collect::<Vec<Value>>();
 
 	let next = repositories.len().to_u8().unwrap_or(0) == limit;
 	let (prev_page, next_page) = page_links("/jailbreak/repository/search", page, next);
@@ -146,11 +146,8 @@ pub async fn search_healthy() -> bool {
 		per_page: "100".to_string(),
 	};
 
-	match clients::typesense::<TSResponse>(
-		Some(query),
-		"collections/repositories/documents/search",
-	)
-	.await
+	match clients::typesense::<TSResponse>(Some(query), "collections/repositories/documents/search")
+		.await
 	{
 		Ok(_) => true,
 		Err(_) => false,

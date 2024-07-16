@@ -1,4 +1,7 @@
-use crate::{helpers::responses, utility::handle_error};
+use crate::{
+	helpers::responses,
+	utility::{handle_error, load_runtime_config},
+};
 use axum::{extract::Query, http::StatusCode, response::IntoResponse};
 use once_cell::sync::OnceCell;
 use serde::{Deserialize, Serialize};
@@ -19,7 +22,7 @@ struct Repositories {
 static REPOSITORIES: OnceCell<Vec<String>> = OnceCell::new();
 
 pub async fn safety(query: Query<SafetyParams>) -> impl IntoResponse {
-	if !set_repositories() {
+	if !set_repositories().await {
 		return responses::error(
 			StatusCode::INTERNAL_SERVER_ERROR,
 			"Unable to fetch repository list",
@@ -72,10 +75,20 @@ pub async fn safety(query: Query<SafetyParams>) -> impl IntoResponse {
 	responses::data_with_count(StatusCode::OK, &repositories, repositories.len())
 }
 
-fn set_repositories() -> bool {
+async fn set_repositories() -> bool {
 	if REPOSITORIES.get().is_none() {
-		let raw_repositories = env!("CANISTER_PIRACY_URLS");
-		let repositories = match from_str(raw_repositories) {
+		let config = load_runtime_config();
+		let response = match reqwest::get(config.piracy_url).await {
+			Ok(response) => response,
+			Err(e) => panic!("Failed to fetch piracy URLs ({e})"),
+		};
+
+		let value = match response.text().await {
+			Ok(value) => value,
+			Err(e) => panic!("Failed to parse piracy URLs ({e})"),
+		};
+
+		let repositories = match from_str(&value) {
 			Ok(repositories) => {
 				let data: Repositories = repositories;
 				data.repositories
@@ -96,7 +109,7 @@ fn set_repositories() -> bool {
 }
 
 pub async fn safety_healthy() -> bool {
-	let result = set_repositories();
+	let result = set_repositories().await;
 	if result == false {
 		return false;
 	}

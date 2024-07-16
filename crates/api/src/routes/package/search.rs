@@ -1,7 +1,7 @@
 use crate::{
 	helpers::{clients, responses},
 	prisma::package,
-	utility::{merge_json, page_links},
+	utility::{api_endpoint, merge_json, page_links},
 };
 use axum::{extract::Query, http::StatusCode, response::IntoResponse};
 use prisma_client_rust::bigdecimal::ToPrimitive;
@@ -107,21 +107,21 @@ pub async fn search(query: Query<SearchParams>) -> impl IntoResponse {
 	};
 
 	let mut packages = data
-			.hits
-            .iter()
-			.map(|package| {
-				let package = &package.document;
-				return merge_json(
-					package,
-					json!({
-						"refs": {
-							"meta": format!("{}/jailbreak/package/{}", env!("CANISTER_API_ENDPOINT"), package.package),
-							"repo": format!("{}/jailbreak/repository/{}", env!("CANISTER_API_ENDPOINT"), package.repository_slug),
-						}
-					}),
-				);
-			})
-			.collect::<Vec<Value>>();
+		.hits
+		.iter()
+		.map(|package| {
+			let package = &package.document;
+			return merge_json(
+				package,
+				json!({
+					"refs": {
+						"meta": format!("{}/jailbreak/package/{}", api_endpoint(), package.package),
+						"repo": format!("{}/jailbreak/repository/{}", api_endpoint(), package.repository_slug),
+					}
+				}),
+			);
+		})
+		.collect::<Vec<Value>>();
 
 	if packages.len() > 25 {
 		packages.sort_by(|a, b| {
