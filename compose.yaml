@@ -24,6 +24,16 @@ services:
       TYPESENSE_ENABLE_CORS: "true"
     volumes:
       - typesense:/data
+  typesense-ui:
+    image: ghcr.io/bfritscher/typesense-dashboard:latest
+    container_name: cnstr-ts-ui
+    ports:
+      - 8080:80
+    configs:
+      - source: ts-ui
+        target: /srv/config.json
+    depends_on:
+      - search
   pipeline:
     image: timberio/vector:0.39.0-distroless-libc
     container_name: canister-pipeline
@@ -133,3 +143,15 @@ configs:
           ENGINE = MergeTree()
           ORDER BY (timestamp)
       EOSQL
+  ts-ui:
+    content: |
+      {
+        "apiKey": "typesense",
+        "node": {
+          "host": "localhost",
+          "port": "8108",
+          "protocol": "http",
+          "path": "",
+          "tls": false
+        }
+      }

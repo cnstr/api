@@ -1,10 +1,9 @@
 use crate::{
 	helpers::{clients, responses},
-	prisma::repository,
+	types::Repository,
 	utility::{api_endpoint, merge_json, page_links},
 };
 use axum::{extract::Query, http::StatusCode, response::IntoResponse};
-use prisma_client_rust::bigdecimal::ToPrimitive;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 
@@ -32,7 +31,7 @@ struct TSResponse {
 
 #[derive(Deserialize, Serialize)]
 struct Document {
-	document: repository::Data,
+	document: Repository,
 }
 
 pub async fn search(query: Query<SearchParams>) -> impl IntoResponse {
@@ -98,7 +97,8 @@ pub async fn search(query: Query<SearchParams>) -> impl IntoResponse {
 	.await
 	{
 		Ok(data) => data,
-		Err(_) => {
+		Err(e) => {
+			eprintln!("[db] Failed to query internal search engine: {}", e);
 			return responses::error(
 				StatusCode::INTERNAL_SERVER_ERROR,
 				"Failed to query internal search engine",
@@ -123,7 +123,7 @@ pub async fn search(query: Query<SearchParams>) -> impl IntoResponse {
 		})
 		.collect::<Vec<Value>>();
 
-	let next = repositories.len().to_u8().unwrap_or(0) == limit;
+	let next = repositories.len() == limit as usize;
 	let (prev_page, next_page) = page_links("/jailbreak/repository/search", page, next);
 
 	responses::data_with_count_and_refs(

@@ -1,10 +1,9 @@
 use crate::{
 	helpers::{clients, responses},
-	prisma::package,
+	types::Package,
 	utility::{api_endpoint, merge_json, page_links},
 };
 use axum::{extract::Query, http::StatusCode, response::IntoResponse};
-use prisma_client_rust::bigdecimal::ToPrimitive;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 
@@ -32,7 +31,7 @@ struct TSResponse {
 
 #[derive(Deserialize, Serialize)]
 struct Document {
-	document: package::Data,
+	document: Package,
 }
 
 pub async fn search(query: Query<SearchParams>) -> impl IntoResponse {
@@ -98,7 +97,8 @@ pub async fn search(query: Query<SearchParams>) -> impl IntoResponse {
 	.await
 	{
 		Ok(data) => data,
-		Err(_) => {
+		Err(e) => {
+			eprintln!("[db] Failed to query internal search engine: {}", e);
 			return responses::error(
 				StatusCode::INTERNAL_SERVER_ERROR,
 				"Failed to query internal search engine",
@@ -115,8 +115,8 @@ pub async fn search(query: Query<SearchParams>) -> impl IntoResponse {
 				package,
 				json!({
 					"refs": {
-						"meta": format!("{}/jailbreak/package/{}", api_endpoint(), package.package),
-						"repo": format!("{}/jailbreak/repository/{}", api_endpoint(), package.repository_slug),
+						"meta": format!("{}/jailbreak/package/{}", api_endpoint(), package.package_id),
+						"repo": format!("{}/jailbreak/repository/{}", api_endpoint(), package.repository_id),
 					}
 				}),
 			);
@@ -125,8 +125,8 @@ pub async fn search(query: Query<SearchParams>) -> impl IntoResponse {
 
 	if packages.len() > 25 {
 		packages.sort_by(|a, b| {
-			let a = a["repositoryTier"].as_u64().unwrap_or(0);
-			let b = b["repositoryTier"].as_u64().unwrap_or(0);
+			let a = a["quality"].as_u64().unwrap_or(0);
+			let b = b["quality"].as_u64().unwrap_or(0);
 
 			if a < 4 && b >= 4 {
 				return std::cmp::Ordering::Less;
@@ -138,7 +138,7 @@ pub async fn search(query: Query<SearchParams>) -> impl IntoResponse {
 		});
 	}
 
-	let next = packages.len().to_u8().unwrap_or(0) == limit;
+	let next = packages.len() == limit as usize;
 	let (prev_page, next_page) = page_links("/jailbreak/package/search", page, next);
 
 	responses::data_with_count_and_refs(

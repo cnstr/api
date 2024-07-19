@@ -1,8 +1,6 @@
-/.vscode/
-/api/src/prisma/
 /target/
 .dockerignore
-docker-compose.yaml
+compose.yaml
 Dockerfile
 LICENSE
 README.md

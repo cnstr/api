@@ -1,7 +1,8 @@
 pub mod clients;
 mod error_handler;
-pub mod prisma_client;
+mod pg_client;
 pub mod responses;
 pub mod typesense_client;
 
 pub use self::error_handler::*;
+pub use self::pg_client::*;

@@ -1,10 +1,8 @@
 use crate::{
-	helpers::{clients, responses},
-	prisma::package,
+	helpers::{pg_client, responses, row_to_value},
 	utility::{api_endpoint, merge_json},
 };
 use axum::{extract::Query, http::StatusCode, response::IntoResponse};
-use prisma_client_rust::Direction;
 use serde::Deserialize;
 use serde_json::{json, Value};
 
@@ -30,22 +28,39 @@ pub async fn multi_lookup(query: Query<MultiLookupParams>) -> impl IntoResponse 
 		None => "default",
 	};
 
-	let mut packages = match clients::prisma(|prisma| {
-		prisma
-			.package()
-			.find_many(vec![
-				package::package::in_vec(ids),
-				package::is_current::equals(true),
-				package::is_pruned::equals(false),
-			])
-			.order_by(package::repository_tier::order(Direction::Asc))
-			.with(package::repository::fetch())
-			.exec()
-	})
-	.await
-	{
-		Ok(packages) => packages,
-		Err(_) => {
+	let mut packages = match pg_client().await {
+		Ok(pg_client) => {
+			match pg_client
+				.query(
+					"
+                        SELECT package.*, repository.bootstrap
+                        FROM package
+                        LEFT JOIN
+                            repository ON
+                            package.repository_id = repository.id
+                        WHERE
+                            package.visible = true
+                            AND latest_version = true
+                            AND package_id = ANY($1)
+                        ORDER BY
+                            quality ASC
+                    ",
+					&[&ids],
+				)
+				.await
+			{
+				Ok(rows) => rows,
+				Err(e) => {
+					eprintln!("[db] Failed to query database: {}", e);
+					return responses::error(
+						StatusCode::INTERNAL_SERVER_ERROR,
+						"Failed to query database",
+					);
+				}
+			}
+		}
+		Err(e) => {
+			eprintln!("[db] Failed to query database: {}", e);
 			return responses::error(
 				StatusCode::INTERNAL_SERVER_ERROR,
 				"Failed to query database",
@@ -59,22 +74,14 @@ pub async fn multi_lookup(query: Query<MultiLookupParams>) -> impl IntoResponse 
 
 	let mut ids: Vec<String> = packages
 		.iter()
-		.map(|package| package.package.clone())
+		.map(|package| package.get("package_id"))
 		.collect();
 
 	packages.sort_by(|a, b| {
 		// If the priority is bootstrap, prioritize package.repository.is_bootstrap
 		if priority == "bootstrap" {
-			let a_bootstrap = a
-				.repository
-				.clone()
-				.map(|repository| repository.is_bootstrap)
-				.unwrap_or(false);
-			let b_bootstrap = b
-				.repository
-				.clone()
-				.map(|repository| repository.is_bootstrap)
-				.unwrap_or(false);
+			let a_bootstrap: bool = a.get("bootstrap");
+			let b_bootstrap: bool = b.get("bootstrap");
 
 			if a_bootstrap && !b_bootstrap {
 				return std::cmp::Ordering::Less;
@@ -83,10 +90,13 @@ pub async fn multi_lookup(query: Query<MultiLookupParams>) -> impl IntoResponse 
 			}
 		}
 
+		let a_quality: i32 = a.get("quality");
+		let b_quality: i32 = b.get("quality");
+
 		// If the priority is default, prioritize package.repository_tier
-		if a.repository_tier < b.repository_tier {
+		if a_quality < b_quality {
 			return std::cmp::Ordering::Less;
-		} else if a.repository_tier > b.repository_tier {
+		} else if a_quality > b_quality {
 			return std::cmp::Ordering::Greater;
 		}
 
@@ -98,20 +108,20 @@ pub async fn multi_lookup(query: Query<MultiLookupParams>) -> impl IntoResponse 
 		packages
 			.iter()
 			.filter(|package| {
-				let package = package.package.clone();
-				if ids.contains(&package) {
-					ids.retain(|id| id != &package);
+				let package_id: String = package.get("package_id");
+				if ids.contains(&package_id) {
+					ids.retain(|id| id != &package_id);
 					return true;
 				}
 				return false;
 			})
 			.map(|package| {
-				let slug = package.repository_slug.clone();
+				let repository_id: String = package.get("repository_id");
 				return merge_json(
-					package,
+					row_to_value(package),
 					json!({
 						"refs": {
-							"repo": format!("{}/jailbreak/repository/{}", api_endpoint(), slug)
+							"repo": format!("{}/jailbreak/repository/{}", api_endpoint(), repository_id)
 						}
 					}),
 				);
@@ -122,24 +132,32 @@ pub async fn multi_lookup(query: Query<MultiLookupParams>) -> impl IntoResponse 
 }
 
 pub async fn multi_lookup_healthy() -> bool {
-	match clients::prisma(|prisma| {
-		prisma
-			.package()
-			.find_many(vec![
-				package::package::in_vec(vec![
-					"ws.hbang.common".to_string(),
-					"me.renai.lyricify".to_string(),
-				]),
-				package::is_current::equals(true),
-				package::is_pruned::equals(false),
-			])
-			.order_by(package::repository_tier::order(Direction::Asc))
-			.with(package::repository::fetch())
-			.exec()
-	})
-	.await
-	{
-		Ok(_) => true,
+	match pg_client().await {
+		Ok(pg_client) => {
+			let rows = pg_client
+				.query(
+					"
+                        SELECT package.*, repository.bootstrap
+                        FROM package
+                        LEFT JOIN
+                            repository ON
+                            package.repository_id = repository.id
+                        WHERE
+                            package.visible = true
+                            AND latest_version = true
+                            AND package_id = ANY($1)
+                        ORDER BY
+                            quality ASC
+                    ",
+					&[&vec!["ws.hbang.common", "com.amywhile.aemulo"]],
+				)
+				.await;
+
+			match rows {
+				Ok(_) => true,
+				Err(_) => false,
+			}
+		}
 		Err(_) => false,
 	}
 }

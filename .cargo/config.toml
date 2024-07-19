@@ -1,3 +1,2 @@
 [alias]
-prisma = "run --release --bin prisma-cli --"
 openapi = "run --release --bin openapi --"

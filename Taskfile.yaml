@@ -3,6 +3,24 @@ version: '3'
 tasks:
   dev:
     desc: 'Run the project locally using Docker Compose'
+    env:
+      CANISTER_META_NAME: 'Canister'
+      CANISTER_META_DESC: 'A high-speed search engine for APT software packages.'
+      CANISTER_META_EMAIL: 'support@canister.me'
+      CANISTER_META_COPYRIGHT: 'Aarnav Tale (c) {year}'
+      CANISTER_API_ENDPOINT: 'https://api.canister.me/v2'
+
+      CANISTER_META_CODE: 'cnstr'
+      CANISTER_DOCS_ENDPOINT: 'https://docs.canister.me'
+      CANISTER_PRIVACY_ENDPOINT: 'https://canister.me/privacy'
+      CANISTER_PRIVACY_UPDATED: '2022-03-25'
+      CANISTER_PIRACY_URL: 'https://source.canister.me/piracy-repositories.json'
+      CANISTER_DATABASE_URL: 'postgres://cnstr:pg@localhost:5432/cnstr'
+      CANISTER_TYPESENSE_URL: 'http://localhost:8108'
+      CANISTER_VECTOR_URL: 'http://localhost:8687'
+      CANISTER_TYPESENSE_API_KEY: 'typesense'
+      CANISTER_SENTRY_DSN: 'https://c149c72f266f4c6bad4f64094872d4df@o982840.ingest.sentry.io/4504533738848256'
+      RUST_BACKTRACE: '1'
     cmds:
       - cmd: docker compose -p canister up -d
       - defer: docker compose -p canister down
@@ -17,4 +35,4 @@ tasks:
       CANISTER_META_COPYRIGHT: 'Aarnav Tale (c) {year}'
       CANISTER_API_ENDPOINT: 'https://api.canister.me/v2'
     cmds:
-      - cmd: cargo build {{.cli_args}}
+      - cmd: cargo {{.CLI_ARGS}}

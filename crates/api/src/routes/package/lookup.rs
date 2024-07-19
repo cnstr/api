@@ -1,29 +1,40 @@
 use crate::{
-	helpers::{clients, responses},
-	prisma::package,
+	helpers::{pg_client, responses, row_to_value},
 	utility::{api_endpoint, merge_json},
 };
 use axum::{extract::Path, http::StatusCode, response::IntoResponse};
-use prisma_client_rust::Direction;
 use serde_json::{json, Value};
 
 pub async fn lookup(package: Path<String>) -> impl IntoResponse {
-	let packages = match clients::prisma(|prisma| {
-		prisma
-			.package()
-			.find_many(vec![
-				package::package::equals(package.to_string()),
-				package::is_pruned::equals(false),
-			])
-			.order_by(package::is_current::order(Direction::Desc))
-			.order_by(package::repository_tier::order(Direction::Asc))
-			.with(package::repository::fetch())
-			.exec()
-	})
-	.await
-	{
-		Ok(packages) => packages,
-		Err(_) => {
+	let packages = match pg_client().await {
+		Ok(pg_client) => {
+			match pg_client
+				.query(
+					"
+                        SELECT * FROM package
+                        WHERE
+                            visible = true
+                            AND package_id = $1
+                        ORDER BY
+                            latest_version DESC,
+                            quality ASC
+                    ",
+					&[&package.to_string()],
+				)
+				.await
+			{
+				Ok(rows) => rows,
+				Err(e) => {
+					eprintln!("[db] Failed to query database: {}", e);
+					return responses::error(
+						StatusCode::INTERNAL_SERVER_ERROR,
+						"Failed to query database",
+					);
+				}
+			}
+		}
+		Err(e) => {
+			eprintln!("[db] Failed to query database: {}", e);
 			return responses::error(
 				StatusCode::INTERNAL_SERVER_ERROR,
 				"Failed to query database",
@@ -39,13 +50,13 @@ pub async fn lookup(package: Path<String>) -> impl IntoResponse {
 		StatusCode::OK,
 		packages
 			.iter()
-			.map(|package| {
-				let slug = package.repository_slug.clone();
+			.map(|row| {
+				let id: String = row.get("repository_id");
 				return merge_json(
-					package,
+					row_to_value(row),
 					json!({
 						"refs": {
-							"repo": format!("{}/jailbreak/repository/{}", api_endpoint(), slug)
+							"repo": format!("{}/jailbreak/repository/{}", api_endpoint(), id)
 						}
 					}),
 				);
@@ -56,21 +67,28 @@ pub async fn lookup(package: Path<String>) -> impl IntoResponse {
 }
 
 pub async fn lookup_healthy() -> bool {
-	match clients::prisma(|prisma| {
-		prisma
-			.package()
-			.find_many(vec![
-				package::package::equals("ws.hbang.common".to_string()),
-				package::is_pruned::equals(false),
-			])
-			.order_by(package::is_current::order(Direction::Desc))
-			.order_by(package::repository_tier::order(Direction::Asc))
-			.with(package::repository::fetch())
-			.exec()
-	})
-	.await
-	{
-		Ok(_) => true,
+	match pg_client().await {
+		Ok(pg_client) => {
+			let rows = pg_client
+				.query(
+					"
+                        SELECT * FROM package
+                        WHERE
+                            visible = true
+                            AND package_id = 'ws.hbang.common'
+                        ORDER BY
+                            latest_version DESC,
+                            quality ASC
+                    ",
+					&[],
+				)
+				.await;
+
+			match rows {
+				Ok(_) => true,
+				Err(_) => false,
+			}
+		}
 		Err(_) => false,
 	}
 }

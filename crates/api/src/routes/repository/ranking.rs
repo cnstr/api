@@ -1,10 +1,8 @@
 use crate::{
-	helpers::{clients, responses},
-	prisma::repository,
+	helpers::{pg_client, responses, row_to_value},
 	utility::{api_endpoint, handle_error, merge_json},
 };
 use axum::{extract::Query, http::StatusCode, response::IntoResponse};
-use prisma_client_rust::Direction;
 use serde::Deserialize;
 use serde_json::{json, Value};
 
@@ -40,41 +38,60 @@ pub async fn ranking(query: Query<RankingParams>) -> impl IntoResponse {
 	};
 
 	let lookup = match rank.as_str() {
-		"*" => {
-			clients::prisma(|prisma| {
-				prisma
-					.repository()
-					.find_many(vec![repository::is_pruned::equals(false)])
-					.order_by(repository::tier::order(Direction::Asc))
-					.with(repository::origin::fetch())
-					.exec()
-			})
-			.await
-		}
+		"*" => match pg_client().await {
+			Ok(pg_client) => {
+				pg_client
+					.query(
+						"
+                            SELECT * FROM repository
+                            WHERE visible = true
+                            ORDER BY quality ASC
+                        ",
+						&[],
+					)
+					.await
+			}
+			Err(e) => {
+				eprintln!("[db] Failed to query database: {}", e);
+				return responses::error(
+					StatusCode::INTERNAL_SERVER_ERROR,
+					"Failed to query database",
+				);
+			}
+		},
 
-		_ => {
-			clients::prisma(|prisma| {
-				prisma
-					.repository()
-					.find_many(vec![
-						repository::tier::equals(rank.parse::<i32>().unwrap_or_else(|err| {
-							// TODO: Report Error Correctly
-							handle_error(&err.into());
-							1
-						})),
-						repository::is_pruned::equals(false),
-					])
-					.order_by(repository::tier::order(Direction::Asc))
-					.with(repository::origin::fetch())
-					.exec()
-			})
-			.await
-		}
+		_ => match pg_client().await {
+			Ok(pg_client) => {
+				let rank = rank.parse::<i32>().unwrap_or_else(|err| {
+					handle_error(&err.into());
+					1
+				});
+
+				pg_client
+					.query(
+						"
+                            SELECT * FROM repository
+                            WHERE visible = true AND quality = $1
+                            ORDER BY quality ASC
+                        ",
+						&[&rank],
+					)
+					.await
+			}
+			Err(e) => {
+				eprintln!("[db] Failed to query database: {}", e);
+				return responses::error(
+					StatusCode::INTERNAL_SERVER_ERROR,
+					"Failed to query database",
+				);
+			}
+		},
 	};
 
 	let repositories = match lookup {
-		Ok(repositories) => repositories,
-		Err(_) => {
+		Ok(rows) => rows,
+		Err(e) => {
+			eprintln!("[db] Failed to query database: {}", e);
 			return responses::error(
 				StatusCode::INTERNAL_SERVER_ERROR,
 				"Failed to query database",
@@ -86,15 +103,15 @@ pub async fn ranking(query: Query<RankingParams>) -> impl IntoResponse {
 		StatusCode::OK,
 		repositories
 			.iter()
-			.map(|repository| {
-				let slug = repository.slug.clone();
+			.map(|row| {
+				let id: String = row.get("id");
 
 				return merge_json(
-					repository,
+					row_to_value(row),
 					json!({
 						"refs": {
-							"meta": format!("{}/jailbreak/repository/{}", api_endpoint(), slug),
-							"packages": format!("{}/jailbreak/repository/{}/packages", api_endpoint(), slug),
+							"meta": format!("{}/jailbreak/repository/{}", api_endpoint(), id),
+							"packages": format!("{}/jailbreak/repository/{}/packages", api_endpoint(), id),
 						}
 					}),
 				);

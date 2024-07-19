@@ -1,6 +1,5 @@
 use crate::{
-	helpers::{clients, responses},
-	prisma::package,
+	helpers::{pg_client, responses},
 	utility::{load_runtime_config, parse_user_agent},
 };
 use axum::{
@@ -139,20 +138,32 @@ pub async fn ingest(headers: HeaderMap, body: Option<Json<Vec<Payload>>>) -> imp
 			None => "none".to_string(),
 		};
 
-		let database_uuid = match clients::prisma(|prisma| {
-			prisma
-				.package()
-				.find_first(vec![
-					package::package::equals(package_id.to_string()),
-					package::version::equals(package_version.to_string()),
-					package::is_pruned::equals(false),
-				])
-				.with(package::repository::fetch())
-				.exec()
-		})
-		.await
-		{
-			Ok(package_search) => package_search.map(|package_search| package_search.uuid),
+		let database_uuid = match pg_client().await {
+			Ok(pg_client) => {
+				let package_search = pg_client
+					.query(
+						"
+                        SELECT id FROM package
+                        WHERE
+                            visible = true
+                            AND package_id = $1
+                            AND version = $2
+                        ",
+						&[&package_id, &package_version],
+					)
+					.await;
+
+				match package_search {
+					Ok(package_search) => {
+						if package_search.is_empty() {
+							None
+						} else {
+							Some(package_search[0].get("id"))
+						}
+					}
+					Err(_) => None,
+				}
+			}
 			Err(_) => None,
 		};
 

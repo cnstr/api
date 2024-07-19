@@ -1,3 +1,4 @@
+use crate::{helpers::create_db, utility::load_runtime_config};
 use axum::{
 	http::{HeaderValue, Request, StatusCode},
 	middleware::{self, Next},
@@ -10,11 +11,9 @@ use sentry::{capture_message, init, ClientOptions, Level};
 use serde_json::json;
 use std::{net::SocketAddr, process::exit, sync::OnceLock};
 
-use crate::utility::load_runtime_config;
-
 mod helpers;
-mod prisma;
 mod routes;
+mod types;
 mod utility;
 
 #[warn(clippy::all)]
@@ -41,6 +40,12 @@ async fn main() {
 			..Default::default()
 		},
 	));
+
+	if create_db().await.is_err() {
+		capture_message("failed to create database pool", Level::Fatal);
+		println!("panic: failed to create database pool");
+		exit(1);
+	}
 
 	let app = Router::new()
 		.route("/v2/", get(routes::info::landing_page))

@@ -1,9 +1,8 @@
 use crate::{
-	helpers::{clients, responses},
+	helpers::{clients, pg_client, responses},
 	routes,
 };
 use axum::{http::StatusCode, response::IntoResponse};
-use prisma_client_rust::Raw;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 
@@ -55,16 +54,16 @@ async fn service_healthy() -> (bool, Value) {
 		}
 	};
 
-	let postgres_healthy = match clients::prisma(|prisma| {
-		prisma
-			._query_raw::<PostgresHealth>(Raw::new("SELECT version();", vec![]))
-			.exec()
-	})
-	.await
-	{
-		Ok(health) => health.len() > 0,
+	let postgres_healthy = match pg_client().await {
+		Ok(client) => match client.query("SELECT version();", &[]).await {
+			Ok(data) => data.len() > 0,
+			Err(err) => {
+				println!("Postgres health check failed: {}", err);
+				false
+			}
+		},
 		Err(err) => {
-			println!("Postgres health check failed: {}", err);
+			println!("Failed to get pg client: {}", err);
 			false
 		}
 	};

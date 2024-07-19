@@ -1,26 +1,38 @@
 use crate::{
-	helpers::{clients, responses},
-	prisma::repository,
+	helpers::{pg_client, responses, row_to_value},
 	utility::{api_endpoint, merge_json},
 };
 use axum::{extract::Path, http::StatusCode, response::IntoResponse};
 use serde_json::json;
 
-pub async fn lookup(respository: Path<String>) -> impl IntoResponse {
-	let repository = match clients::prisma(|prisma| {
-		prisma
-			.repository()
-			.find_first(vec![
-				repository::slug::equals(respository.to_string()),
-				repository::is_pruned::equals(false),
-			])
-			.with(repository::origin::fetch())
-			.exec()
-	})
-	.await
-	{
-		Ok(repository) => repository,
-		Err(_) => {
+pub async fn lookup(id: Path<String>) -> impl IntoResponse {
+	let repository = match pg_client().await {
+		Ok(pg_client) => {
+			match pg_client
+				.query(
+					"
+                        SELECT * FROM repository
+                        WHERE
+                            visible = true
+                            AND id = $1
+                        LIMIT 1
+                    ",
+					&[&id.to_string()],
+				)
+				.await
+			{
+				Ok(rows) => rows,
+				Err(e) => {
+					eprintln!("[db] Failed to query database: {}", e);
+					return responses::error(
+						StatusCode::INTERNAL_SERVER_ERROR,
+						"Failed to query database",
+					);
+				}
+			}
+		}
+		Err(e) => {
+			eprintln!("[db] Failed to query database: {}", e);
 			return responses::error(
 				StatusCode::INTERNAL_SERVER_ERROR,
 				"Failed to query database",
@@ -28,38 +40,44 @@ pub async fn lookup(respository: Path<String>) -> impl IntoResponse {
 		}
 	};
 
-	match repository {
-		Some(repository) => {
-			let slug = repository.slug.clone();
-			let repository = merge_json(
-				repository,
-				json!({
-					"refs": {
-						"packages": format!("{}/jailbreak/repository/{}/packages", api_endpoint(), slug),
-					}
-				}),
-			);
-
-			responses::data(StatusCode::OK, repository)
-		}
-
-		None => responses::error(StatusCode::NOT_FOUND, "Repository not found"),
+	if repository.len() == 0 {
+		return responses::error(StatusCode::NOT_FOUND, "Repository not found");
 	}
+
+	let row = &repository[0];
+	let id: String = row.get("repository_id");
+	let repository = merge_json(
+		row_to_value(&row),
+		json!({
+			"refs": {
+				"packages": format!("{}/jailbreak/repository/{}/packages", api_endpoint(), id),
+			}
+		}),
+	);
+
+	responses::data(StatusCode::OK, repository)
 }
 
 pub async fn lookup_healthy() -> bool {
-	match clients::prisma(|prisma| {
-		prisma
-			.repository()
-			.find_first(vec![
-				repository::slug::equals("chariz".to_string()),
-				repository::is_pruned::equals(false),
-			])
-			.exec()
-	})
-	.await
-	{
-		Ok(_) => true,
+	match pg_client().await {
+		Ok(pg_client) => {
+			match pg_client
+				.query(
+					"
+                        SELECT * FROM repository
+                        WHERE
+                            visible = true
+                            AND id = 'chariz'
+                        LIMIT 1
+                    ",
+					&[],
+				)
+				.await
+			{
+				Ok(_) => true,
+				Err(_) => false,
+			}
+		}
 		Err(_) => false,
 	}
 }
