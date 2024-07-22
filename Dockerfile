@@ -1,4 +1,4 @@
-FROM rust:1.66 as builder
+FROM rust:1.79 as builder
 ENV UPLOAD_OPENAPI=true
 WORKDIR /app
 
