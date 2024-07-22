@@ -1,6 +1,7 @@
 use crate::{
-	helpers::{clients, pg_client, responses},
+	helpers::{pg_client, responses},
 	routes,
+	services::create_ts,
 };
 use axum::{http::StatusCode, response::IntoResponse};
 use serde::{Deserialize, Serialize};
@@ -46,12 +47,10 @@ pub async fn health_check() -> impl IntoResponse {
 }
 
 async fn service_healthy() -> (bool, Value) {
-	let typesense_healthy = match clients::typesense::<TypesenseHealth>({}, "health").await {
+	let ts = create_ts();
+	let typesense_healthy = match ts.query::<TypesenseHealth>(&{}, "health").await {
 		Ok(data) => data.ok,
-		Err(err) => {
-			println!("Typesense health check failed: {}", err);
-			false
-		}
+		Err(_) => false,
 	};
 
 	let postgres_healthy = match pg_client().await {

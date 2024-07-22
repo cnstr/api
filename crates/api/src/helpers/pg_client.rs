@@ -42,6 +42,38 @@ pub async fn create_db() -> Result<()> {
 	};
 
 	println!("[db] Opened a pool with the database");
+
+	// Create a client and try the health query 10 times
+	let client = match pool.get().await {
+		Ok(client) => client,
+		Err(e) => {
+			eprintln!("[db] Failed to get a client: {}", e);
+			return Err(e.into());
+		}
+	};
+
+	for i in 1..=10 {
+		match client.query("SELECT version();", &[]).await {
+			Ok(_) => {
+				println!("[db] connected to postgres after {} attempts", i);
+				break;
+			}
+			Err(e) => {
+				eprintln!("[db] failed to connect to postgres: {}", e);
+				if i == 10 {
+					return Err(e.into());
+				}
+			}
+		}
+
+		tokio::time::sleep(std::time::Duration::from_secs(1)).await;
+		if i == 10 {
+			return Err(anyhow::anyhow!(
+				"failed to connect to postgres after 10 attempts"
+			));
+		}
+	}
+
 	match DB_POOL.set(pool) {
 		Ok(_) => Ok(()),
 		Err(_) => {

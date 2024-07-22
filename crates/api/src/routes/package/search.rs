@@ -1,5 +1,6 @@
 use crate::{
-	helpers::{clients, responses},
+	helpers::responses,
+	services::create_ts,
 	types::Package,
 	utility::{api_endpoint, merge_json, page_links},
 };
@@ -90,19 +91,14 @@ pub async fn search(query: Query<SearchParams>) -> impl IntoResponse {
 		per_page: limit.to_string(),
 	};
 
-	let data = match clients::typesense::<TSResponse>(
-		Some(query),
-		"collections/packages/documents/search",
-	)
-	.await
+	let ts = create_ts();
+	let data = match ts
+		.query::<TSResponse>(&query, "/collections/packages/documents/search")
+		.await
 	{
 		Ok(data) => data,
 		Err(e) => {
-			eprintln!("[db] Failed to query internal search engine: {}", e);
-			return responses::error(
-				StatusCode::INTERNAL_SERVER_ERROR,
-				"Failed to query internal search engine",
-			);
+			return e;
 		}
 	};
 
@@ -161,7 +157,9 @@ pub async fn search_healthy() -> bool {
 		per_page: "100".to_string(),
 	};
 
-	match clients::typesense::<TSResponse>(Some(query), "collections/packages/documents/search")
+	let ts = create_ts();
+	match ts
+		.query::<TSResponse>(&query, "/collections/packages/documents/search")
 		.await
 	{
 		Ok(_) => true,

@@ -7,12 +7,14 @@ use axum::{
 	Json, Router,
 };
 use chrono::Utc;
-use sentry::{capture_message, init, ClientOptions, Level};
+use sentry::{capture_message, init, integrations::anyhow::capture_anyhow, ClientOptions, Level};
 use serde_json::json;
+use services::create_ts;
 use std::{net::SocketAddr, process::exit, sync::OnceLock};
 
 mod helpers;
 mod routes;
+mod services;
 mod types;
 mod utility;
 
@@ -41,9 +43,15 @@ async fn main() {
 		},
 	));
 
-	if create_db().await.is_err() {
-		capture_message("failed to create database pool", Level::Fatal);
-		println!("panic: failed to create database pool");
+	if let Err(e) = create_db().await {
+		capture_anyhow(&e);
+		eprintln!("[indexer] failed to connect to postgres: {}", e);
+		exit(1);
+	}
+
+	if let Err(e) = create_ts().connect().await {
+		capture_anyhow(&e);
+		eprintln!("[indexer] failed to connect to typesense: {}", e);
 		exit(1);
 	}
 
@@ -112,7 +120,6 @@ async fn main() {
 
 async fn cors_middleware<B>(request: Request<B>, next: Next<B>) -> Response {
 	let mut response = next.run(request).await;
-
 	let headers = response.headers_mut();
 
 	headers.insert("Access-Control-Allow-Origin", HeaderValue::from_static("*"));
