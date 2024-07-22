@@ -56,10 +56,16 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           platforms: linux/arm64
-          secret-envs: ${{ steps.secrets.outputs }}
           cache-to: type=registry,ref=ghcr.io/cnstr/api-cache,compression=zstd
           cache-from: type=registry,ref=ghcr.io/cnstr/api-cache
-
+          args: |
+            CANISTER_META_NAME=${{ steps.secrets.outputs.CANISTER_META_NAME }}
+            CANISTER_META_DESC=${{ steps.secrets.outputs.CANISTER_META_DESC }}
+            CANISTER_META_EMAIL=${{ steps.secrets.outputs.CANISTER_META_EMAIL }}
+            CANISTER_META_COPYRIGHT=${{ steps.secrets.outputs.CANISTER_META_COPYRIGHT }}
+            CANISTER_API_ENDPOINT=${{ steps.secrets.outputs.CANISTER_API_ENDPOINT }}
+            CANISTER_OPENAPI_ID=${{ steps.secrets.outputs.CANISTER_OPENAPI_ID }}
+            CANISTER_OPENAPI_TOKEN=${{ steps.secrets.outputs.CANISTER_OPENAPI_TOKEN }}
   deploy:
     name: Deploy
     runs-on: ubuntu-latest
