@@ -52,7 +52,7 @@ dependencies = [
 
 [[package]]
 name = "api"
-version = "2.4.34"
+version = "2.4.35"
 dependencies = [
  "anyhow",
  "axum",
