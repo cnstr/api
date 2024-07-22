@@ -58,7 +58,7 @@ jobs:
           platforms: linux/arm64
           cache-to: type=registry,ref=ghcr.io/cnstr/api-cache,compression=zstd
           cache-from: type=registry,ref=ghcr.io/cnstr/api-cache
-          args: |
+          build-args: |
             CANISTER_META_NAME=${{ steps.secrets.outputs.CANISTER_META_NAME }}
             CANISTER_META_DESC=${{ steps.secrets.outputs.CANISTER_META_DESC }}
             CANISTER_META_EMAIL=${{ steps.secrets.outputs.CANISTER_META_EMAIL }}
