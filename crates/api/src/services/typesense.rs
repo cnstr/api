@@ -39,7 +39,7 @@ impl Client {
 		};
 
 		let status = response.status();
-		if status.as_u16() >= 500 {
+		if status.as_u16() >= 400 {
 			let body = match response.text().await {
 				Ok(body) => body,
 				Err(e) => {
