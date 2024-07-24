@@ -45,7 +45,7 @@ pub async fn lookup(id: Path<String>) -> impl IntoResponse {
 	}
 
 	let row = &repository[0];
-	let id: String = row.get("repository_id");
+	let id: String = row.get("id");
 	let repository = merge_json(
 		row_to_value(&row),
 		json!({

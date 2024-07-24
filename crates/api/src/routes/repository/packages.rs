@@ -45,7 +45,7 @@ pub async fn packages(id: Path<String>) -> impl IntoResponse {
 	}
 
 	let row = &repository[0];
-	let id: String = row.get("repository_id");
+	let id: String = row.get("id");
 
 	let packages = match pg_client().await {
 		Ok(pg_client) => {
