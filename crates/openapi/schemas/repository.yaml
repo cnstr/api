@@ -1,76 +1,82 @@
 ---
 schema_name: Repository
 schema:
-  slug: havoc
-  aliases: []
-  tier: 1
-  packageCount: 473
+  id: havoc
+  aliases: 
+  visible: true
+  quality: 1
+  package_count: 1852
   sections:
-    - Tweaks
-    - Development
-    - Themes
-    - Applications
+  - Themes
+  - Tweaks
+  - Development
+  - Applications
+  bootstrap: false
   uri: https://havoc.app
-  suite: './'
-  component:
+  suite: "./"
+  component: 
   name: Havoc
   version: '1.0'
   description: The Havoc Repository
-  date:
-  paymentGateway:
-  sileoEndpoint: https://havoc.app/api/sileo/
-  isPruned: false
-  origin:
-    uuid: clbygg1ht0gckph35gtsqzngb
-    hostname: havoc.app
-    releasePath: '/Release'
-    packagesPath: '/Packages.zst'
-    lastUpdated: '2022-12-22T02:18:43.984+00:00'
-    hasInRelease: false
-    hasReleaseGpg: false
-    supportsPaymentV1: true
-    supportsPaymentV2: false
-    usesHttps: true
-  originId: clbygg1ht0gckph35gtsqzngb
-  packages:
+  date: '2024-07-23T11:20:05'
+  payment_gateway: 
+  sileo_endpoint: https://havoc.app/api/sileo/
+  origin_hostname: havoc.app
+  origin_release_path: "/Release"
+  origin_release_hash: 461347dd3fd98bbc76911a5a6c5db2ed6b7cd5da87dac89ee43cda6a0ceb2309
+  origin_packages_path: "/Packages.zst"
+  origin_packages_hash: fa91ebff565d6840f3a47e715f7f06718a81daaa861a517028974403679affe5
+  origin_last_updated: '2024-07-24T03:22:36.216037'
+  origin_has_in_release: false
+  origin_has_release_gpg: true
+  origin_supports_payment_v1: true
+  origin_supports_payment_v2: false
+  origin_uses_https: true
+  slug: havoc
+  tier: 1
+  isBootstrap: false
   refs:
+    meta: https://api.canister.me/v2/jailbreak/repository/havoc
     packages: https://api.canister.me/v2/jailbreak/repository/havoc/packages
 descriptions:
-  slug: Slug of the package repository
-  aliases: Aliases of the package repository
-  tier: Tier ranking of the package repository
-  packageCount: Number of packages in the package repository
-  sections: Sections of the package repository
-  uri: URL to the package repository
-  suite: Suite of the package repository
-  component: Component of the package repository
-  name: Name of the package repository
-  version: Version of the package repository
-  description: Description of the package repository
-  date: Date of the package repository
-  paymentGateway: Payment gateway of the package repository
-  sileoEndpoint: Sileo endpoint of the package repository
-  isPruned: If the package repository is pruned/hidden from indexing
-  origin:
-    uuid: Database ID of the package repository origin
-    hostname: Hostname of the package repository
-    releasePath: Release path of the package repository
-    packagesPath: Packages path of the package repository
-    lastUpdated: Last updated date of the package repository
-    hasInRelease: If the package repository has an InRelease file
-    hasReleaseGpg: If the package repository has a Release.gpg file
-    supportsPaymentV1: If the package repository supports payment v1
-    supportsPaymentV2: If the package repository supports payment v2
-    usesHttps: If the package repository uses HTTPS
-  originId: Database ID of the package repository
-  packages: Packages in the package repository
+  id: Repository identifier
+  aliases: Repository aliases
+  visible: If the repository is visible
+  quality: Quality of the repository
+  package_count: Number of packages in the repository
+  sections: Repository sections
+  bootstrap: If the repository is a bootstrap repository
+  uri: URL to the repository
+  suite: Debian APT suite
+  component: Debian APT component 
+  name: Repository name
+  version: Repository version
+  description: Repository description
+  date: Repository last updated date
+  payment_gateway: Repository payment gateway V2 
+  sileo_endpoint: Repository Sileo endpoint 
+  origin_hostname: Hostname of the repository origin
+  origin_release_path: Path to the repository Release file
+  origin_release_hash: Hash of the repository Release file
+  origin_packages_path: Path to the repository Packages file
+  origin_packages_hash: Hash of the repository Packages file
+  origin_last_updated: Last updated date of the repository origin
+  origin_has_in_release: Repository has an InRelease file
+  origin_has_release_gpg: Repository has a Release.gpg file
+  origin_supports_payment_v1: Repository supports payment V1 (Sileo)
+  origin_supports_payment_v2: Repository supports payment V2 (Native)
+  origin_uses_https: Repository uses HTTPS
+  slug: Repository slug (legacy)
+  tier: Repository tier (legacy)
+  isBootstrap: If the repository is a bootstrap repository (legacy)
   refs:
-    packages: URL to the packages in the package repository
+    meta: URL to the repository metadata
+    packages: URL to the list of packages in the repository
 nullables:
   - component
   - name
   - version
   - description
   - date
-  - paymentGateway
-  - sileoEndpoint
+  - payment_gateway
+  - sileo_endpoint

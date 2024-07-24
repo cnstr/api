@@ -1,121 +1,144 @@
 ---
 schema_name: Package
 schema:
-  uuid: clbygdwom0cw4ph35y2xw9ygf
-  package: ws.hbang.newterm2
-  isCurrent: true
-  isPruned: false
-  repositoryTier: 1
-  repositorySlug: chariz
+  id: fda6e5fd8385fd2aa6409dad55395739d9f8ccfccfc900bfdfb97692a9b279e6
+  package_id: com.amywhile.aemulo
+  latest_version: true
+  visible: true
+  quality: 3
+  repository_id: amy
   price: Free
-  version: '2.5'
+  version: 2.0-82b9fb9
   architecture: iphoneos-arm
-  filename: debs/ws.hbang.newterm2_2.5_iphoneos-arm.deb
-  size: 2017880
-  sha256: 20a7e7716cc1cb088136e92b0128ef12fa57670296023f93f3ec73c7be94916e
-  name: NewTerm 2
-  description: A powerful terminal app for iOS
-  author: HASHBANG Productions <support@hbang.ws>
-  maintainer: HASHBANG Productions <support@hbang.ws>
-  depiction: https://chariz.com/get/newterm
-  nativeDepiction:
-  sileoDepiction: https://repo.chariz.com/api/sileo/package/ws.hbang.newterm2/depiction.json
-  header: https://cdn.chariz.cloud/sileo-banner/newterm.jpg
-  tintColor: '#3896ff'
-  icon: https://img.chariz.cloud/icon/newterm/icon@3x.png
-  section: Terminal Support
-  tags:
-    - compatible_min::ios10.0
-  installedSize: 6664
+  package_filename: "./pool/com.amywhile.aemulo_2.0-82b9fb9_iphoneos-arm.deb"
+  package_size: 487530
+  sha256_hash: 35f8a73d59da76bd391d721fba9600d0a2380df63371a6c6c4db5d4ff06ce2a8
+  name: Aemulo
+  description: NFC Frickery
+  author: Amy While <support@anamy.gay>
+  maintainer: Amy While <support@anamy.gay>
+  depiction: 
+  native_depiction: https://elihwyma.github.io/Aemulo/NativeDepiction.json
+  sileo_depiction: 
+  header_url: https://elihwyma.github.io/Aemulo/assets/Depiction-Header.png
+  tint_color: 
+  icon_url: https://elihwyma.github.io/Aemulo/assets/Icon.png
+  section: Tweaks
+  tags: []
+  installed_size: 1720
+  package: com.amywhile.aemulo
+  repositoryTier: 3
+  sileoDepiction: 
   repository:
-    slug: chariz
-    aliases: []
-    tier: 1
-    packageCount: 507
-    sections:
-      - System
-      - Tweaks
-      - Development
-      - Terminal Support
-      - Utilities
-      - Themes
-      - Applications
-    uri: https://repo.chariz.com
-    suite: './'
-    component:
-    name: Chariz
-    version: '0.9'
-    description: Check out what’s new and download purchases from the Chariz marketplace!
-    date: '2022-12-21T21:34:22+00:00'
-    paymentGateway:
-    sileoEndpoint: https://chariz.com/api/sileo/
-    isPruned: false
-    origin:
-    originId: clbygdiyf0caqph358tsw9l0d
-    packages:
+    id: amy
+    aliases: 
+    visible: true
+    quality: 3
+    package_count: 0
+    sections: []
+    bootstrap: false
+    uri: https://repo.anamy.gay
+    suite: "./"
+    component: 
+    name: Amy's Repo
+    version: '1.0'
+    description: Amy's Dump of Tweaks
+    date: '2024-06-12T16:00:18'
+    payment_gateway: 
+    sileo_endpoint: 
+    origin_hostname: repo.anamy.gay
+    origin_release_path: "/Release"
+    origin_release_hash: 1f7530bde853c58e89480203455795e6202e699906fd59c55c95d11ab06906c3
+    origin_packages_path: "/Packages.zst"
+    origin_packages_hash: 976342039c0c4c0ff1d2010ad66bb59dc49344f8ed7a468e360600dd42915297
+    origin_last_updated: '2024-07-24T03:04:08.583192'
+    origin_has_in_release: false
+    origin_has_release_gpg: true
+    origin_supports_payment_v1: false
+    origin_supports_payment_v2: false
+    origin_uses_https: true
+    slug: amy
+    tier: 3
+    isBootstrap: false
   refs:
-    meta: https://api.canister.me/v2/jailbreak/package/ws.hbang.newterm2
-    repo: https://api.canister.me/v2/jailbreak/repository/chariz
+    meta: https://api.canister.me/v2/jailbreak/package/com.amywhile.aemulo
+    repo: https://api.canister.me/v2/jailbreak/repository/amy
 descriptions:
-  uuid: Database ID
-  package: Package identifier
-  isCurrent: If this is the latest version of the package
-  isPruned: If this package is pruned/hidden from indexing
-  repositoryTier: Tier ranking of the package repository
-  repositorySlug: Slug of the package repository
+  id: Database ID (Unique hash)
+  package_id: Package identifier
+  latest_version: If this is the latest version of the package
+  visible: If this package is visible
+  quality: The quality of the package's hosting repository
+  repository_id: The ID of the package's hosting repository
   price: Price of the package
-  version: Version of the package
-  architecture: Architecture of the package
-  filename: URL relative to the package repository
-  size: Size of the package in bytes
-  sha256: SHA256 hash of the package
-  name: Name of the package
-  description: Description of the package
-  author: Author of the package
-  maintainer: Maintainer of the package
-  depiction: URL to the package depiction
-  nativeDepiction: URL to the package depiction (Native v2)
-  sileoDepiction: URL to the package depiction (Sileo)
-  header: URL to the package header
-  tintColor: Tint color of the package
-  icon: URL to the package icon
-  section: Section of the package
-  tags: Tags of the package
-  installedSize: Installed size of the package
+  version: Package version
+  architecture: Supported architecture
+  package_filename: Filename of the package on the repository
+  package_size: Download size of the package in bytes
+  sha256_hash: SHA256 hash of the package
+  name: Package name
+  description: Package description
+  author: Package author
+  maintainer: Package maintainer
+  depiction: URL to the package's web depiction
+  native_depiction: URL to the package's native depiction V2
+  sileo_depiction: URL to the package's Sileo depiction
+  header_url: URL to the package's header image
+  tint_color: Tint color of the package (from Sileo)
+  icon_url: URL to the package's icon
+  section: Package section
+  tags: Package tags
+  installed_size: Size of the package when installed in bytes
+  package: Package identifier (legacy)
+  repositoryTier: Package repository tier (legacy)
+  sileoDepiction: Package depiction for Sileo (legacy)
   repository:
-    slug: Slug of the package repository
-    aliases: Aliases of the package repository
-    tier: Tier ranking of the package repository
-    packageCount: Number of packages in the package repository
-    sections: Sections of the package repository
-    uri: URL to the package repository
-    suite: Suite of the package repository
-    component: Component of the package repository
-    name: Name of the package repository
-    version: Version of the package repository
-    description: Description of the package repository
-    date: Date of the package repository
-    paymentGateway: Payment gateway of the package repository
-    sileoEndpoint: Sileo endpoint of the package repository
-    isPruned: If the package repository is pruned/hidden from indexing
-    origin: Origin of the package repository
-    originId: Database ID of the package repository
-    packages: Packages in the package repository
+    id: Repository identifier
+    aliases: Repository aliases
+    visible: If the repository is visible
+    quality: Quality of the repository
+    package_count: Number of packages in the repository
+    sections: Repository sections
+    bootstrap: If the repository is a bootstrap repository
+    uri: URL to the repository
+    suite: Debian APT suite
+    component: Debian APT component 
+    name: Repository name
+    version: Repository version
+    description: Repository description
+    date: Repository last updated date
+    payment_gateway: Repository payment gateway V2 
+    sileo_endpoint: Repository Sileo endpoint 
+    origin_hostname: Hostname of the repository origin
+    origin_release_path: Path to the repository Release file
+    origin_release_hash: Hash of the repository Release file
+    origin_packages_path: Path to the repository Packages file
+    origin_packages_hash: Hash of the repository Packages file
+    origin_last_updated: Last updated date of the repository origin
+    origin_has_in_release: Repository has an InRelease file
+    origin_has_release_gpg: Repository has a Release.gpg file
+    origin_supports_payment_v1: Repository supports payment V1 (Sileo)
+    origin_supports_payment_v2: Repository supports payment V2 (Native)
+    origin_uses_https: Repository uses HTTPS
+    slug: Repository slug (legacy)
+    tier: Repository tier (legacy)
+    isBootstrap: If the repository is a bootstrap repository (legacy)
   refs:
     meta: URL to the package metadata
-    repo: URL to the package repository metadata
+    repo: URL to the repository metadata
 nullables:
-  - sha256
+  - sha256_hash
   - name
   - description
   - author
   - maintainer
   - depiction
-  - nativeDepiction
+  - native_depiction
+  - sileo_depiction
   - sileoDepiction
   - header
-  - tintColor
+  - tint_color
   - icon
   - section
-  - tag
-  - installedSize
+  - tags
+  - installed_size
