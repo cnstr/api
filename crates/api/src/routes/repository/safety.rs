@@ -114,7 +114,7 @@ pub async fn safety_healthy() -> bool {
 		return false;
 	}
 
-	let test_safe = "https://repo.chariz.com";
+	let test_safe = "https://havoc.app";
 	let test_unsafe = "https://repo.hackyouriphone.org";
 
 	let repositories = match REPOSITORIES.get() {

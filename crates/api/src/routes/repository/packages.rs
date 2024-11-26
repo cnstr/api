@@ -111,7 +111,7 @@ pub async fn packages_healthy() -> bool {
                         SELECT * FROM repository
                         WHERE
                             visible = true
-                            AND id = 'chariz'
+                            AND id = 'havoc'
                         LIMIT 1
                     ",
 					&[],
@@ -137,7 +137,8 @@ pub async fn packages_healthy() -> bool {
                         SELECT * FROM package
                         WHERE
                             visible = true
-                            AND repository_id = 'chariz'
+                            AND repository_id = 'havoc'
+                        LIMIT 1000
                     ",
 					&[],
 				)

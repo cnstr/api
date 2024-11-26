@@ -135,7 +135,7 @@ pub async fn search(query: Query<SearchParams>) -> impl IntoResponse {
 
 pub async fn search_healthy() -> bool {
 	let query = TSQuery {
-		q: "chariz".to_string(),
+		q: "havoc".to_string(),
 		query_by: "slug,name,description,aliases".to_string(),
 		sort_by: "tier:asc".to_string(),
 		page: "1".to_string(),

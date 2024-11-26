@@ -67,7 +67,7 @@ pub async fn lookup_healthy() -> bool {
                         SELECT * FROM repository
                         WHERE
                             visible = true
-                            AND id = 'chariz'
+                            AND id = 'havoc'
                         LIMIT 1
                     ",
 					&[],
