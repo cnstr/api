@@ -1,11 +1,9 @@
 use crate::{
-	helpers::responses,
-	services::create_ts,
-	types::Repository,
+	helpers::{pg_client, responses, row_to_value},
 	utility::{api_endpoint, merge_json, page_links},
 };
 use axum::{extract::Query, http::StatusCode, response::IntoResponse};
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use serde_json::{json, Value};
 
 #[derive(Deserialize)]
@@ -13,26 +11,6 @@ pub struct SearchParams {
 	q: Option<String>,
 	limit: Option<u8>,
 	page: Option<u8>,
-}
-
-#[derive(Deserialize, Serialize)]
-struct TSQuery {
-	q: String,
-	query_by: String,
-	sort_by: String,
-	page: String,
-	per_page: String,
-}
-
-#[derive(Deserialize, Serialize)]
-struct TSResponse {
-	found: u32,
-	hits: Vec<Document>,
-}
-
-#[derive(Deserialize, Serialize)]
-struct Document {
-	document: Repository,
 }
 
 pub async fn search(query: Query<SearchParams>) -> impl IntoResponse {
@@ -83,48 +61,71 @@ pub async fn search(query: Query<SearchParams>) -> impl IntoResponse {
 		None => 100,
 	};
 
-	let query = TSQuery {
-		q: q.to_string(),
-		query_by: "slug,name,description,aliases".to_string(),
-		sort_by: "tier:asc".to_string(),
-		page: page.to_string(),
-		per_page: limit.to_string(),
-	};
-
-	let ts = create_ts();
-	let data = match ts
-		.query::<TSResponse>(&query, "/collections/repositories/documents/search")
-		.await
-	{
-		Ok(data) => data,
+	let repositories = match pg_client().await {
+		Ok(pg_client) => {
+			match pg_client
+				.query(
+					"
+                        SELECT *, ts_rank(
+	                        search_vector,
+							plainto_tsquery('simple', $1)
+                        ) AS rank
+                        FROM repository
+                        WHERE
+                            visible = true
+                            AND search_vector @@ plainto_tsquery('simple', $1)
+                        ORDER BY
+                        	rank DESC,
+                         	quality ASC
+                        LIMIT $2 OFFSET $3
+                    ",
+					&[
+						&q.to_string(),
+						&(limit as i64),
+						&(((page - 1) * limit) as i64),
+					],
+				)
+				.await
+			{
+				Ok(rows) => rows,
+				Err(e) => {
+					eprintln!("[db] Failed to query database: {}", e);
+					return responses::error(
+						StatusCode::INTERNAL_SERVER_ERROR,
+						"Failed to query database",
+					);
+				}
+			}
+		}
 		Err(e) => {
-			return e;
+			eprintln!("[db] Failed to query database: {}", e);
+			return responses::error(
+				StatusCode::INTERNAL_SERVER_ERROR,
+				"Failed to query database",
+			);
 		}
 	};
-
-	let repositories = data
-		.hits
-		.iter()
-		.map(|repository| {
-			let repository = &repository.document;
-			return merge_json(
-				repository,
-				json!({
-					"refs": {
-						"meta": format!("{}/jailbreak/repository/{}", api_endpoint(), repository.slug),
-						"packages": format!("{}/jailbreak/repository/{}/packages", api_endpoint(), repository.slug),
-					}
-				}),
-			);
-		})
-		.collect::<Vec<Value>>();
 
 	let next = repositories.len() == limit as usize;
 	let (prev_page, next_page) = page_links("/jailbreak/repository/search", page, next);
 
 	responses::data_with_count_and_refs(
 		StatusCode::OK,
-		&repositories,
+		&repositories
+			.iter()
+			.map(|row| {
+				let id: String = row.get("id");
+				merge_json(
+					row_to_value(row),
+					json!({
+						"refs": {
+							"meta": format!("{}/jailbreak/repository/{}", api_endpoint(), id),
+							"packages": format!("{}/jailbreak/repository/{}/packages", api_endpoint(), id)
+						}
+					}),
+				)
+			})
+			.collect::<Vec<Value>>(),
 		repositories.len(),
 		json!({
 			"nextPage": next_page,
@@ -134,20 +135,32 @@ pub async fn search(query: Query<SearchParams>) -> impl IntoResponse {
 }
 
 pub async fn search_healthy() -> bool {
-	let query = TSQuery {
-		q: "chariz".to_string(),
-		query_by: "slug,name,description,aliases".to_string(),
-		sort_by: "tier:asc".to_string(),
-		page: "1".to_string(),
-		per_page: "100".to_string(),
-	};
-
-	let ts = create_ts();
-	match ts
-		.query::<TSResponse>(&query, "/collections/repositories/documents/search")
-		.await
-	{
-		Ok(_) => true,
+	match pg_client().await {
+		Ok(pg_client) => {
+			match pg_client
+				.query(
+					"
+						SELECT *, ts_rank(
+							search_vector,
+							plainto_tsquery('simple', 'havoc')
+                        ) AS rank
+                        FROM repository
+                        WHERE
+                            visible = true
+                            AND search_vector @@ plainto_tsquery('simple', 'havoc')
+                        ORDER BY
+                        	rank DESC,
+                         	quality ASC
+                        LIMIT 1 OFFSET 0
+                    ",
+					&[],
+				)
+				.await
+			{
+				Ok(_) => true,
+				Err(_) => false,
+			}
+		}
 		Err(_) => false,
 	}
 }

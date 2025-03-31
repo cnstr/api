@@ -1,17 +1,10 @@
 use crate::{
 	helpers::{pg_client, responses},
 	routes,
-	services::create_ts,
 };
 use axum::{http::StatusCode, response::IntoResponse};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
-
-/// Represents the /health response from Typesense
-#[derive(Serialize, Deserialize)]
-struct TypesenseHealth {
-	ok: bool,
-}
 
 /// Represents the output of 'SELECT version();' from Postgres
 #[derive(Serialize, Deserialize)]
@@ -47,12 +40,6 @@ pub async fn health_check() -> impl IntoResponse {
 }
 
 async fn service_healthy() -> (bool, Value) {
-	let ts = create_ts();
-	let typesense_healthy = match ts.query::<TypesenseHealth>(&{}, "health").await {
-		Ok(data) => data.ok,
-		Err(_) => false,
-	};
-
 	let postgres_healthy = match pg_client().await {
 		Ok(client) => match client.query("SELECT version();", &[]).await {
 			Ok(data) => data.len() > 0,
@@ -67,10 +54,9 @@ async fn service_healthy() -> (bool, Value) {
 		}
 	};
 
-	let healthy = typesense_healthy && postgres_healthy;
+	let healthy = postgres_healthy;
 	let value = json!({
 		"healthy": healthy,
-		"typesense_healthy": typesense_healthy,
 		"postgres_healthy": postgres_healthy,
 	});
 

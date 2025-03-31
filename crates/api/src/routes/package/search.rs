@@ -1,11 +1,9 @@
 use crate::{
-	helpers::responses,
-	services::create_ts,
-	types::Package,
+	helpers::{pg_client, responses, row_to_value},
 	utility::{api_endpoint, merge_json, page_links},
 };
 use axum::{extract::Query, http::StatusCode, response::IntoResponse};
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use serde_json::{json, Value};
 
 #[derive(Deserialize)]
@@ -13,26 +11,6 @@ pub struct SearchParams {
 	q: Option<String>,
 	limit: Option<u8>,
 	page: Option<u8>,
-}
-
-#[derive(Deserialize, Serialize)]
-struct TSQuery {
-	q: String,
-	query_by: String,
-	sort_by: String,
-	page: String,
-	per_page: String,
-}
-
-#[derive(Deserialize, Serialize)]
-struct TSResponse {
-	found: u32,
-	hits: Vec<Document>,
-}
-
-#[derive(Deserialize, Serialize)]
-struct Document {
-	document: Package,
 }
 
 pub async fn search(query: Query<SearchParams>) -> impl IntoResponse {
@@ -83,36 +61,63 @@ pub async fn search(query: Query<SearchParams>) -> impl IntoResponse {
 		None => 100,
 	};
 
-	let query = TSQuery {
-		q: q.to_string(),
-		query_by: "name,description,author,maintainer,section".to_string(),
-		sort_by: "_text_match:desc".to_string(),
-		page: page.to_string(),
-		per_page: limit.to_string(),
-	};
-
-	let ts = create_ts();
-	let data = match ts
-		.query::<TSResponse>(&query, "/collections/packages/documents/search")
-		.await
-	{
-		Ok(data) => data,
+	let data = match pg_client().await {
+		Ok(pg_client) => {
+			match pg_client
+				.query(
+					"
+					SELECT *, ts_rank(
+						search_vector,
+						plainto_tsquery('simple', $1)
+					) AS rank
+					FROM package
+					WHERE
+						visible = true
+						AND latest_version = true
+						AND search_vector @@ plainto_tsquery('simple', $1)
+					ORDER BY
+						rank DESC,
+						quality ASC
+					LIMIT $2 OFFSET $3
+				",
+					&[
+						&q.to_string(),
+						&(limit as i64),
+						&(((page - 1) * limit) as i64),
+					],
+				)
+				.await
+			{
+				Ok(rows) => rows,
+				Err(e) => {
+					eprintln!("[db] Failed to query database: {}", e);
+					return responses::error(
+						StatusCode::INTERNAL_SERVER_ERROR,
+						"Failed to query database",
+					);
+				}
+			}
+		}
 		Err(e) => {
-			return e;
+			eprintln!("[db] Failed to query database: {}", e);
+			return responses::error(
+				StatusCode::INTERNAL_SERVER_ERROR,
+				"Failed to query database",
+			);
 		}
 	};
 
 	let mut packages = data
-		.hits
 		.iter()
-		.map(|package| {
-			let package = &package.document;
+		.map(|row| {
+			let package_id: String = row.get("package_id");
+			let repository_id: String = row.get("repository_id");
 			return merge_json(
-				package,
+				row_to_value(row),
 				json!({
 					"refs": {
-						"meta": format!("{}/jailbreak/package/{}", api_endpoint(), package.package_id),
-						"repo": format!("{}/jailbreak/repository/{}", api_endpoint(), package.repository_id),
+						"meta": format!("{}/jailbreak/package/{}", api_endpoint(), package_id),
+						"repo": format!("{}/jailbreak/repository/{}", api_endpoint(), repository_id),
 					}
 				}),
 			);
@@ -149,20 +154,33 @@ pub async fn search(query: Query<SearchParams>) -> impl IntoResponse {
 }
 
 pub async fn search_healthy() -> bool {
-	let query = TSQuery {
-		q: "newterm".to_string(),
-		query_by: "name,description,author,maintainer,section".to_string(),
-		sort_by: "_text_match:desc".to_string(),
-		page: "1".to_string(),
-		per_page: "100".to_string(),
-	};
-
-	let ts = create_ts();
-	match ts
-		.query::<TSResponse>(&query, "/collections/packages/documents/search")
-		.await
-	{
-		Ok(_) => true,
+	match pg_client().await {
+		Ok(pg_client) => {
+			match pg_client
+				.query(
+					"
+						SELECT *, ts_rank(
+							search_vector,
+							plainto_tsquery('simple', 'crane')
+						) AS rank
+						FROM package
+						WHERE
+							visible = true
+							AND latest_version = true
+							AND search_vector @@ plainto_tsquery('simple', 'crane')
+						ORDER BY
+							rank DESC,
+							quality ASC
+						LIMIT 1 OFFSET 0
+                    ",
+					&[],
+				)
+				.await
+			{
+				Ok(_) => true,
+				Err(_) => false,
+			}
+		}
 		Err(_) => false,
 	}
 }

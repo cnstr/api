@@ -9,12 +9,10 @@ use axum::{
 use chrono::Utc;
 use sentry::{capture_message, init, integrations::anyhow::capture_anyhow, ClientOptions, Level};
 use serde_json::json;
-use services::create_ts;
 use std::{net::SocketAddr, process::exit, sync::OnceLock};
 
 mod helpers;
 mod routes;
-mod services;
 mod types;
 mod utility;
 
@@ -46,12 +44,6 @@ async fn main() {
 	if let Err(e) = create_db().await {
 		capture_anyhow(&e);
 		eprintln!("[indexer] failed to connect to postgres: {}", e);
-		exit(1);
-	}
-
-	if let Err(e) = create_ts().connect().await {
-		capture_anyhow(&e);
-		eprintln!("[indexer] failed to connect to typesense: {}", e);
 		exit(1);
 	}
 
