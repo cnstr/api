@@ -80,3 +80,7 @@ nullables:
   - date
   - payment_gateway
   - sileo_endpoint
+deprecated:
+  - tier
+  - slug
+  - isBootstrap

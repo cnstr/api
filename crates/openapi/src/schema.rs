@@ -10,6 +10,7 @@ pub struct Schema {
 	pub schema: Map<String, Value>,
 	pub descriptions: Map<String, Value>,
 	pub nullables: Option<Vec<String>>,
+	pub deprecated: Option<Vec<String>>,
 }
 
 /// Generates the OpenAPI compliant schema from the provided options
@@ -20,7 +21,17 @@ pub fn generate_schema(mut options: Schema) -> Value {
 		None => Vec::<String>::new(),
 	};
 
-	let schema = translate_schema(&mut options.schema, &mut options.descriptions, &nullables);
+	let deprecated = match options.deprecated {
+		Some(options) => options,
+		None => Vec::<String>::new(),
+	};
+
+	let schema = translate_schema(
+		&mut options.schema,
+		&mut options.descriptions,
+		&nullables,
+		&deprecated,
+	);
 	json!({ options.schema_name: schema })
 }
 
@@ -30,6 +41,7 @@ fn translate_schema(
 	schema: &mut Map<String, Value>,
 	descriptions: &mut Map<String, Value>,
 	nullables: &Vec<String>,
+	deprecated: &Vec<String>,
 ) -> Value {
 	let mut openapi_properties = HashMap::<&str, Value>::new();
 
@@ -44,6 +56,7 @@ fn translate_schema(
 						None => panic!("Missing description for {}", key),
 					},
 					"nullable": nullables.contains(key),
+					"deprecated": deprecated.contains(key),
 					"items": {
 						"type": "string"
 					}
@@ -70,7 +83,12 @@ fn translate_schema(
 
 			openapi_properties.insert(
 				key,
-				translate_schema(&mut sub_object, &mut sub_descriptions, nullables),
+				translate_schema(
+					&mut sub_object,
+					&mut sub_descriptions,
+					nullables,
+					deprecated,
+				),
 			);
 			continue;
 		}
@@ -85,6 +103,7 @@ fn translate_schema(
 				"type": get_type(value),
 				"example": value,
 				"nullable": nullables.contains(key),
+				"deprecated": deprecated.contains(key),
 				"description": match descriptions.get(key) {
 					Some(description) => description,
 					None => panic!("Missing description for {}", key),

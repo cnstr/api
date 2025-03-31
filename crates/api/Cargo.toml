@@ -1,6 +1,6 @@
 [package]
 name = "api"
-version = "2.4.42"
+version = "2.4.43"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
@@ -22,7 +22,7 @@ tokio = { version = "1.23.0", features = ["full"] }
 url = "2.3.1"
 
 [build-dependencies]
-openapi = { version = "2.0.0", path = "../openapi" }
+openapi = { version = "3.0.0", path = "../openapi" }
 reqwest = { version = "0.11.13", features = ["blocking", "json"] }
 chrono = "0.4.24"
 serde = "1.0.152"

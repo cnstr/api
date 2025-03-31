@@ -142,3 +142,10 @@ nullables:
   - section
   - tags
   - installed_size
+deprecated:
+  - package
+  - repositoryTier
+  - sileoDepiction
+  - slug
+  - tier
+  - isBootstrap
