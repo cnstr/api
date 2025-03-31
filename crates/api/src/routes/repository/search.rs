@@ -64,21 +64,24 @@ pub async fn search(query: Query<SearchParams>) -> impl IntoResponse {
 	let repositories = match pg_client().await {
 		Ok(pg_client) => {
 			match pg_client
+				// Need to support our legacy fields
 				.query(
 					"
-                        SELECT *, ts_rank(
-	                        search_vector,
-							plainto_tsquery('simple', $1)
-                        ) AS rank
-                        FROM repository
-                        WHERE
-                            visible = true
-                            AND search_vector @@ plainto_tsquery('simple', $1)
-                        ORDER BY
-                        	rank DESC,
-                         	quality ASC
-                        LIMIT $2 OFFSET $3
-                    ",
+							SELECT
+								*,
+								repository.id AS slug,
+								repository.quality AS tier,
+								repository.bootstrap AS isBootstrap,
+								ts_rank(search_vector, plainto_tsquery('simple', $1)) AS rank
+							FROM repository
+							WHERE
+								visible = true
+								AND search_vector @@ plainto_tsquery('simple', $1)
+							ORDER BY
+								rank DESC,
+								quality ASC
+							LIMIT $2 OFFSET $3
+	                ",
 					&[
 						&q.to_string(),
 						&(limit as i64),

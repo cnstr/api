@@ -61,23 +61,33 @@ pub async fn search(query: Query<SearchParams>) -> impl IntoResponse {
 		None => 100,
 	};
 
-	let data = match pg_client().await {
+	let packages = match pg_client().await {
 		Ok(pg_client) => {
 			match pg_client
+				// Support our legacy fields
 				.query(
 					"
-					SELECT *, ts_rank(
-						search_vector,
-						plainto_tsquery('simple', $1)
-					) AS rank
+					SELECT
+						package.*,
+						package.package_id AS package,
+						package.quality AS repositoryTier,
+						package.sileo_depiction AS sileoDepiction,
+						ts_rank(package.search_vector, plainto_tsquery('simple', $1)) AS rank,
+						(to_jsonb(repository) || jsonb_build_object(
+							'slug', repository.id,
+							'tier', repository.quality,
+							'isBootstrap', repository.bootstrap
+						)) AS repository
 					FROM package
+					RIGHT JOIN
+						repository ON repository.id = package.repository_id
 					WHERE
-						visible = true
+						package.visible = true
 						AND latest_version = true
-						AND search_vector @@ plainto_tsquery('simple', $1)
+						AND package.search_vector @@ plainto_tsquery('simple', $1)
 					ORDER BY
 						rank DESC,
-						quality ASC
+						package.quality ASC
 					LIMIT $2 OFFSET $3
 				",
 					&[
@@ -107,13 +117,19 @@ pub async fn search(query: Query<SearchParams>) -> impl IntoResponse {
 		}
 	};
 
-	let mut packages = data
+	let mut packages = packages
 		.iter()
 		.map(|row| {
 			let package_id: String = row.get("package_id");
 			let repository_id: String = row.get("repository_id");
+
+			// We need to attach repository to the package
+			let repository: Value = row.get("repository");
+			let mut value = row_to_value(row);
+			value["repository"] = repository;
+
 			return merge_json(
-				row_to_value(row),
+				value,
 				json!({
 					"refs": {
 						"meta": format!("{}/jailbreak/package/{}", api_endpoint(), package_id),
